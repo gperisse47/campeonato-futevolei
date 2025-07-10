@@ -34,6 +34,13 @@ type PlayoffBracket = {
   [round: string]: PlayoffMatch[];
 };
 
+const roundNames: { [key: number]: string } = {
+  2: 'Final',
+  4: 'Semifinais',
+  8: 'Quartas de Final',
+  16: 'Oitavas de Final'
+};
+
 export function GroupGenerator() {
   const [isLoading, setIsLoading] = useState(false)
   const [tournamentData, setTournamentData] = useState<TournamentData | null>(null)
@@ -110,13 +117,7 @@ export function GroupGenerator() {
   
     let round = 1;
     let teamsInRound = totalQualifiers;
-    const roundNames: { [key: number]: string } = {
-      2: 'Final',
-      4: 'Semifinais',
-      8: 'Quartas de Final',
-      16: 'Oitavas de Final'
-    };
-  
+    
     let currentRoundTeams = [...teamPlaceholders];
     while (teamsInRound >= 2) {
       const roundName = roundNames[teamsInRound] || `Rodada ${round}`;
@@ -166,21 +167,23 @@ export function GroupGenerator() {
     const newPlayoffs = JSON.parse(JSON.stringify(playoffs)) as PlayoffBracket;
     let losers: { [roundName: string]: { [matchIndex: number]: Team } } = { 'Semifinais': {} };
 
-    const roundOrder = Object.keys(roundNames)
-        .map(Number)
-        .sort((a,b) => b-a)
-        .map(key => roundNames[key])
-        .filter(name => newPlayoffs[name]);
+    const getRoundNameForTeams = (numTeams: number) => roundNames[numTeams] || null;
+    
+    const roundOrder = Object.keys(newPlayoffs)
+      .map(roundName => ({
+        name: roundName,
+        teams: Object.values(roundNames).includes(roundName)
+          ? parseInt(Object.entries(roundNames).find(([, name]) => name === roundName)![0])
+          : 0,
+      }))
+      .sort((a, b) => b.teams - a.teams)
+      .map(r => r.name)
+      .filter(name => name !== 'Disputa de 3º Lugar');
 
-    if (newPlayoffs['Disputa de 3º Lugar']) {
-        roundOrder.push('Disputa de 3º Lugar');
-    }
 
     let previousRoundName: string | null = null;
     
     roundOrder.forEach(roundName => {
-        if (roundName === 'Disputa de 3º Lugar') return;
-
         const matches = newPlayoffs[roundName];
         matches.forEach((match, matchIndex) => {
             // Assign teams for the first round from group stage
@@ -188,7 +191,7 @@ export function GroupGenerator() {
                 if (qualifiedTeams[match.team1Placeholder]) match.team1 = qualifiedTeams[match.team1Placeholder];
                 if (qualifiedTeams[match.team2Placeholder]) match.team2 = qualifiedTeams[match.team2Placeholder];
             } else { // Assign teams from previous playoff round
-                const prevRoundMatches = newPlayoffs[previousRoundName];
+                const prevRoundMatches = newPlayoffs[previousRoundName!];
                 
                 const team1WinnerMatch = prevRoundMatches[matchIndex * 2];
                 if (team1WinnerMatch?.score1 !== undefined && team1WinnerMatch?.score2 !== undefined) {
@@ -350,7 +353,7 @@ export function GroupGenerator() {
   useEffect(() => {
     updatePlayoffs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournamentData, JSON.stringify(playoffs?.['Quartas de Final']), JSON.stringify(playoffs?.['Semifinais'])]
+  }, [tournamentData, JSON.stringify(playoffs?.['Quartas de Final']), JSON.stringify(playoffs?.['Semifinais']), JSON.stringify(playoffs?.['Final'])]
 );
   
   const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => (
@@ -628,7 +631,12 @@ export function GroupGenerator() {
                          <CardDescription>Chaveamento gerado com base na classificação dos grupos.</CardDescription>
                        </CardHeader>
                        <CardContent className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12 p-6 overflow-x-auto">
-                         {Object.entries(playoffs).map(([roundName, matches]) => (
+                       {Object.entries(playoffs)
+                        .sort(([roundNameA], [roundNameB]) => {
+                            const order = ['Quartas de Final', 'Semifinais', 'Disputa de 3º Lugar', 'Final'];
+                            return order.indexOf(roundNameA) - order.indexOf(roundNameB);
+                        })
+                        .map(([roundName, matches]) => (
                             <div key={roundName} className="flex flex-col items-center gap-6">
                                 <h4 className="text-lg font-semibold text-center text-primary whitespace-nowrap">{roundName}</h4>
                                 <div className="flex flex-col gap-10">
@@ -655,5 +663,3 @@ export function GroupGenerator() {
     </div>
   )
 }
-
-    
