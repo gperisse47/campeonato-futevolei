@@ -34,13 +34,13 @@ export default function Home() {
     <div className="flex flex-col gap-8 items-center text-center">
       <div className="flex flex-col gap-2">
          <div className="flex items-center justify-center gap-3">
-             <div className="p-2 rounded-lg bg-primary text-primary-foreground">
+            <div className="p-2 rounded-lg bg-primary text-primary-foreground">
                 <Trophy className="h-8 w-8" />
             </div>
             <h1 className="text-4xl font-bold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h1>
          </div>
         <p className="text-muted-foreground text-lg">
-          Acompanhe os torneios, jogos e classificações em tempo real.
+          Acompanhe os jogos e classificações em tempo real.
         </p>
       </div>
 
