@@ -45,6 +45,8 @@ export function GroupGenerator() {
     },
   })
 
+  const numberOfTeams = form.watch("numberOfTeams")
+
   const teamToKey = (team: Team) => `${team.player1} e ${team.player2}`;
 
   const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
@@ -216,7 +218,7 @@ export function GroupGenerator() {
                       <FormItem>
                         <FormLabel>Nº de Duplas</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -229,7 +231,7 @@ export function GroupGenerator() {
                       <FormItem>
                         <FormLabel>Nº de Grupos</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -243,13 +245,23 @@ export function GroupGenerator() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Duplas (uma por linha)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Jogador A e Jogador B\nJogador C e Jogador D"
-                          className="min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
+                      <div className="flex gap-2">
+                        <div className="w-8 flex-shrink-0 space-y-2 pt-2">
+                          {Array.from({ length: numberOfTeams > 0 ? numberOfTeams : 0 }, (_, i) => (
+                            <div key={i} className="flex h-5 items-center justify-end text-sm text-muted-foreground">
+                              {i + 1}
+                            </div>
+                          ))}
+                        </div>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Jogador A e Jogador B"
+                            className="min-h-[120px] resize-none"
+                            style={{ height: `${Math.max(120, (numberOfTeams || 0) * 28)}px` }}
+                            {...field}
+                          />
+                        </FormControl>
+                      </div>
                       <FormDescription>
                         Use o formato: Jogador1 e Jogador2
                       </FormDescription>
@@ -257,6 +269,7 @@ export function GroupGenerator() {
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="groupFormationStrategy"
