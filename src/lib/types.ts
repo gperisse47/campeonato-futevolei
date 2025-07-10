@@ -46,6 +46,7 @@ export const globalSettingsSchema = z.object({
       .int("Deve ser um número inteiro.")
       .positive("A duração deve ser positiva."),
   courts: z.array(courtSchema).min(1, "Deve haver pelo menos uma quadra."),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
 });
 export type GlobalSettings = z.infer<typeof globalSettingsSchema>;
 
@@ -70,7 +71,6 @@ export const formSchema = z
       required_error: "A estratégia de formação é obrigatória.",
     }),
     includeThirdPlace: z.boolean().default(true),
-    // Scheduling
     startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
     updatedAt: z.string().optional(),
   })

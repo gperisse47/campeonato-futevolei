@@ -41,7 +41,7 @@ export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingGlobal, setIsSavingGlobal] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "09:00", estimatedMatchDuration: 40, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -112,6 +112,7 @@ Olavo e Dudu`,
   const globalSettingsForm = useFormGlobal<GlobalSettings>({
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: {
+        startTime: "09:00",
         estimatedMatchDuration: 40,
         courts: [],
     }
@@ -127,10 +128,13 @@ Olavo e Dudu`,
   const tournamentType = form.watch("tournamentType");
 
   useEffect(() => {
+    const teamsList = form.watch('teams').split('\n').map(t => t.trim()).filter(Boolean);
+    form.setValue('numberOfTeams', teamsList.length, { shouldValidate: true });
+
     if (tournamentType === 'doubleElimination') {
       form.setValue('includeThirdPlace', true, { shouldValidate: true });
     }
-  }, [tournamentType, form]);
+  }, [form.watch('teams'), tournamentType, form]);
 
   const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
     return groups.map(group => {
@@ -635,17 +639,24 @@ Olavo e Dudu`,
         return count;
     };
 
+    // Use global start time
+    const globalSettings = tournaments._globalSettings;
+    const categorySpecificFormValues = {
+        ...values,
+        startTime: globalSettings.startTime || "09:00",
+    }
+
     let newCategoryData: CategoryData = {
         tournamentData: null,
         playoffs: null,
-        formValues: values,
+        formValues: categorySpecificFormValues,
     };
 
     const tempTournaments = { ...tournaments, [categoryName]: newCategoryData };
     setTournaments(tempTournaments);
 
     if (values.tournamentType === 'doubleElimination') {
-        const finalPlayoffs = initializeDoubleEliminationBracket(values);
+        const finalPlayoffs = initializeDoubleEliminationBracket(categorySpecificFormValues);
         
         newCategoryData.playoffs = finalPlayoffs;
     } else {
@@ -685,9 +696,9 @@ Olavo e Dudu`,
 
         if (values.tournamentType === 'groups') {
             newCategoryData.tournamentData = { groups: initializeStandings(result.data.groups) };
-            newCategoryData.playoffs = initializePlayoffs(values, result.data);
+            newCategoryData.playoffs = initializePlayoffs(categorySpecificFormValues, result.data);
         } else if (values.tournamentType === 'singleElimination') {
-            newCategoryData.playoffs = initializePlayoffs(values, result.data);
+            newCategoryData.playoffs = initializePlayoffs(categorySpecificFormValues, result.data);
         }
     }
     
@@ -797,6 +808,19 @@ Olavo e Dudu`,
           <CardContent>
               <Form {...globalSettingsForm}>
                   <form onSubmit={globalSettingsForm.handleSubmit(handleSaveGlobalSettings)} className="space-y-6">
+                       <FormField
+                            control={globalSettingsForm.control}
+                            name="startTime"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Horário de Início do Torneio</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                        <FormField
                             control={globalSettingsForm.control}
                             name="estimatedMatchDuration"
@@ -921,7 +945,7 @@ Olavo e Dudu`,
                     <FormItem>
                       <FormLabel>Nº de Duplas</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                        <Input type="number" {...field} readOnly className="bg-muted" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -958,27 +982,6 @@ Olavo e Dudu`,
                           />
                   </div>
               )}
-              
-              <Separator />
-              
-              <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Configurações da Categoria</h3>
-                  <FormField
-                    control={form.control}
-                    name="startTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Horário de Início da Categoria</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-              </div>
-
-              <Separator />
              
               <FormField
                 control={form.control}
@@ -1018,7 +1021,7 @@ Olavo e Dudu`,
                         <div className="flex items-center space-x-3 space-y-0">
                             <RadioGroupItem value="order" id="order"/>
                           <Label htmlFor="order" className="font-normal">
-                            Ordem
+                            Ordem (Cabeças de chave)
                           </Label>
                         </div>
                         <div className="flex items-center space-x-3 space-y-0">
