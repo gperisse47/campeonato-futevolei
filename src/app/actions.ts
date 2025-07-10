@@ -2,8 +2,8 @@
 
 import {
   generateTournamentGroups,
-  type GenerateTournamentGroupsInput,
   type GenerateTournamentGroupsOutput,
+  type GenerateTournamentGroupsInput
 } from "@/ai/flows/generate-tournament-groups"
 
 export async function generateGroupsAction(
