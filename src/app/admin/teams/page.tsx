@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, Users } from "lucide-react";
 import type { Team, TournamentsState, CategoryData } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
+import { useAuth } from "@/context/AuthContext";
+import { LoginPage } from "@/components/login-page";
 
 type TeamWithCategory = {
   team: Team;
@@ -17,61 +19,78 @@ type TeamWithCategory = {
 export default function TeamsPage() {
   const [teams, setTeams] = useState<TeamWithCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
-    const loadTeams = async () => {
-        try {
-            const savedTournaments = await getTournaments();
-            if (savedTournaments) {
-                const allTeams: TeamWithCategory[] = [];
+    if (isAuthenticated) {
+        const loadTeams = async () => {
+            try {
+                const savedTournaments = await getTournaments();
+                if (savedTournaments) {
+                    const allTeams: TeamWithCategory[] = [];
 
-                for (const categoryName in savedTournaments) {
-                    if (categoryName === '_globalSettings') continue;
+                    for (const categoryName in savedTournaments) {
+                        if (categoryName === '_globalSettings') continue;
 
-                    const categoryData = savedTournaments[categoryName] as CategoryData;
-                    let teamsToProcess: Team[] = [];
+                        const categoryData = savedTournaments[categoryName] as CategoryData;
+                        let teamsToProcess: Team[] = [];
 
-                    if (categoryData.tournamentData?.groups) {
-                         categoryData.tournamentData.groups.forEach(group => {
-                            teamsToProcess.push(...group.teams);
-                        });
-                    } else if (categoryData.formValues?.teams) {
-                        teamsToProcess = categoryData.formValues.teams
-                            .split("\n")
-                            .map((t: string) => t.trim())
-                            .filter(Boolean)
-                            .map((teamString: string) => {
-                                const players = teamString.split(" e ").map((p) => p.trim())
-                                return { player1: players[0] || '', player2: players[1] || '' }
+                        if (categoryData.tournamentData?.groups) {
+                            categoryData.tournamentData.groups.forEach(group => {
+                                teamsToProcess.push(...group.teams);
                             });
+                        } else if (categoryData.formValues?.teams) {
+                            teamsToProcess = categoryData.formValues.teams
+                                .split("\n")
+                                .map((t: string) => t.trim())
+                                .filter(Boolean)
+                                .map((teamString: string) => {
+                                    const players = teamString.split(" e ").map((p) => p.trim())
+                                    return { player1: players[0] || '', player2: players[1] || '' }
+                                });
+                        }
+                        
+                        teamsToProcess.forEach(team => {
+                            allTeams.push({ team, category: categoryName });
+                        });
                     }
                     
-                    teamsToProcess.forEach(team => {
-                        allTeams.push({ team, category: categoryName });
-                    });
+                    const uniqueTeams = allTeams.filter((v,i,a)=>a.findIndex(t=>(t.team.player1 === v.team.player1 && t.team.player2 === v.team.player2 && t.category === v.category))===i)
+                    setTeams(uniqueTeams);
                 }
-                
-                const uniqueTeams = allTeams.filter((v,i,a)=>a.findIndex(t=>(t.team.player1 === v.team.player1 && t.team.player2 === v.team.player2 && t.category === v.category))===i)
-                setTeams(uniqueTeams);
+            } catch (error) {
+                console.error("Failed to load teams from DB", error);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error("Failed to load teams from DB", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    loadTeams();
-  }, []);
+        };
+        
+        loadTeams();
+    } else if (!isAuthLoading) {
+        setIsLoading(false);
+    }
+  }, [isAuthenticated, isAuthLoading]);
 
   const teamToKey = (team: Team) => `${team.player1}-${team.player2}`;
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center">
             <Users className="mr-2 h-8 w-8" />
-            Duplas Inscritas
+            Gerenciador de Duplas
         </h1>
         <p className="text-muted-foreground">
           Lista de todas as duplas inscritas em cada categoria do torneio.

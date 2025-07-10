@@ -31,7 +31,7 @@ export default function TournamentManagerPage() {
         <p className="text-muted-foreground">
           Gerencie os jogos, resultados e horários das categorias existentes. Para criar uma nova, vá para o {' '}
           <Button variant="link" asChild className="p-0 h-auto">
-             <Link href="/admin">Painel do Administrador</Link>
+             <Link href="/admin">Painel de Criação</Link>
           </Button>.
         </p>
       </div>
