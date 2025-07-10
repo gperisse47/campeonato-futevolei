@@ -65,14 +65,22 @@ export async function generateGroupsAction(
   error?: string
 }> {
   try {
-    const output = await generateTournamentGroups(input)
-    if (!output.groups || output.groups.length === 0) {
-      return { success: false, error: "A IA não conseguiu gerar os grupos. Tente novamente." }
+    const output = await generateTournamentGroups(input);
+
+    if (input.tournamentType === 'groups') {
+      if (!output.groups || output.groups.length === 0) {
+        return { success: false, error: "A IA não conseguiu gerar os grupos. Tente novamente." };
+      }
+    } else if (input.tournamentType === 'singleElimination') {
+      if (!output.playoffMatches || output.playoffMatches.length === 0) {
+        return { success: false, error: "A IA não conseguiu gerar o chaveamento. Tente novamente." };
+      }
     }
-    return { success: true, data: output }
+
+    return { success: true, data: output };
   } catch (e: any) {
-    console.error(e)
-    return { success: false, error: e.message || "Ocorreu um erro desconhecido." }
+    console.error(e);
+    return { success: false, error: e.message || "Ocorreu um erro desconhecido." };
   }
 }
 
