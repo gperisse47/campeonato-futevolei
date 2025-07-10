@@ -25,8 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
         console.error("Could not access sessionStorage:", error);
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (password: string): Promise<boolean> => {

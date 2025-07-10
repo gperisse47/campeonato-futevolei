@@ -7,7 +7,11 @@ export function useIsMobile() {
 
   React.useEffect(() => {
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      try {
+        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      } catch (e) {
+        setIsMobile(false);
+      }
     }
     checkIsMobile(); // Check on mount
     window.addEventListener("resize", checkIsMobile)
