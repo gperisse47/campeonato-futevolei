@@ -673,7 +673,7 @@
       "numberOfTeams": 12,
       "numberOfGroups": 4,
       "teamsPerGroupToAdvance": 2,
-      "teams": "Sosô e Neves\nIngrid e Yan\nJu e Russo\nStella e Caslu\nRenata e João\nClara e Peri\nGabe e Bia\nSartoratto e Rebeca\nGabi Queiroz e Gularte\nIsa Liron e Carelli\nFabi e Alex\nMarina e Henrique",
+      "teams": "Sosô e Neves\nIngrid e Yan\nJu e Russo\nStella e Caslu\nRenata e João\nClara e Peri\nGabe e Bia\nSartoratto e Rebeca\nGabi Q. e Gularte\nIsa L. e Carelli\nFabi e Alex\nMarina e Henrique",
       "groupFormationStrategy": "balanced",
       "includeThirdPlace": true,
       "startTime": "09:00"
@@ -946,11 +946,11 @@
           "matches": [
             {
               "team1": {
-                "player1": "Gabi Queiroz",
+                "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
               "team2": {
-                "player1": "Isa Liron",
+                "player1": "Isa L.",
                 "player2": "Carelli"
               },
               "time": "",
@@ -958,7 +958,7 @@
             },
             {
               "team1": {
-                "player1": "Gabi Queiroz",
+                "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
               "team2": {
@@ -969,7 +969,7 @@
             },
             {
               "team1": {
-                "player1": "Gabi Queiroz",
+                "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
               "team2": {
@@ -980,7 +980,7 @@
             },
             {
               "team1": {
-                "player1": "Isa Liron",
+                "player1": "Isa L.",
                 "player2": "Carelli"
               },
               "team2": {
@@ -991,7 +991,7 @@
             },
             {
               "team1": {
-                "player1": "Isa Liron",
+                "player1": "Isa L.",
                 "player2": "Carelli"
               },
               "team2": {
@@ -1015,11 +1015,11 @@
           "name": "Group C",
           "teams": [
             {
-              "player1": "Gabi Queiroz",
+              "player1": "Gabi Q.",
               "player2": "Gularte"
             },
             {
-              "player1": "Isa Liron",
+              "player1": "Isa L.",
               "player2": "Carelli"
             },
             {
@@ -1034,7 +1034,7 @@
           "standings": [
             {
               "team": {
-                "player1": "Gabi Queiroz",
+                "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
               "played": 0,
@@ -1044,7 +1044,7 @@
             },
             {
               "team": {
-                "player1": "Isa Liron",
+                "player1": "Isa L.",
                 "player2": "Carelli"
               },
               "played": 0,

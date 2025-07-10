@@ -108,9 +108,6 @@ Olavo e Dudu`,
   const tournamentType = form.watch("tournamentType");
 
   useEffect(() => {
-    const teamsList = form.watch('teams').split('\n').map(t => t.trim()).filter(Boolean);
-    form.setValue('numberOfTeams', teamsList.length, { shouldValidate: true });
-
     if (tournamentType === 'doubleElimination') {
       form.setValue('includeThirdPlace', true, { shouldValidate: true });
     }
@@ -741,7 +738,7 @@ Olavo e Dudu`,
                   <FormItem>
                     <FormLabel>Nº de Duplas</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} readOnly />
+                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
