@@ -83,11 +83,12 @@ export const formSchema = z
   .refine(
     (data) => {
       if (data.numberOfTeams <= 0 || data.numberOfGroups <= 0) return true; // Avoid division by zero if other validations fail
-      const teamsPerGroup = Math.ceil(data.numberOfTeams / data.numberOfGroups);
-      return data.teamsPerGroupToAdvance <= teamsPerGroup;
+      // The number of advancing teams must be less than the number of teams in the smallest group.
+      const teamsInSmallestGroup = Math.floor(data.numberOfTeams / data.numberOfGroups);
+      return teamsInSmallestGroup > 0 && data.teamsPerGroupToAdvance < teamsInSmallestGroup;
     },
     {
-        message: "O número de classificados não pode ser maior que o número de duplas no grupo.",
+        message: "O número de classificados deve ser menor que o número de duplas em qualquer grupo.",
         path: ["teamsPerGroupToAdvance"],
     }
   );
