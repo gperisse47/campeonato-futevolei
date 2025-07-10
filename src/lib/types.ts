@@ -1,3 +1,4 @@
+
 import type {
   GenerateTournamentGroupsInput as AIGenerateTournamentGroupsInput,
   GenerateTournamentGroupsOutput as AIGenerateTournamentGroupsOutput,
@@ -147,3 +148,19 @@ export type PlayoffMatch = {
   score1?: number;
   score2?: number;
 };
+
+export type PlayoffBracket = {
+  [round: string]: PlayoffMatch[];
+};
+
+export type CategoryData = {
+  tournamentData: TournamentData | null;
+  playoffs: PlayoffBracket | null;
+  formValues: TournamentFormValues;
+}
+
+export type TournamentsState = {
+  [categoryName: string]: CategoryData;
+}
+
+    

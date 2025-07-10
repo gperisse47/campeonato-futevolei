@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy } from "lucide-react"
 
 import { generateGroupsAction } from "@/app/actions"
-import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput } from "@/lib/types"
+import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -39,17 +39,6 @@ type PlayoffBracket = {
   [round: string]: PlayoffMatch[];
 };
 
-type CategoryData = {
-  tournamentData: TournamentData | null;
-  playoffs: PlayoffBracket | null;
-  formValues: TournamentFormValues;
-}
-
-type TournamentsState = {
-  [categoryName: string]: CategoryData;
-}
-
-
 const roundNames: { [key: number]: string } = {
   2: 'Final',
   4: 'Semifinal',
@@ -61,8 +50,37 @@ export function GroupGenerator() {
   const [isLoading, setIsLoading] = useState(false)
   const [tournaments, setTournaments] = useState<TournamentsState>({})
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
 
   const { toast } = useToast()
+
+  useEffect(() => {
+    try {
+      const savedTournaments = localStorage.getItem('tournaments');
+      if (savedTournaments) {
+        const parsedTournaments = JSON.parse(savedTournaments);
+        setTournaments(parsedTournaments);
+        const categories = Object.keys(parsedTournaments);
+        if (categories.length > 0) {
+          setActiveTab(categories[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load tournaments from localStorage", error);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      try {
+        localStorage.setItem('tournaments', JSON.stringify(tournaments));
+      } catch (error) {
+        console.error("Failed to save tournaments to localStorage", error);
+      }
+    }
+  }, [tournaments, isLoaded]);
 
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(formSchema),
@@ -76,8 +94,6 @@ export function GroupGenerator() {
       includeThirdPlace: true,
     },
   })
-
-  const { teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace, numberOfTeams } = form.watch()
   
   const activeCategoryData = activeTab ? tournaments[activeTab] : null;
   const activeTournamentData = activeCategoryData?.tournamentData;
@@ -495,7 +511,7 @@ export function GroupGenerator() {
           {(!isFinalRound || (isFinalRound && activePlayoffs && activePlayoffs[roundName]?.length > 1)) && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
           <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
               <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'flex-1' : 'w-full'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
+                  <span className={`text-left truncate pr-2 text-sm flex-1`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
                   <Input
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
@@ -506,7 +522,7 @@ export function GroupGenerator() {
               </div>
               <div className="text-muted-foreground text-xs text-center py-1">vs</div>
               <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'flex-1' : 'w-full'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
+                  <span className={`text-left truncate pr-2 text-sm flex-1`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
                   <Input
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
@@ -589,6 +605,14 @@ export function GroupGenerator() {
     setActiveTab(value);
   };
 
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex flex-col gap-8">
@@ -668,7 +692,7 @@ export function GroupGenerator() {
                         <Textarea
                           placeholder="Jogador A e Jogador B"
                           className="min-h-[120px] resize-y"
-                          rows={numberOfTeams > 0 ? numberOfTeams : 4}
+                          rows={form.watch('numberOfTeams') > 0 ? form.watch('numberOfTeams') : 4}
                           {...field}
                         />
                       </FormControl>
@@ -881,3 +905,5 @@ export function GroupGenerator() {
     </div>
   )
 }
+
+    
