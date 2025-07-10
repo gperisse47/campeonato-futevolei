@@ -1112,7 +1112,7 @@
       "upper": {
         "Upper Rodada 1": [
           {
-            "id": "U-R1-1",
+            "id": "U-R1-Jogo1",
             "name": "Upper Rodada 1 Jogo 1",
             "team1": {
               "player1": "Peri",
@@ -1128,7 +1128,7 @@
             "roundOrder": 4
           },
           {
-            "id": "U-R1-2",
+            "id": "U-R1-Jogo2",
             "name": "Upper Rodada 1 Jogo 2",
             "team1": {
               "player1": "Fabinho",
@@ -1144,7 +1144,7 @@
             "roundOrder": 4
           },
           {
-            "id": "U-R1-3",
+            "id": "U-R1-Jogo3",
             "name": "Upper Rodada 1 Jogo 3",
             "team1": {
               "player1": "Caslu",
@@ -1160,7 +1160,7 @@
             "roundOrder": 4
           },
           {
-            "id": "U-R1-4",
+            "id": "U-R1-Jogo4",
             "name": "Upper Rodada 1 Jogo 4",
             "team1": {
               "player1": "Alex",
@@ -1176,7 +1176,7 @@
             "roundOrder": 4
           },
           {
-            "id": "U-R1-5",
+            "id": "U-R1-Jogo5",
             "name": "Upper Rodada 1 Jogo 5",
             "team1": {
               "player1": "Felipe M.",
@@ -1192,7 +1192,7 @@
             "roundOrder": 4
           },
           {
-            "id": "U-R1-6",
+            "id": "U-R1-Jogo6",
             "name": "Upper Rodada 1 Jogo 6",
             "team1": {
               "player1": "Rodrigo",
@@ -1208,7 +1208,7 @@
             "roundOrder": 4
           },
           {
-            "id": "U-R1-7",
+            "id": "U-R1-Jogo7",
             "name": "Upper Rodada 1 Jogo 7",
             "team1": {
               "player1": "Carelli",
@@ -1224,7 +1224,7 @@
             "roundOrder": 4
           },
           {
-            "id": "U-R1-8",
+            "id": "U-R1-Jogo8",
             "name": "Upper Rodada 1 Jogo 8",
             "team1": {
               "player1": "Neves",
@@ -1242,7 +1242,7 @@
         ],
         "Upper Rodada 2": [
           {
-            "id": "U-R2-1",
+            "id": "U-R2-Jogo1",
             "name": "Upper Rodada 2 Jogo 1",
             "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 1",
             "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 2",
@@ -1250,7 +1250,7 @@
             "roundOrder": 3
           },
           {
-            "id": "U-R2-2",
+            "id": "U-R2-Jogo2",
             "name": "Upper Rodada 2 Jogo 2",
             "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 3",
             "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 4",
@@ -1258,7 +1258,7 @@
             "roundOrder": 3
           },
           {
-            "id": "U-R2-3",
+            "id": "U-R2-Jogo3",
             "name": "Upper Rodada 2 Jogo 3",
             "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 5",
             "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 6",
@@ -1266,7 +1266,7 @@
             "roundOrder": 3
           },
           {
-            "id": "U-R2-4",
+            "id": "U-R2-Jogo4",
             "name": "Upper Rodada 2 Jogo 4",
             "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 7",
             "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 8",
@@ -1276,7 +1276,7 @@
         ],
         "Upper Rodada 3": [
           {
-            "id": "U-R3-1",
+            "id": "U-R3-Jogo1",
             "name": "Upper Rodada 3 Jogo 1",
             "team1Placeholder": "Vencedor Upper Rodada 2 Jogo 1",
             "team2Placeholder": "Vencedor Upper Rodada 2 Jogo 2",
@@ -1284,7 +1284,7 @@
             "roundOrder": 2
           },
           {
-            "id": "U-R3-2",
+            "id": "U-R3-Jogo2",
             "name": "Upper Rodada 3 Jogo 2",
             "team1Placeholder": "Vencedor Upper Rodada 2 Jogo 3",
             "team2Placeholder": "Vencedor Upper Rodada 2 Jogo 4",
@@ -1294,7 +1294,7 @@
         ],
         "Upper Rodada 4": [
           {
-            "id": "U-R4-1",
+            "id": "U-R4-Jogo1",
             "name": "Upper Rodada 4 Jogo 1",
             "team1Placeholder": "Vencedor Upper Rodada 3 Jogo 1",
             "team2Placeholder": "Vencedor Upper Rodada 3 Jogo 2",
@@ -1307,7 +1307,6 @@
             "id": "WB-Final-1",
             "name": "Final da Chave Superior",
             "team1Placeholder": "Vencedor Upper Rodada 4 Jogo 1",
-            "team2Placeholder": "Perdedor Upper Rodada 4 Jogo 1",
             "time": "",
             "roundOrder": 0
           }
@@ -1316,7 +1315,7 @@
       "lower": {
         "Lower Rodada 1": [
           {
-            "id": "L-R1-1",
+            "id": "L-R1-Jogo1",
             "name": "Lower Rodada 1 Jogo 1",
             "team1Placeholder": "Perdedor Upper Rodada 1 Jogo 1",
             "team2Placeholder": "Perdedor Upper Rodada 1 Jogo 2",
@@ -1324,7 +1323,7 @@
             "roundOrder": -1
           },
           {
-            "id": "L-R1-2",
+            "id": "L-R1-Jogo2",
             "name": "Lower Rodada 1 Jogo 2",
             "team1Placeholder": "Perdedor Upper Rodada 1 Jogo 3",
             "team2Placeholder": "Perdedor Upper Rodada 1 Jogo 4",
@@ -1332,7 +1331,7 @@
             "roundOrder": -1
           },
           {
-            "id": "L-R1-3",
+            "id": "L-R1-Jogo3",
             "name": "Lower Rodada 1 Jogo 3",
             "team1Placeholder": "Perdedor Upper Rodada 1 Jogo 5",
             "team2Placeholder": "Perdedor Upper Rodada 1 Jogo 6",
@@ -1340,7 +1339,7 @@
             "roundOrder": -1
           },
           {
-            "id": "L-R1-4",
+            "id": "L-R1-Jogo4",
             "name": "Lower Rodada 1 Jogo 4",
             "team1Placeholder": "Perdedor Upper Rodada 1 Jogo 7",
             "team2Placeholder": "Perdedor Upper Rodada 1 Jogo 8",
@@ -1350,7 +1349,7 @@
         ],
         "Lower Rodada 2": [
           {
-            "id": "L-R2-1",
+            "id": "L-R2-Jogo1",
             "name": "Lower Rodada 2 Jogo 1",
             "team1Placeholder": "Vencedor Lower Rodada 1 Jogo 1",
             "team2Placeholder": "Vencedor Lower Rodada 1 Jogo 2",
@@ -1358,7 +1357,7 @@
             "roundOrder": -2
           },
           {
-            "id": "L-R2-2",
+            "id": "L-R2-Jogo2",
             "name": "Lower Rodada 2 Jogo 2",
             "team1Placeholder": "Vencedor Lower Rodada 1 Jogo 3",
             "team2Placeholder": "Vencedor Lower Rodada 1 Jogo 4",
@@ -1366,7 +1365,7 @@
             "roundOrder": -2
           },
           {
-            "id": "L-R2-3",
+            "id": "L-R2-Jogo3",
             "name": "Lower Rodada 2 Jogo 3",
             "team1Placeholder": "Perdedor Upper Rodada 2 Jogo 1",
             "team2Placeholder": "Perdedor Upper Rodada 2 Jogo 2",
@@ -1374,7 +1373,7 @@
             "roundOrder": -2
           },
           {
-            "id": "L-R2-4",
+            "id": "L-R2-Jogo4",
             "name": "Lower Rodada 2 Jogo 4",
             "team1Placeholder": "Perdedor Upper Rodada 2 Jogo 3",
             "team2Placeholder": "Perdedor Upper Rodada 2 Jogo 4",
@@ -1384,7 +1383,7 @@
         ],
         "Lower Rodada 3": [
           {
-            "id": "L-R3-1",
+            "id": "L-R3-Jogo1",
             "name": "Lower Rodada 3 Jogo 1",
             "team1Placeholder": "Vencedor Lower Rodada 2 Jogo 1",
             "team2Placeholder": "Vencedor Lower Rodada 2 Jogo 2",
@@ -1392,7 +1391,7 @@
             "roundOrder": -3
           },
           {
-            "id": "L-R3-2",
+            "id": "L-R3-Jogo2",
             "name": "Lower Rodada 3 Jogo 2",
             "team1Placeholder": "Vencedor Lower Rodada 2 Jogo 3",
             "team2Placeholder": "Vencedor Lower Rodada 2 Jogo 4",
@@ -1400,7 +1399,7 @@
             "roundOrder": -3
           },
           {
-            "id": "L-R3-3",
+            "id": "L-R3-Jogo3",
             "name": "Lower Rodada 3 Jogo 3",
             "team1Placeholder": "Perdedor Upper Rodada 3 Jogo 1",
             "team2Placeholder": "Perdedor Upper Rodada 3 Jogo 2",
@@ -1410,7 +1409,7 @@
         ],
         "Lower Rodada 4": [
           {
-            "id": "L-R4-1",
+            "id": "L-R4-Jogo1",
             "name": "Lower Rodada 4 Jogo 1",
             "team1Placeholder": "Vencedor Lower Rodada 3 Jogo 1",
             "team2Placeholder": "Vencedor Lower Rodada 3 Jogo 2",
@@ -1418,7 +1417,7 @@
             "roundOrder": -4
           },
           {
-            "id": "L-R4-2",
+            "id": "L-R4-Jogo2",
             "name": "Lower Rodada 4 Jogo 2",
             "team1Placeholder": "Vencedor Lower Rodada 3 Jogo 3",
             "team2Placeholder": "Perdedor Upper Rodada 4 Jogo 1",
@@ -1433,7 +1432,7 @@
             "team1Placeholder": "Vencedor Lower Rodada 4 Jogo 1",
             "team2Placeholder": "Vencedor Lower Rodada 4 Jogo 2",
             "time": "",
-            "roundOrder": -5
+            "roundOrder": -6
           }
         ]
       },
