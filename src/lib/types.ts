@@ -61,18 +61,17 @@ export const formSchema = z
   )
   .refine(
     (data) => {
-      const teamsArray = data.teams
-        .split("\n")
-        .map((t) => t.trim())
-        .filter(Boolean);
-      // Use regex to ensure format is "text e text", allowing for flexible spacing around "e"
-      return teamsArray.every((team) => /.+\s+e\s+.+/i.test(team));
+        const teamsArray = data.teams
+            .split("\n")
+            .map((t) => t.trim())
+            .filter(Boolean);
+        return teamsArray.every((team) => /.+\s+e\s+.+/i.test(team));
     },
     {
-      message: "Cada dupla deve ter dois jogadores separados por 'e'. Ex: Jogador A e Jogador B.",
-      path: ["teams"],
+        message: "Cada dupla deve ter dois jogadores separados por ' e '. Ex: Jogador A e Jogador B.",
+        path: ["teams"],
     }
-  )
+   )
   .refine(
     (data) => {
       if (data.tournamentType !== 'groups') return true;
@@ -125,18 +124,7 @@ export const formSchema = z
       message: "Existem jogadores duplicados na lista. Cada pessoa só pode fazer parte de uma dupla.",
       path: ["teams"],
     }
-  )
-   .refine(
-    (data) => {
-        if(data.tournamentType === 'doubleElimination') {
-            return !data.includeThirdPlace;
-        }
-        return true;
-    }, {
-        message: 'A disputa de 3º lugar não se aplica a torneios de dupla eliminação.',
-        path: ['includeThirdPlace']
-    }
-   );
+  );
 
 export type TournamentFormValues = z.infer<typeof formSchema>;
 
@@ -185,7 +173,7 @@ export type PlayoffBracketSet = {
     upper?: PlayoffBracket;
     lower?: PlayoffBracket;
     grandFinal?: PlayoffBracket;
-    [key: string]: any; // For single elimination compatibility
+    [key: string]: PlayoffBracket | undefined;
 } | PlayoffBracket;
 
 
@@ -208,3 +196,4 @@ export type ConsolidatedMatch = {
     score2?: number;
     time?: string;
 };
+

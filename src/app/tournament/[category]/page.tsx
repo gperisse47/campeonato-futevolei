@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Trophy } from "lucide-react";
-import type { CategoryData, PlayoffBracket, PlayoffMatch, Team, GroupWithScores } from "@/lib/types";
+import type { CategoryData, PlayoffBracket, PlayoffMatch, Team, GroupWithScores, PlayoffBracketSet } from "@/lib/types";
 
 const roundNames: { [key: string]: string } = {
     2: 'Final',
@@ -66,6 +66,9 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
 };
 
 const Bracket = ({ playoffs, title }: { playoffs: PlayoffBracket, title?: string }) => {
+    if (!playoffs || Object.keys(playoffs).length === 0) {
+        return null;
+    }
     const roundOrder = Object.keys(playoffs).sort((a,b) => (playoffs[b][0]?.roundOrder || 0) - (playoffs[a][0]?.roundOrder || 0));
 
     // Special handling for Grand Final in double elimination
@@ -238,9 +241,9 @@ export default function TournamentPage() {
         }, {} as PlayoffBracket);
     }
 
-    const upperBracket = getBracketRounds(playoffs?.upper);
-    const lowerBracket = getBracketRounds(playoffs?.lower);
-    const grandFinal = getBracketRounds(playoffs?.grandFinal);
+    const upperBracket = getBracketRounds((playoffs as PlayoffBracketSet)?.upper);
+    const lowerBracket = getBracketRounds((playoffs as PlayoffBracketSet)?.lower);
+    const grandFinal = getBracketRounds((playoffs as PlayoffBracketSet)?.grandFinal);
 
 
     return (
@@ -265,15 +268,19 @@ export default function TournamentPage() {
             )}
 
             {formValues.tournamentType === 'singleElimination' && playoffs && Object.keys(playoffs).length > 0 && (
-                 <Bracket playoffs={playoffs} title="Playoffs - Mata-Mata" />
+                 <Bracket playoffs={playoffs as PlayoffBracket} title="Playoffs - Mata-Mata" />
             )}
 
             {formValues.tournamentType === 'doubleElimination' && (
                 <div className="space-y-8">
                    {Object.keys(upperBracket).length > 0 && <Bracket playoffs={upperBracket} title="Chave Superior (Winners)" />}
                    {Object.keys(lowerBracket).length > 0 && <Bracket playoffs={lowerBracket} title="Chave Inferior (Losers)" />}
-                   {Object.keys(grandFinal).length > 0 && <Bracket playoffs={grandFinal} title="Grande Final" />}
+                   {Object.keys(grandFinal).length > 0 && <Bracket playoffs={grandFinal} title="Fase Final" />}
                 </div>
+            )}
+
+             {isGroupTournament && playoffs && Object.keys(playoffs).length > 0 && (
+                <Bracket playoffs={playoffs as PlayoffBracket} title="Playoffs - Mata-Mata" />
             )}
         </div>
     );
