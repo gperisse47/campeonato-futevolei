@@ -22,10 +22,13 @@ export default function PublicTeamsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadTeams = useCallback(async () => {
+    setIsLoading(true);
     try {
       const savedTournaments = await getTournaments();
       if (savedTournaments) {
         const teamsList: TeamWithCategory[] = [];
+        const uniqueTeamKeys = new Set<string>();
+
         for (const categoryName in savedTournaments) {
           if (categoryName === '_globalSettings') continue;
 
@@ -41,14 +44,17 @@ export default function PublicTeamsPage() {
               });
             
             teamsFromForm.forEach(team => {
-              teamsList.push({ team, category: categoryName });
+               const teamKey = `${team.player1}-${team.player2}-${categoryName}`;
+               if(!uniqueTeamKeys.has(teamKey)){
+                  teamsList.push({ team, category: categoryName });
+                  uniqueTeamKeys.add(teamKey);
+               }
             });
           }
         }
         
-        const uniqueTeams = teamsList.filter((v,i,a)=>a.findIndex(t=>(t.team.player1 === v.team.player1 && t.team.player2 === v.team.player2 && t.category === v.category))===i);
-        setAllTeams(uniqueTeams);
-        setFilteredTeams(uniqueTeams);
+        setAllTeams(teamsList);
+        setFilteredTeams(teamsList);
       }
     } catch (error) {
       console.error("Failed to load teams from DB", error);
@@ -69,7 +75,7 @@ export default function PublicTeamsPage() {
     setFilteredTeams(results);
   }, [searchTerm, allTeams]);
   
-  const teamToKey = (team: Team) => `${team.player1}-${team.player2}`;
+  const teamToKey = (team: Team, category: string) => `${team.player1}-${team.player2}-${category}`;
 
   return (
     <div className="flex flex-col gap-8">
@@ -115,8 +121,8 @@ export default function PublicTeamsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTeams.map((item, index) => (
-                  <TableRow key={`${teamToKey(item.team)}-${item.category}-${index}`}>
+                {filteredTeams.map((item) => (
+                  <TableRow key={teamToKey(item.team, item.category)}>
                     <TableCell className="font-medium">{`${item.team.player1} e ${item.team.player2}`}</TableCell>
                     <TableCell>{item.team.player1}</TableCell>
                     <TableCell>{item.team.player2}</TableCell>
