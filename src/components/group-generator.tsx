@@ -5,10 +5,10 @@ import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy } from "lucide-react"
+import { Loader2, Trophy, ExternalLink } from "lucide-react"
 
-import { generateGroupsAction } from "@/app/actions"
-import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState } from "@/lib/types"
+import { generateGroupsAction, getTournaments, saveTournament } from "@/app/actions"
+import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -33,6 +33,7 @@ import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Link from "next/link"
 
 
 type PlayoffBracket = {
@@ -48,6 +49,7 @@ const roundNames: { [key: number]: string } = {
 
 export function GroupGenerator() {
   const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentsState>({})
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -55,32 +57,43 @@ export function GroupGenerator() {
 
   const { toast } = useToast()
 
+  // Load initial data from the "DB"
   useEffect(() => {
-    try {
-      const savedTournaments = localStorage.getItem('tournaments');
-      if (savedTournaments) {
-        const parsedTournaments = JSON.parse(savedTournaments);
-        setTournaments(parsedTournaments);
-        const categories = Object.keys(parsedTournaments);
-        if (categories.length > 0) {
+    const fetchInitialData = async () => {
+      try {
+        const savedTournaments = await getTournaments();
+        setTournaments(savedTournaments);
+        const categories = Object.keys(savedTournaments);
+        if (categories.length > 0 && !activeTab) {
           setActiveTab(categories[0]);
         }
+      } catch (error) {
+        console.error("Failed to load tournaments from DB", error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar dados",
+          description: "Não foi possível carregar os torneios salvos.",
+        });
+      } finally {
+        setIsLoaded(true);
       }
-    } catch (error) {
-      console.error("Failed to load tournaments from localStorage", error);
-    }
-    setIsLoaded(true);
+    };
+    fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem('tournaments', JSON.stringify(tournaments));
-      } catch (error) {
-        console.error("Failed to save tournaments to localStorage", error);
-      }
+  const saveData = async (categoryName: string, data: CategoryData) => {
+    setIsSaving(true);
+    const result = await saveTournament(categoryName, data);
+    if (!result.success) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar",
+        description: result.error || "Não foi possível salvar as alterações.",
+      });
     }
-  }, [tournaments, isLoaded]);
+    setIsSaving(false);
+  };
+
 
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(formSchema),
@@ -113,7 +126,7 @@ export function GroupGenerator() {
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
       return {
         ...group,
-        matches: group.matches.map(match => ({ ...match })),
+        matches: group.matches.map(match => ({ ...match, score1: undefined, score2: undefined })),
         standings: sortedStandings
       }
     })
@@ -140,19 +153,12 @@ export function GroupGenerator() {
     return placeholders;
   }, [getTeamPlaceholder]);
 
-  const initializePlayoffs = useCallback((categoryName: string, values: TournamentFormValues) => {
+  const initializePlayoffs = useCallback((values: TournamentFormValues): PlayoffBracket | null => {
     const { numberOfGroups, teamsPerGroupToAdvance, includeThirdPlace } = values;
     const totalQualifiers = numberOfGroups * teamsPerGroupToAdvance;
 
     if (totalQualifiers < 2 || (totalQualifiers & (totalQualifiers - 1)) !== 0) {
-      setTournaments(prev => ({
-        ...prev,
-        [categoryName]: {
-          ...prev[categoryName],
-          playoffs: null
-        }
-      }));
-      return;
+      return null
     }
   
     let bracket: PlayoffBracket = {};
@@ -194,7 +200,8 @@ export function GroupGenerator() {
             bracket[roundName].push({
                 id: matchId,
                 name: `${roundNameSingle} ${i + 1}`,
-                ...match
+                team1Placeholder: match.team1Placeholder,
+                team2Placeholder: match.team2Placeholder
             });
             nextRoundTeams.push(`Vencedor ${roundNameSingle} ${i + 1}`);
         }
@@ -210,13 +217,7 @@ export function GroupGenerator() {
         ];
     }
   
-    setTournaments(prev => ({
-      ...prev,
-      [categoryName]: {
-        ...prev[categoryName],
-        playoffs: bracket,
-      }
-    }))
+    return bracket;
   }, [generatePlayoffPlaceholders]);
 
 
@@ -300,13 +301,15 @@ export function GroupGenerator() {
     });
   
     if (JSON.stringify(playoffs) !== JSON.stringify(newPlayoffs)) {
+      const updatedCategoryData = {
+        ...activeCategoryData,
+        playoffs: newPlayoffs,
+      };
       setTournaments(prev => ({
         ...prev,
-        [activeTab]: {
-          ...prev[activeTab],
-          playoffs: newPlayoffs,
-        }
+        [activeTab]: updatedCategoryData,
       }))
+      saveData(activeTab, updatedCategoryData);
     }
   
   }, [activeTab, activeCategoryData, getTeamPlaceholder]);
@@ -326,10 +329,14 @@ export function GroupGenerator() {
         return;
     }
     
-    setTournaments(prev => ({
-        ...prev,
-        [categoryName]: { tournamentData: null, playoffs: null, formValues: values }
-    }));
+    const newCategoryData: CategoryData = {
+        tournamentData: null,
+        playoffs: null,
+        formValues: values,
+    };
+
+    const tempTournaments = { ...tournaments, [categoryName]: newCategoryData };
+    setTournaments(tempTournaments);
     setActiveTab(categoryName);
 
     const teamsArray: Team[] = values.teams
@@ -338,7 +345,7 @@ export function GroupGenerator() {
       .filter(Boolean)
       .map((teamString) => {
         const players = teamString.split(" e ").map((p) => p.trim())
-        return { player1: players[0], player2: players[1] }
+        return { player1: players[0] || "", player2: players[1] || "" }
       })
 
     const result = await generateGroupsAction({
@@ -351,14 +358,16 @@ export function GroupGenerator() {
 
     if (result.success && result.data) {
       const groupsWithInitialStandings = initializeStandings(result.data.groups);
-      setTournaments(prev => ({
-        ...prev,
-        [categoryName]: {
-          ...prev[categoryName],
+      const initialPlayoffs = initializePlayoffs(values);
+      const finalCategoryData: CategoryData = {
+          formValues: values,
           tournamentData: { groups: groupsWithInitialStandings },
-        }
-      }));
-      initializePlayoffs(categoryName, values);
+          playoffs: initialPlayoffs,
+      };
+
+      setTournaments(prev => ({ ...prev, [categoryName]: finalCategoryData }));
+      await saveData(categoryName, finalCategoryData);
+      
       toast({
         title: "Categoria Gerada!",
         description: `A categoria "${categoryName}" foi criada com sucesso.`,
@@ -383,14 +392,6 @@ export function GroupGenerator() {
     }
     setIsLoading(false)
   }
-
-  useEffect(() => {
-    if (activeTab && tournaments[activeTab] && !tournaments[activeTab].playoffs) {
-      initializePlayoffs(activeTab, tournaments[activeTab].formValues);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, tournaments]);
-
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
     const newGroups = currentTournamentData.groups.map(group => {
@@ -455,13 +456,17 @@ export function GroupGenerator() {
       newTournamentData.groups[groupIndex].matches[matchIndex].score2 = isNaN(score!) ? undefined : score;
     }
     const updatedDataWithStandings = calculateStandings(newTournamentData);
+    const updatedCategoryData = {
+      ...activeCategoryData!,
+      tournamentData: updatedDataWithStandings
+    };
+
     setTournaments(prev => ({
         ...prev,
-        [activeTab]: {
-            ...prev[activeTab],
-            tournamentData: updatedDataWithStandings,
-        }
+        [activeTab]: updatedCategoryData,
     }));
+
+    saveData(activeTab, updatedCategoryData);
   }
 
   const handlePlayoffScoreChange = (roundName: string, matchIndex: number, team: 'team1' | 'team2', value: string) => {
@@ -475,13 +480,15 @@ export function GroupGenerator() {
       newPlayoffs[roundName][matchIndex].score2 = isNaN(score!) ? undefined : score;
     }
     
+    const updatedCategoryData = {
+        ...activeCategoryData!,
+        playoffs: newPlayoffs
+    };
     setTournaments(prev => ({
         ...prev,
-        [activeTab]: {
-            ...prev[activeTab],
-            playoffs: newPlayoffs,
-        }
+        [activeTab]: updatedCategoryData,
     }));
+    saveData(activeTab, updatedCategoryData);
   };
 
   useEffect(() => {
@@ -508,10 +515,10 @@ export function GroupGenerator() {
     
     return (
       <div className="flex flex-col gap-2 w-full">
-          {(!isFinalRound || (isFinalRound && activePlayoffs && activePlayoffs[roundName]?.length > 1)) && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
+          {(!isFinalRound && roundName !== 'Quartas de Final') && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
           <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
               <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`text-left truncate pr-2 text-sm flex-1`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
+                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
                   <Input
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
@@ -522,7 +529,7 @@ export function GroupGenerator() {
               </div>
               <div className="text-muted-foreground text-xs text-center py-1">vs</div>
               <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`text-left truncate pr-2 text-sm flex-1`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
+                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
                   <Input
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
@@ -537,21 +544,16 @@ export function GroupGenerator() {
   
 
   const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
-    const roundOrder = Object.keys(roundNames)
+    const regularRounds = Object.keys(roundNames)
       .map(Number)
-      .sort((a, b) => b - a)
+      .sort((a,b) => b-a)
       .map(key => roundNames[key])
-      .filter(roundName => playoffs[roundName]);
-  
-    const finalMatch = playoffs['Final'] ? playoffs['Final'][0] : null;
-    const thirdPlaceMatch = playoffs['Disputa de 3º Lugar'] ? playoffs['Disputa de 3º Lugar'][0] : null;
-  
-    const regularRounds = roundOrder.filter(r => r !== 'Final' && r !== 'Disputa de 3º Lugar');
-  
+      .filter(roundName => playoffs[roundName] && roundName !== 'Final');
+
     return (
       <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
         {regularRounds.map(roundName => (
-          <Card key={roundName} className="w-full">
+          <Card key={roundName} className="w-full max-w-lg">
             <CardHeader>
               <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
             </CardHeader>
@@ -567,36 +569,35 @@ export function GroupGenerator() {
             </CardContent>
           </Card>
         ))}
-        <div className="flex flex-col gap-8 w-full max-w-lg mx-auto">
-            {finalMatch && (
-                 <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-bold text-primary">Final</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <PlayoffMatchCard 
-                            match={finalMatch} 
-                            roundName="Final" 
-                            matchIndex={0} 
-                        />
-                    </CardContent>
-                 </Card>
-            )}
-            {thirdPlaceMatch && (
-                 <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-bold text-primary">Disputa de 3º Lugar</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <PlayoffMatchCard 
-                            match={thirdPlaceMatch} 
-                            roundName="Disputa de 3º Lugar" 
-                            matchIndex={0}
-                        />
-                    </CardContent>
-                 </Card>
-            )}
-        </div>
+
+        {playoffs['Final'] && (
+             <Card className="w-full max-w-lg">
+                <CardHeader>
+                    <CardTitle className="text-lg font-bold text-primary">Final</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <PlayoffMatchCard 
+                        match={playoffs['Final'][0]} 
+                        roundName="Final" 
+                        matchIndex={0} 
+                    />
+                </CardContent>
+             </Card>
+        )}
+        {playoffs['Disputa de 3º Lugar'] && (
+             <Card className="w-full max-w-lg">
+                <CardHeader>
+                    <CardTitle className="text-lg font-bold text-primary">Disputa de 3º Lugar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <PlayoffMatchCard 
+                        match={playoffs['Disputa de 3º Lugar'][0]} 
+                        roundName="Disputa de 3º Lugar" 
+                        matchIndex={0}
+                    />
+                </CardContent>
+             </Card>
+        )}
       </div>
     );
   };
@@ -756,9 +757,9 @@ export function GroupGenerator() {
                   )}
                 />
 
-                <Button type="submit" disabled={isLoading} className="w-full">
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Gerar Categoria
+                <Button type="submit" disabled={isLoading || isSaving} className="w-full">
+                  {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Categoria'}
                 </Button>
               </form>
             </Form>
@@ -767,24 +768,31 @@ export function GroupGenerator() {
         <div className="lg:col-span-2">
           {Object.keys(tournaments).length > 0 && activeTab ? (
              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <TabsList>
                     {Object.keys(tournaments).map(cat => (
                         <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
                     ))}
                 </TabsList>
-                <div className="w-48">
-                   <Select value={activeTab} onValueChange={handleTabChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar categoria..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(tournaments).map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                 <div className="flex items-center gap-2">
+                     <div className="w-48 hidden sm:block">
+                       <Select value={activeTab} onValueChange={handleTabChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar categoria..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(tournaments).map(cat => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                     <Button variant="outline" size="sm" asChild>
+                        <Link href={`/tournament/${encodeURIComponent(activeTab)}`} target="_blank">
+                           Ver Página <ExternalLink className="ml-2 h-4 w-4" />
+                        </Link>
+                     </Button>
+                 </div>
               </div>
               {Object.keys(tournaments).map(categoryName => (
                   <TabsContent key={categoryName} value={categoryName}>
@@ -796,7 +804,7 @@ export function GroupGenerator() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           {isLoading && activeTab === categoryName && (
+                           {isLoading && activeTab === categoryName && !tournaments[categoryName]?.tournamentData && (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                               {[...Array(tournaments[categoryName]?.formValues.numberOfGroups || 0)].map((_, i) => (
                                 <Card key={i}>
@@ -905,5 +913,3 @@ export function GroupGenerator() {
     </div>
   )
 }
-
-    

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Users } from "lucide-react";
 import type { Team, TournamentsState } from "@/lib/types";
+import { getTournaments } from "@/app/actions";
 
 type TeamWithCategory = {
   team: Team;
@@ -18,47 +19,47 @@ export default function TeamsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const savedTournaments = localStorage.getItem('tournaments');
-      if (savedTournaments) {
-        const parsedTournaments: TournamentsState = JSON.parse(savedTournaments);
-        const allTeams: TeamWithCategory[] = [];
+    const loadTeams = async () => {
+        try {
+            const savedTournaments = await getTournaments();
+            if (savedTournaments) {
+                const allTeams: TeamWithCategory[] = [];
 
-        for (const categoryName in parsedTournaments) {
-          const categoryData = parsedTournaments[categoryName];
-          if (categoryData.tournamentData?.groups) {
-            categoryData.tournamentData.groups.forEach(group => {
-              group.teams.forEach(team => {
-                allTeams.push({ team, category: categoryName });
-              });
-            });
-          } else if (categoryData.formValues?.teams) {
-            // Fallback for when groups are not generated yet
-             const teamsArray: Team[] = categoryData.formValues.teams
-                .split("\n")
-                .map((t: string) => t.trim())
-                .filter(Boolean)
-                .map((teamString: string) => {
-                    const players = teamString.split(" e ").map((p) => p.trim())
-                    return { player1: players[0] || '', player2: players[1] || '' }
-                });
-            
-            teamsArray.forEach(team => {
-                allTeams.push({ team, category: categoryName });
-            })
-          }
+                for (const categoryName in savedTournaments) {
+                    const categoryData = savedTournaments[categoryName];
+                    let teamsToProcess: Team[] = [];
+
+                    if (categoryData.tournamentData?.groups) {
+                         categoryData.tournamentData.groups.forEach(group => {
+                            teamsToProcess.push(...group.teams);
+                        });
+                    } else if (categoryData.formValues?.teams) {
+                        teamsToProcess = categoryData.formValues.teams
+                            .split("\n")
+                            .map((t: string) => t.trim())
+                            .filter(Boolean)
+                            .map((teamString: string) => {
+                                const players = teamString.split(" e ").map((p) => p.trim())
+                                return { player1: players[0] || '', player2: players[1] || '' }
+                            });
+                    }
+                    
+                    teamsToProcess.forEach(team => {
+                        allTeams.push({ team, category: categoryName });
+                    });
+                }
+                
+                const uniqueTeams = allTeams.filter((v,i,a)=>a.findIndex(t=>(t.team.player1 === v.team.player1 && t.team.player2 === v.team.player2 && t.category === v.category))===i)
+                setTeams(uniqueTeams);
+            }
+        } catch (error) {
+            console.error("Failed to load teams from DB", error);
+        } finally {
+            setIsLoading(false);
         }
-        
-        // Remove duplicate teams within the same category
-        const uniqueTeams = allTeams.filter((v,i,a)=>a.findIndex(t=>(t.team.player1 === v.team.player1 && t.team.player2 === v.team.player2 && t.category === v.category))===i)
-
-        setTeams(uniqueTeams);
-      }
-    } catch (error) {
-      console.error("Failed to load teams from localStorage", error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+    
+    loadTeams();
   }, []);
 
   const teamToKey = (team: Team) => `${team.player1} e ${team.player2}`;
@@ -113,5 +114,3 @@ export default function TeamsPage() {
     </div>
   );
 }
-
-    

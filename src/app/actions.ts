@@ -1,10 +1,60 @@
 "use server"
 
+import fs from "fs/promises"
+import path from "path"
 import {
   generateTournamentGroups,
   type GenerateTournamentGroupsOutput,
   type GenerateTournamentGroupsInput
 } from "@/ai/flows/generate-tournament-groups"
+import type { TournamentsState, CategoryData } from "@/lib/types"
+
+const dbPath = path.resolve(process.cwd(), "db.json")
+
+async function readDb(): Promise<TournamentsState> {
+  try {
+    const fileContent = await fs.readFile(dbPath, "utf-8")
+    return JSON.parse(fileContent)
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      return {} // Return empty object if file doesn't exist
+    }
+    console.error("Error reading from DB:", error)
+    throw new Error("Could not read from database.")
+  }
+}
+
+async function writeDb(data: TournamentsState) {
+  try {
+    await fs.writeFile(dbPath, JSON.stringify(data, null, 2), "utf-8")
+  } catch (error) {
+    console.error("Error writing to DB:", error)
+    throw new Error("Could not write to database.")
+  }
+}
+
+export async function getTournaments(): Promise<TournamentsState> {
+    return await readDb();
+}
+
+export async function getTournamentByCategory(category: string): Promise<CategoryData | null> {
+    const db = await readDb();
+    return db[category] || null;
+}
+
+
+export async function saveTournament(categoryName: string, data: CategoryData): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+        db[categoryName] = data;
+        await writeDb(db);
+        return { success: true };
+    } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.message || "Ocorreu um erro desconhecido ao salvar." };
+    }
+}
+
 
 export async function generateGroupsAction(
   input: GenerateTournamentGroupsInput
