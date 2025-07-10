@@ -7,7 +7,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"
-import { LayoutGrid, Users } from "lucide-react"
+import { LayoutGrid, Users, Trophy } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -46,9 +46,9 @@ export function SidebarNav() {
         <SidebarMenu>
           <SidebarMenuItem>
             <Link href="/" passHref>
-                <SidebarMenuButton isActive={pathname === '/'} tooltip="Gerador de Grupos">
+                <SidebarMenuButton isActive={pathname === '/'} tooltip="Página do Administrador">
                   <LayoutGrid />
-                  <span>Gerador de Grupos</span>
+                  <span>Página do Administrador</span>
                 </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
@@ -57,6 +57,14 @@ export function SidebarNav() {
                 <SidebarMenuButton isActive={pathname === '/teams'} tooltip="Duplas">
                     <Users/>
                     <span>Duplas</span>
+                </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <Link href="/categories" passHref>
+                <SidebarMenuButton isActive={pathname === '/categories'} tooltip="Categorias">
+                    <Trophy/>
+                    <span>Categorias</span>
                 </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>

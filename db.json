@@ -1,1 +1,323 @@
-{}
+{
+  "Masculino": {
+    "formValues": {
+      "category": "Masculino",
+      "numberOfTeams": 8,
+      "numberOfGroups": 2,
+      "teamsPerGroupToAdvance": 2,
+      "teams": "Ana e Bia\nCarla e Dani\nElena e Fernanda\nGabi e Helo\nIsis e Julia\nKarla e Laura\nMaria e Nina\nOlivia e Paula",
+      "groupFormationStrategy": "balanced",
+      "includeThirdPlace": true
+    },
+    "tournamentData": {
+      "groups": [
+        {
+          "matches": [
+            {
+              "team1": {
+                "player1": "Ana",
+                "player2": "Bia"
+              },
+              "team2": {
+                "player1": "Maria",
+                "player2": "Nina"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Ana",
+                "player2": "Bia"
+              },
+              "team2": {
+                "player1": "Elena",
+                "player2": "Fernanda"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Ana",
+                "player2": "Bia"
+              },
+              "team2": {
+                "player1": "Olivia",
+                "player2": "Paula"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Maria",
+                "player2": "Nina"
+              },
+              "team2": {
+                "player1": "Elena",
+                "player2": "Fernanda"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Maria",
+                "player2": "Nina"
+              },
+              "team2": {
+                "player1": "Olivia",
+                "player2": "Paula"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Elena",
+                "player2": "Fernanda"
+              },
+              "team2": {
+                "player1": "Olivia",
+                "player2": "Paula"
+              }
+            }
+          ],
+          "name": "Group A",
+          "teams": [
+            {
+              "player1": "Ana",
+              "player2": "Bia"
+            },
+            {
+              "player1": "Maria",
+              "player2": "Nina"
+            },
+            {
+              "player1": "Elena",
+              "player2": "Fernanda"
+            },
+            {
+              "player1": "Olivia",
+              "player2": "Paula"
+            }
+          ],
+          "standings": [
+            {
+              "team": {
+                "player1": "Ana",
+                "player2": "Bia"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            },
+            {
+              "team": {
+                "player1": "Elena",
+                "player2": "Fernanda"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            },
+            {
+              "team": {
+                "player1": "Maria",
+                "player2": "Nina"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            },
+            {
+              "team": {
+                "player1": "Olivia",
+                "player2": "Paula"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            }
+          ]
+        },
+        {
+          "matches": [
+            {
+              "team1": {
+                "player1": "Carla",
+                "player2": "Dani"
+              },
+              "team2": {
+                "player1": "Isis",
+                "player2": "Julia"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Carla",
+                "player2": "Dani"
+              },
+              "team2": {
+                "player1": "Gabi",
+                "player2": "Helo"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Carla",
+                "player2": "Dani"
+              },
+              "team2": {
+                "player1": "Karla",
+                "player2": "Laura"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Isis",
+                "player2": "Julia"
+              },
+              "team2": {
+                "player1": "Gabi",
+                "player2": "Helo"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Isis",
+                "player2": "Julia"
+              },
+              "team2": {
+                "player1": "Karla",
+                "player2": "Laura"
+              }
+            },
+            {
+              "team1": {
+                "player1": "Gabi",
+                "player2": "Helo"
+              },
+              "team2": {
+                "player1": "Karla",
+                "player2": "Laura"
+              }
+            }
+          ],
+          "name": "Group B",
+          "teams": [
+            {
+              "player1": "Carla",
+              "player2": "Dani"
+            },
+            {
+              "player1": "Isis",
+              "player2": "Julia"
+            },
+            {
+              "player1": "Gabi",
+              "player2": "Helo"
+            },
+            {
+              "player1": "Karla",
+              "player2": "Laura"
+            }
+          ],
+          "standings": [
+            {
+              "team": {
+                "player1": "Carla",
+                "player2": "Dani"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            },
+            {
+              "team": {
+                "player1": "Gabi",
+                "player2": "Helo"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            },
+            {
+              "team": {
+                "player1": "Isis",
+                "player2": "Julia"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            },
+            {
+              "team": {
+                "player1": "Karla",
+                "player2": "Laura"
+              },
+              "played": 0,
+              "wins": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0,
+              "points": 0
+            }
+          ]
+        }
+      ]
+    },
+    "playoffs": {
+      "Semifinal": [
+        {
+          "id": "Semifinal-1",
+          "name": "Semifinal 1",
+          "team1Placeholder": "1º do Grupo A",
+          "team2Placeholder": "2º do Grupo B"
+        },
+        {
+          "id": "Semifinal-2",
+          "name": "Semifinal 2",
+          "team1Placeholder": "2º do Grupo A",
+          "team2Placeholder": "1º do Grupo B"
+        }
+      ],
+      "Final": [
+        {
+          "id": "Final-1",
+          "name": "Final 1",
+          "team1Placeholder": "Vencedor Semifinal 1",
+          "team2Placeholder": "Vencedor Semifinal 2"
+        }
+      ],
+      "Disputa de 3º Lugar": [
+        {
+          "id": "terceiro-lugar-1",
+          "name": "Disputa de 3º Lugar",
+          "team1Placeholder": "Perdedor Semifinal 1",
+          "team2Placeholder": "Perdedor Semifinal 2"
+        }
+      ]
+    }
+  }
+}
