@@ -156,7 +156,7 @@ Neves e Caze
 Gustavo M. e Marcus
 Gabe e Yan
 Brenner e Py
-Carril e Leandro
+Carril  e Leandro 
 Russo e Maki
 James e Fabio
 Sartoratto e Poppe
@@ -428,7 +428,7 @@ Olavo e Dudu`,
   const updatePlayoffs = useCallback(() => {
     if (!activeTab || !activeCategoryData) return;
 
-    const { playoffs, formValues } = activeCategoryData;
+    const { playoffs, formValues, tournamentData } = activeCategoryData;
     if (!playoffs) return;
 
     const newPlayoffs = JSON.parse(JSON.stringify(playoffs)) as PlayoffBracketSet;
@@ -467,14 +467,19 @@ Olavo e Dudu`,
                         match.team1 = winners[placeholder.replace('Vencedor ', '')];
                     } else if (placeholder.startsWith('Perdedor ')) {
                         match.team1 = losers[placeholder.replace('Perdedor ', '')];
-                    } else if (formValues.tournamentType === 'groups' && activeCategoryData.tournamentData) {
-                         const qualifiedTeams: { [p: string]: Team } = {};
-                         activeCategoryData.tournamentData.groups.forEach((group, groupIndex) => {
-                            group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                    } else if (formValues.tournamentType === 'groups' && tournamentData) {
+                        const groupsAreFinished = tournamentData.groups.every(g => 
+                            g.matches.every(m => typeof m.score1 === 'number' && typeof m.score2 === 'number')
+                        );
+                        if(groupsAreFinished) {
+                            const qualifiedTeams: { [p: string]: Team } = {};
+                            tournamentData.groups.forEach((group, groupIndex) => {
+                                group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+                                    qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                                });
                             });
-                        });
-                        match.team1 = qualifiedTeams[placeholder] || match.team1;
+                            match.team1 = qualifiedTeams[placeholder] || match.team1;
+                        }
                     }
                 }
                 // Resolve team 2
@@ -484,14 +489,19 @@ Olavo e Dudu`,
                         match.team2 = winners[placeholder.replace('Vencedor ', '')];
                     } else if (placeholder.startsWith('Perdedor ')) {
                         match.team2 = losers[placeholder.replace('Perdedor ', '')];
-                    } else if (formValues.tournamentType === 'groups' && activeCategoryData.tournamentData) {
-                         const qualifiedTeams: { [p: string]: Team } = {};
-                         activeCategoryData.tournamentData.groups.forEach((group, groupIndex) => {
-                            group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                    } else if (formValues.tournamentType === 'groups' && tournamentData) {
+                        const groupsAreFinished = tournamentData.groups.every(g => 
+                            g.matches.every(m => typeof m.score1 === 'number' && typeof m.score2 === 'number')
+                        );
+                         if(groupsAreFinished) {
+                            const qualifiedTeams: { [p: string]: Team } = {};
+                            tournamentData.groups.forEach((group, groupIndex) => {
+                                group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+                                    qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                                });
                             });
-                        });
-                        match.team2 = qualifiedTeams[placeholder] || match.team2;
+                            match.team2 = qualifiedTeams[placeholder] || match.team2;
+                        }
                     }
                 }
             });
