@@ -246,18 +246,16 @@ export function GroupGenerator() {
                     <FormItem>
                       <FormLabel>Duplas (uma por linha)</FormLabel>
                       <div className="flex gap-2">
-                        <div className="w-8 flex-shrink-0 space-y-2 pt-2">
+                        <div className="flex-shrink-0 font-mono text-sm text-right text-muted-foreground pt-2.5 pr-2 select-none">
                           {Array.from({ length: numberOfTeams > 0 ? numberOfTeams : 0 }, (_, i) => (
-                            <div key={i} className="flex h-5 items-center justify-end text-sm text-muted-foreground">
-                              {i + 1}
-                            </div>
+                            <div key={i} className="leading-7">{i + 1}</div>
                           ))}
                         </div>
                         <FormControl>
                           <Textarea
                             placeholder="Jogador A e Jogador B"
-                            className="min-h-[120px] resize-none"
-                            style={{ height: `${Math.max(120, (numberOfTeams || 0) * 28)}px` }}
+                            className="min-h-[120px] resize-none leading-7 font-mono"
+                            rows={numberOfTeams > 0 ? numberOfTeams : 4}
                             {...field}
                           />
                         </FormControl>
