@@ -11,7 +11,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutGrid, Users, Trophy, Loader2, Swords, Home } from "lucide-react"
+import { LayoutGrid, Users, Trophy, Loader2, Swords, Home, Settings } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { getTournaments } from "@/app/actions"
@@ -26,7 +26,9 @@ export function SidebarNav() {
     const loadTournaments = async () => {
       try {
         const savedTournaments = await getTournaments();
-        setTournaments(savedTournaments);
+        if (savedTournaments) {
+          setTournaments(savedTournaments);
+        }
       } catch (error) {
         console.error("Failed to load tournaments for sidebar", error);
       } finally {
@@ -36,10 +38,8 @@ export function SidebarNav() {
 
     loadTournaments();
 
-    // Set up an interval to refresh the categories list periodically
-    const intervalId = setInterval(loadTournaments, 5000); // Refresh every 5 seconds
+    const intervalId = setInterval(loadTournaments, 5000); 
 
-    // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
   }, []);
 
@@ -67,14 +67,6 @@ export function SidebarNav() {
                 </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <Link href="/admin" passHref>
-                    <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Página do Administrador">
-                      <LayoutGrid />
-                      <span>Administrador</span>
-                    </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
                 <Link href="/teams" passHref>
                     <SidebarMenuButton isActive={pathname === '/teams'} tooltip="Duplas">
                         <Users/>
@@ -92,6 +84,28 @@ export function SidebarNav() {
               </SidebarMenuItem>
             </SidebarMenu>
             
+            <SidebarSeparator className="my-4" />
+            
+            <SidebarMenu>
+                 <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider">ADMINISTRAÇÃO</div>
+                 <SidebarMenuItem>
+                    <Link href="/admin" passHref>
+                        <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Painel do Administrador">
+                            <Settings />
+                            <span>Painel</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <Link href="/admin/gerenciador" passHref>
+                        <SidebarMenuButton isActive={pathname === '/admin/gerenciador'} tooltip="Gerenciador de Torneios">
+                            <LayoutGrid />
+                            <span>Gerenciador</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+            </SidebarMenu>
+
             <SidebarSeparator className="my-4" />
 
             <SidebarMenu>
