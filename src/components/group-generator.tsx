@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Swords, Trophy } from "lucide-react"
 
 import { generateGroupsAction } from "@/app/actions"
-import type { TournamentData, TeamStanding, PlayoffMatch, MatchWithScore, GroupWithScores, TournamentFormValues, Team } from "@/lib/types"
+import type { TournamentData, TeamStanding, PlayoffMatch, MatchWithScore, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -45,6 +45,42 @@ export function GroupGenerator() {
     },
   })
 
+  const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
+    return groups.map(group => {
+      const standings: Record<string, TeamStanding> = {}
+      group.teams.forEach(team => {
+        const teamKey = `${team.player1}/${team.player2}`
+        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
+      })
+      const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
+      return {
+        ...group,
+        matches: group.matches.map(match => ({ ...match })),
+        standings: sortedStandings
+      }
+    })
+  }
+
+  const initializePlayoffs = (groups: GroupWithScores[]) => {
+    if (groups.length === 2 && groups.every(g => g.teams.length >= 4)) {
+      const newPlayoffs: PlayoffMatch[] = [
+        { team1Placeholder: "1º do Grupo A", team2Placeholder: "4º do Grupo B" },
+        { team1Placeholder: "2º do Grupo B", team2Placeholder: "3º do Grupo A" },
+        { team1Placeholder: "2º do Grupo A", team2Placeholder: "3º do Grupo B" },
+        { team1Placeholder: "1º do Grupo B", team2Placeholder: "4º do Grupo A" },
+      ]
+      setPlayoffs(newPlayoffs)
+    } else if (groups.length >= 2) {
+      const newPlayoffs: PlayoffMatch[] = [
+        { team1Placeholder: "1º do Grupo A", team2Placeholder: "2º do Grupo B" },
+        { team1Placeholder: "1º do Grupo B", team2Placeholder: "2º do Grupo A" },
+      ]
+      setPlayoffs(newPlayoffs)
+    } else {
+      setPlayoffs(null)
+    }
+  }
+
   async function onSubmit(values: TournamentFormValues) {
     setIsLoading(true)
     setTournamentData(null)
@@ -55,9 +91,9 @@ export function GroupGenerator() {
       .map((t) => t.trim())
       .filter(Boolean)
       .map((teamString) => {
-        const players = teamString.split("/").map((p) => p.trim());
-        return { player1: players[0], player2: players[1] };
-      });
+        const players = teamString.split("/").map((p) => p.trim())
+        return { player1: players[0], player2: players[1] }
+      })
 
     const result = await generateGroupsAction({
       ...values,
@@ -65,12 +101,9 @@ export function GroupGenerator() {
     })
 
     if (result.success && result.data) {
-      setTournamentData({
-        groups: result.data.groups.map(group => ({
-          ...group,
-          matches: group.matches.map(match => ({...match}))
-        }))
-      })
+      const groupsWithInitialStandings = initializeStandings(result.data.groups)
+      setTournamentData({ groups: groupsWithInitialStandings })
+      initializePlayoffs(groupsWithInitialStandings)
       toast({
         title: "Grupos e Jogos Gerados!",
         description: "Os grupos e confrontos estão prontos. Preencha os resultados.",
@@ -82,99 +115,69 @@ export function GroupGenerator() {
         description: result.error || "Ocorreu um erro inesperado.",
       })
     }
-
     setIsLoading(false)
   }
 
-  const handleScoreChange = (groupIndex: number, matchIndex: number, team: 'team1' | 'team2', value: string) => {
-    if (!tournamentData) return;
-    const newTournamentData = { ...tournamentData };
-    const score = value === '' ? undefined : parseInt(value, 10);
-    if (team === 'team1') {
-      newTournamentData.groups[groupIndex].matches[matchIndex].score1 = isNaN(score!) ? undefined : score;
-    } else {
-      newTournamentData.groups[groupIndex].matches[matchIndex].score2 = isNaN(score!) ? undefined : score;
-    }
-    setTournamentData(newTournamentData);
-  }
-
-  const calculateStandings = () => {
-    if (!tournamentData) return;
-
-    const newGroups = tournamentData.groups.map(group => {
-      const standings: Record<string, TeamStanding> = {};
+  const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
+    const newGroups = currentTournamentData.groups.map(group => {
+      const standings: Record<string, TeamStanding> = {}
 
       group.teams.forEach(team => {
-        const teamKey = `${team.player1}/${team.player2}`;
-        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 };
-      });
+        const teamKey = `${team.player1}/${team.player2}`
+        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
+      })
 
       group.matches.forEach(match => {
-        const { team1, team2, score1, score2 } = match;
-        if (score1 === undefined || score2 === undefined) return;
+        const { team1, team2, score1, score2 } = match
+        if (score1 === undefined || score2 === undefined) return
 
-        const team1Key = `${team1.player1}/${team1.player2}`;
-        const team2Key = `${team2.player1}/${team2.player2}`;
+        const team1Key = `${team1.player1}/${team1.player2}`
+        const team2Key = `${team2.player1}/${team2.player2}`
 
-        // Update played
-        standings[team1Key].played++;
-        standings[team2Key].played++;
+        standings[team1Key].played++
+        standings[team2Key].played++
 
-        // Update wins/losses
         if (score1 > score2) {
-          standings[team1Key].wins++;
-          standings[team2Key].losses++;
+          standings[team1Key].wins++
+          standings[team2Key].losses++
         } else {
-          standings[team2Key].wins++;
-          standings[team1Key].losses++;
+          standings[team2Key].wins++
+          standings[team1Key].losses++
         }
         
-        // Update sets
-        standings[team1Key].setsWon += score1;
-        standings[team1Key].setsLost += score2;
-        standings[team2Key].setsWon += score2;
-        standings[team2Key].setsLost += score1;
-      });
+        standings[team1Key].setsWon += score1
+        standings[team1Key].setsLost += score2
+        standings[team2Key].setsWon += score2
+        standings[team2Key].setsLost += score1
+      })
 
       const sortedStandings = Object.values(standings).map(s => ({
         ...s,
         setDifference: s.setsWon - s.setsLost
       })).sort((a, b) => {
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
-        return b.setsWon - a.setsWon;
-      });
+        if (b.wins !== a.wins) return b.wins - a.wins
+        if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference
+        return b.setsWon - a.setsWon
+      })
 
-      return { ...group, standings: sortedStandings };
-    });
+      return { ...group, standings: sortedStandings }
+    })
 
-    setTournamentData({ groups: newGroups });
-    generatePlayoffs(newGroups);
-    toast({
-      title: "Classificação Calculada!",
-      description: "A tabela de classificação foi atualizada e os playoffs gerados.",
-    });
+    return { groups: newGroups }
   }
 
-  const generatePlayoffs = (groups: GroupWithScores[]) => {
-    // Placeholder logic for quarterfinals assuming 2 groups, top 4 from each advance
-    if (groups.length === 2 && groups.every(g => g.standings && g.standings.length >= 4)) {
-      const newPlayoffs: PlayoffMatch[] = [
-        { team1Placeholder: "1º do Grupo A", team2Placeholder: "4º do Grupo B" },
-        { team1Placeholder: "2º do Grupo B", team2Placeholder: "3º do Grupo A" },
-        { team1Placeholder: "2º do Grupo A", team2Placeholder: "3º do Grupo B" },
-        { team1Placeholder: "1º do Grupo B", team2Placeholder: "4º do Grupo A" },
-      ];
-      setPlayoffs(newPlayoffs);
-    } else if (groups.length >= 2) {
-       const newPlayoffs: PlayoffMatch[] = [
-        { team1Placeholder: "1º do Grupo A", team2Placeholder: "2º do Grupo B" },
-        { team1Placeholder: "1º do Grupo B", team2Placeholder: "2º do Grupo A" },
-      ];
-       setPlayoffs(newPlayoffs);
+  const handleScoreChange = (groupIndex: number, matchIndex: number, team: 'team1' | 'team2', value: string) => {
+    if (!tournamentData) return
+    const newTournamentData = { ...tournamentData }
+    const score = value === '' ? undefined : parseInt(value, 10)
+    if (team === 'team1') {
+      newTournamentData.groups[groupIndex].matches[matchIndex].score1 = isNaN(score!) ? undefined : score
     } else {
-      setPlayoffs(null)
+      newTournamentData.groups[groupIndex].matches[matchIndex].score2 = isNaN(score!) ? undefined : score
     }
+
+    const updatedDataWithStandings = calculateStandings(newTournamentData)
+    setTournamentData(updatedDataWithStandings)
   }
 
   return (
@@ -391,16 +394,10 @@ export function GroupGenerator() {
                       </Card>
                     ))}
                   </div>
-                  <div className="flex justify-center">
-                      <Button onClick={calculateStandings}>
-                        <Trophy className="mr-2 h-4 w-4" />
-                        Calcular Classificação e Gerar Playoffs
-                      </Button>
-                  </div>
-                   {playoffs && (
+                  {playoffs && (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Playoffs - Mata-Mata</CardTitle>
+                        <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary" />Playoffs - Mata-Mata</CardTitle>
                         <CardDescription>Chaveamento gerado com base na classificação dos grupos.</CardDescription>
                       </CardHeader>
                       <CardContent className="flex justify-center p-6">
