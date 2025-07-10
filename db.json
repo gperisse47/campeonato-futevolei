@@ -1,4 +1,9 @@
+
 {
+  "_globalSettings": {
+    "estimatedMatchDuration": 40,
+    "numberOfCourts": 2
+  },
   "Masculino": {
     "formValues": {
       "category": "Masculino",
@@ -8,7 +13,8 @@
       "teamsPerGroupToAdvance": 2,
       "teams": "Peri e Gularte\nFabinho e Bergallo\nCaslu e Leo\nAlex e Lage\nFelipe M. e Rapha B.\nRodrigo e Paulinho\nCarelli e Hantaro\nNeves e Caze\nGustavo M. e Marcus\nGabe e Yan\nBrenner e Py\nCarril  e Leandro \nRusso e Maki\nJames e Fabio\nSartoratto e Poppe\nOlavo e Dudu",
       "groupFormationStrategy": "balanced",
-      "includeThirdPlace": true
+      "includeThirdPlace": true,
+      "startTime": "09:00"
     },
     "tournamentData": {
       "groups": [
@@ -623,7 +629,8 @@
       "teamsPerGroupToAdvance": 2,
       "teams": "Sosô e Neves\nIngrid e Yan\nJu e Russo\nStella e Caslu\nRenata e João\nClara e Peri\nGabe e Bia\nSartoratto e Rebeca\nGabi Queiroz e Gularte\nIsa Liron e Carelli\nFabi e Alex\nMarina e Henrique",
       "groupFormationStrategy": "balanced",
-      "includeThirdPlace": true
+      "includeThirdPlace": true,
+      "startTime": "09:00"
     },
     "tournamentData": {
       "groups": [

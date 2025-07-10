@@ -4,15 +4,15 @@
 
 import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useForm as useFormGlobal } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw } from "lucide-react"
-import { format, addMinutes, parse } from 'date-fns';
+import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, Settings } from "lucide-react"
+import { format, addMinutes } from 'date-fns';
 
 
-import { generateGroupsAction, getTournaments, saveTournament, deleteTournament } from "@/app/actions"
-import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket } from "@/lib/types"
-import { formSchema } from "@/lib/types"
+import { getTournaments, saveTournament, deleteTournament, saveGlobalSettings } from "@/app/actions"
+import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
+import { formSchema, globalSettingsSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
 import {
@@ -59,7 +59,8 @@ export function GroupGenerator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({})
+  const [isSavingGlobal, setIsSavingGlobal] = useState(false);
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, numberOfCourts: 2 }})
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
@@ -76,7 +77,8 @@ export function GroupGenerator() {
       try {
         const savedTournaments = await getTournaments();
         setTournaments(savedTournaments);
-        const categories = Object.keys(savedTournaments);
+        globalSettingsForm.reset(savedTournaments._globalSettings);
+        const categories = Object.keys(savedTournaments).filter(k => k !== '_globalSettings');
         if (categories.length > 0 && !activeTab) {
           setActiveTab(categories[0]);
         }
@@ -121,7 +123,7 @@ export function GroupGenerator() {
       delete newTournaments[categoryName];
       setTournaments(newTournaments);
 
-      const remainingCategories = Object.keys(newTournaments);
+      const remainingCategories = Object.keys(newTournaments).filter(k => k !== '_globalSettings');
       if (remainingCategories.length > 0) {
         setActiveTab(remainingCategories[0]);
       } else {
@@ -165,10 +167,16 @@ Olavo e Dudu`,
       groupFormationStrategy: "order",
       includeThirdPlace: true,
       startTime: "09:00",
-      estimatedMatchDuration: 40,
-      numberOfCourts: 2,
     },
   })
+
+  const globalSettingsForm = useFormGlobal<GlobalSettings>({
+    resolver: zodResolver(globalSettingsSchema),
+    defaultValues: {
+        estimatedMatchDuration: 40,
+        numberOfCourts: 2,
+    }
+  });
   
   const tournamentType = form.watch("tournamentType");
 
@@ -206,9 +214,10 @@ Olavo e Dudu`,
     return Object.values(bracket).reduce((total, round) => total + round.length, 0);
   }, []);
 
-  const scheduleMatches = useCallback((categoryData: CategoryData): CategoryData => {
+  const scheduleMatches = useCallback((categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData => {
     const { formValues, tournamentData, playoffs } = categoryData;
-    const { startTime, estimatedMatchDuration, numberOfCourts } = formValues;
+    const { startTime } = formValues;
+    const { estimatedMatchDuration, numberOfCourts } = globalSettings;
 
     if (!startTime || !estimatedMatchDuration || !numberOfCourts) return categoryData;
 
@@ -462,7 +471,7 @@ Olavo e Dudu`,
     }
 
     return { upper: upperBracket, lower: lowerBracket, playoffs: finalPlayoffs };
-}, [teamToKey]);
+}, []);
 
   const initializePlayoffs = useCallback((values: TournamentFormValues, aiResult?: GenerateTournamentGroupsOutput): PlayoffBracketSet | null => {
         if (values.tournamentType === 'doubleElimination') {
@@ -766,12 +775,12 @@ Olavo e Dudu`,
           };
           setTournaments(prev => ({
             ...prev,
-            [activeTab]: updatedCategoryData,
+            [activeTab!]: updatedCategoryData,
           }))
-          saveData(activeTab, updatedCategoryData);
+          saveData(activeTab!, updatedCategoryData);
         }
       
-    }, [activeTab, activeCategoryData, getTeamPlaceholder]);
+    }, [activeTab, activeCategoryData, getTeamPlaceholder, tournaments]);
 
   async function onSubmit(values: TournamentFormValues) {
     setIsLoading(true);
@@ -847,7 +856,7 @@ Olavo e Dudu`,
             delete newTournaments[categoryName];
             return newTournaments;
           });
-          const remainingKeys = Object.keys(tournaments).filter(k => k !== categoryName);
+          const remainingKeys = Object.keys(tournaments).filter(k => k !== categoryName && k !== '_globalSettings');
           if (remainingKeys.length > 0) {
             setActiveTab(remainingKeys[0]);
           } else {
@@ -871,7 +880,7 @@ Olavo e Dudu`,
     }
     
     // Schedule matches for the newly created data
-    newCategoryData = scheduleMatches(newCategoryData);
+    newCategoryData = scheduleMatches(newCategoryData, tournaments._globalSettings);
     newCategoryData.totalMatches = calculateTotalMatches(newCategoryData);
 
     setTournaments(prev => ({ ...prev, [categoryName]: newCategoryData }));
@@ -900,13 +909,13 @@ Olavo e Dudu`,
     };
     
     // Re-schedule matches with new settings
-    updatedCategoryData = scheduleMatches(updatedCategoryData);
+    updatedCategoryData = scheduleMatches(updatedCategoryData, tournaments._globalSettings);
 
     // Update the state
-    setTournaments(prev => ({ ...prev, [activeTab]: updatedCategoryData }));
+    setTournaments(prev => ({ ...prev, [activeTab!]: updatedCategoryData }));
 
     // Save the changes
-    await saveData(activeTab, updatedCategoryData);
+    await saveData(activeTab!, updatedCategoryData);
 
     toast({
         title: "Categoria Atualizada!",
@@ -915,6 +924,25 @@ Olavo e Dudu`,
 
     setIsUpdating(false);
   };
+
+  const handleSaveGlobalSettings = async (values: GlobalSettings) => {
+    setIsSavingGlobal(true);
+    const result = await saveGlobalSettings(values);
+    if(result.success) {
+        setTournaments(prev => ({ ...prev, _globalSettings: values }));
+        toast({
+            title: "Configurações Salvas!",
+            description: "As configurações globais do torneio foram salvas.",
+        });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Erro ao Salvar",
+            description: result.error || "Não foi possível salvar as configurações globais.",
+        });
+    }
+    setIsSavingGlobal(false);
+  }
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
     const newGroups = currentTournamentData.groups.map(group => {
@@ -994,10 +1022,10 @@ Olavo e Dudu`,
 
     setTournaments(prev => ({
         ...prev,
-        [activeTab]: updatedCategoryData,
+        [activeTab!]: updatedCategoryData,
     }));
 
-    saveData(activeTab, updatedCategoryData);
+    saveData(activeTab!, updatedCategoryData);
   }
 
   const handlePlayoffMatchChange = (bracketKey: keyof PlayoffBracketSet | null, roundName: string, matchIndex: number, field: 'score1' | 'score2' | 'time', value: string) => {
@@ -1025,9 +1053,9 @@ Olavo e Dudu`,
     };
     setTournaments(prev => ({
         ...prev,
-        [activeTab]: updatedCategoryData,
+        [activeTab!]: updatedCategoryData,
     }));
-    saveData(activeTab, updatedCategoryData);
+    saveData(activeTab!, updatedCategoryData);
   };
 
   useEffect(() => {
@@ -1159,262 +1187,282 @@ Olavo e Dudu`,
   return (
     <div className="flex flex-col gap-8">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Configurações do Torneio</CardTitle>
-            <CardDescription>
-              Insira os detalhes para a geração de uma nova categoria ou atualize uma existente.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome da Categoria</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Masculino, Misto" {...field} disabled={!!activeTab} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
+        <div className="lg:col-span-1 flex flex-col gap-8">
+          <Card>
+              <CardHeader>
+                  <CardTitle className="flex items-center"><Settings className="mr-2 h-5 w-5"/>Configurações Globais</CardTitle>
+                  <CardDescription>
+                      Parâmetros que afetam todas as categorias do torneio.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Form {...globalSettingsForm}>
+                      <form onSubmit={globalSettingsForm.handleSubmit(handleSaveGlobalSettings)} className="space-y-6">
+                          <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                  control={globalSettingsForm.control}
+                                  name="estimatedMatchDuration"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Duração (min)</FormLabel>
+                                          <FormControl>
+                                              <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              <FormField
+                                  control={globalSettingsForm.control}
+                                  name="numberOfCourts"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Nº de Quadras</FormLabel>
+                                          <FormControl>
+                                              <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                          </div>
+                          <Button type="submit" disabled={isSavingGlobal} className="w-full">
+                              {isSavingGlobal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              Salvar Globais
+                          </Button>
+                      </form>
+                  </Form>
+              </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Configurar Nova Categoria</CardTitle>
+              <CardDescription>
+                Insira os detalhes para a geração de uma nova categoria. Para atualizar, selecione uma guia à direita.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
                     control={form.control}
-                    name="tournamentType"
-                    render={({ field }) => (
-                        <FormItem className="space-y-3">
-                        <FormLabel>Tipo de Torneio</FormLabel>
-                        <FormControl>
-                            <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            value={field.value}
-                            className="flex flex-col space-y-1"
-                            disabled={!!activeTab}
-                            >
-                            <div className="flex items-center space-x-3 space-y-0">
-                                <RadioGroupItem value="groups" id="groups"/>
-                                <Label htmlFor="groups" className="font-normal">
-                                Fase de Grupos + Mata-Mata
-                                </Label>
-                            </div>
-                            <div className="flex items-center space-x-3 space-y-0">
-                                <RadioGroupItem value="singleElimination" id="singleElimination"/>
-                                <Label htmlFor="singleElimination" className="font-normal">
-                                Mata-Mata Simples
-                                </Label>
-                            </div>
-                             <div className="flex items-center space-x-3 space-y-0">
-                                <RadioGroupItem value="doubleElimination" id="doubleElimination"/>
-                                <Label htmlFor="doubleElimination" className="font-normal">
-                                Dupla Eliminação
-                                </Label>
-                            </div>
-                            </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                
-                <FormField
-                    control={form.control}
-                    name="numberOfTeams"
+                    name="category"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nº de Duplas</FormLabel>
+                        <FormLabel>Nome da Categoria</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
+                          <Input placeholder="Ex: Masculino, Misto" {...field} disabled={!!activeTab} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                      control={form.control}
+                      name="tournamentType"
+                      render={({ field }) => (
+                          <FormItem className="space-y-3">
+                          <FormLabel>Tipo de Torneio</FormLabel>
+                          <FormControl>
+                              <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              value={field.value}
+                              className="flex flex-col space-y-1"
+                              disabled={!!activeTab}
+                              >
+                              <div className="flex items-center space-x-3 space-y-0">
+                                  <RadioGroupItem value="groups" id="groups"/>
+                                  <Label htmlFor="groups" className="font-normal">
+                                  Fase de Grupos + Mata-Mata
+                                  </Label>
+                              </div>
+                              <div className="flex items-center space-x-3 space-y-0">
+                                  <RadioGroupItem value="singleElimination" id="singleElimination"/>
+                                  <Label htmlFor="singleElimination" className="font-normal">
+                                  Mata-Mata Simples
+                                  </Label>
+                              </div>
+                               <div className="flex items-center space-x-3 space-y-0">
+                                  <RadioGroupItem value="doubleElimination" id="doubleElimination"/>
+                                  <Label htmlFor="doubleElimination" className="font-normal">
+                                  Dupla Eliminação
+                                  </Label>
+                              </div>
+                              </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                      />
+                  
+                  <FormField
+                      control={form.control}
+                      name="numberOfTeams"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nº de Duplas</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                  {tournamentType === "groups" && (
+                      <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                              control={form.control}
+                              name="numberOfGroups"
+                              render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Nº de Grupos</FormLabel>
+                                  <FormControl>
+                                  <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
+                                  </FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={form.control}
+                              name="teamsPerGroupToAdvance"
+                              render={({ field }) => (
+                                  <FormItem>
+                                  <FormLabel>Classificados por Grupo</FormLabel>
+                                  <FormControl>
+                                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
+                                  </FormControl>
+                                  <FormMessage />
+                                  </FormItem>
+                              )}
+                              />
+                      </div>
+                  )}
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                      <h3 className="text-sm font-medium">Configurações da Categoria</h3>
+                      <FormField
+                        control={form.control}
+                        name="startTime"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Horário de Início da Categoria</FormLabel>
+                            <FormControl>
+                              <Input type="time" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                  </div>
+
+                  <Separator />
+                 
+                  <FormField
+                    control={form.control}
+                    name="teams"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Duplas (uma por linha)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Jogador A e Jogador B"
+                            className="min-h-[120px] resize-y"
+                            rows={form.watch('numberOfTeams') > 0 ? form.watch('numberOfTeams') : 4}
+                            {...field}
+                             disabled={!!activeTab}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Use o formato: Jogador1 e Jogador2
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="groupFormationStrategy"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Estratégia de Sorteio</FormLabel>
+                         <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                             disabled={!!activeTab}
+                          >
+                            <div className="flex items-center space-x-3 space-y-0">
+                                <RadioGroupItem value="order" id="order"/>
+                              <Label htmlFor="order" className="font-normal">
+                                Ordem
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-3 space-y-0">
+                                <RadioGroupItem value="random" id="random"/>
+                              <Label htmlFor="random" className="font-normal">
+                                Aleatório (Sorteio)
+                              </Label>
+                            </div>
+                          </RadioGroup>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                {tournamentType === "groups" && (
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="numberOfGroups"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Nº de Grupos</FormLabel>
-                                <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="teamsPerGroupToAdvance"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Classificados por Grupo</FormLabel>
-                                <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                    </div>
-                )}
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Configurações de Horários</h3>
-                    <FormField
-                      control={form.control}
-                      name="startTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Horário de Início</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                        control={form.control}
-                        name="estimatedMatchDuration"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Duração da Partida (min)</FormLabel>
-                            <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/>
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                         <FormField
-                        control={form.control}
-                        name="numberOfCourts"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Nº de Quadras</FormLabel>
-                            <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/>
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    </div>
-                </div>
+                  <FormField
+                    control={form.control}
+                    name="includeThirdPlace"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <Label>Disputa de 3º Lugar</Label>
+                          <FormDescription>
+                            Incluir um jogo para definir o terceiro lugar.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={tournamentType === 'doubleElimination' || !!activeTab}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
-                <Separator />
-               
-                <FormField
-                  control={form.control}
-                  name="teams"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duplas (uma por linha)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Jogador A e Jogador B"
-                          className="min-h-[120px] resize-y"
-                          rows={form.watch('numberOfTeams') > 0 ? form.watch('numberOfTeams') : 4}
-                          {...field}
-                           disabled={!!activeTab}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Use o formato: Jogador1 e Jogador2
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                  <Button type="submit" disabled={isLoading || isSaving || !!activeTab} className="w-full">
+                    {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                     {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Nova Categoria'}
+                  </Button>
+                  {activeTab && (
+                      <Button type="button" variant="secondary" onClick={form.handleSubmit(handleUpdateCategory)} disabled={isUpdating} className="w-full">
+                          {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          <RefreshCcw className="mr-2 h-4 w-4"/>
+                          Atualizar Horários da Categoria
+                      </Button>
                   )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="groupFormationStrategy"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>Estratégia de Sorteio</FormLabel>
-                       <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1"
-                           disabled={!!activeTab}
-                        >
-                          <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="order" id="order"/>
-                            <Label htmlFor="order" className="font-normal">
-                              Ordem
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="random" id="random"/>
-                            <Label htmlFor="random" className="font-normal">
-                              Aleatório (Sorteio)
-                            </Label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="includeThirdPlace"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <Label>Disputa de 3º Lugar</Label>
-                        <FormDescription>
-                          Incluir um jogo para definir o terceiro lugar.
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={tournamentType === 'doubleElimination' || !!activeTab}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" disabled={isLoading || isSaving || !!activeTab} className="w-full">
-                  {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                   {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Categoria'}
-                </Button>
-                {activeTab && (
-                    <Button type="button" variant="secondary" onClick={form.handleSubmit(handleUpdateCategory)} disabled={isUpdating} className="w-full">
-                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <RefreshCcw className="mr-2 h-4 w-4"/>
-                        Atualizar Categoria
-                    </Button>
-                )}
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
         <div className="lg:col-span-2">
-          {Object.keys(tournaments).length > 0 && activeTab ? (
+          {Object.keys(tournaments).filter(k => k !== '_globalSettings').length > 0 && activeTab ? (
              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <div className="flex items-center justify-between gap-4">
                 <TabsList className="hidden sm:inline-flex">
-                    {Object.keys(tournaments).map(cat => (
+                    {Object.keys(tournaments).filter(k => k !== '_globalSettings').map(cat => (
                         <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
                     ))}
                 </TabsList>
@@ -1425,7 +1473,7 @@ Olavo e Dudu`,
                           <SelectValue placeholder="Selecionar categoria..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.keys(tournaments).map(cat => (
+                          {Object.keys(tournaments).filter(k => k !== '_globalSettings').map(cat => (
                             <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                           ))}
                         </SelectContent>
@@ -1433,7 +1481,7 @@ Olavo e Dudu`,
                     </div>
                  </div>
               </div>
-              {Object.keys(tournaments).map(categoryName => {
+              {Object.keys(tournaments).filter(k => k !== '_globalSettings').map(categoryName => {
                   const categoryData = tournaments[categoryName];
                   if (!categoryData) return null;
 

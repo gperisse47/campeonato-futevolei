@@ -25,6 +25,18 @@ export const teamSchema = z.object({
 });
 export type Team = z.infer<typeof teamSchema>;
 
+export const globalSettingsSchema = z.object({
+  estimatedMatchDuration: z.coerce
+      .number({ invalid_type_error: "Deve ser um número." })
+      .int("Deve ser um número inteiro.")
+      .positive("A duração deve ser positiva."),
+  numberOfCourts: z.coerce
+      .number({ invalid_type_error: "Deve ser um número." })
+      .int("Deve ser um número inteiro.")
+      .min(1, "Deve haver pelo menos uma quadra."),
+});
+export type GlobalSettings = z.infer<typeof globalSettingsSchema>;
+
 export const formSchema = z
   .object({
     category: z.string().min(1, "A categoria é obrigatória."),
@@ -48,14 +60,6 @@ export const formSchema = z
     includeThirdPlace: z.boolean().default(true),
     // Scheduling
     startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
-    estimatedMatchDuration: z.coerce
-      .number({ invalid_type_error: "Deve ser um número." })
-      .int("Deve ser um número inteiro.")
-      .positive("A duração deve ser positiva."),
-    numberOfCourts: z.coerce
-      .number({ invalid_type_error: "Deve ser um número." })
-      .int("Deve ser um número inteiro.")
-      .min(1, "Deve haver pelo menos uma quadra."),
     updatedAt: z.string().optional(),
   })
   .refine(
@@ -214,7 +218,8 @@ export type CategoryData = {
 }
 
 export type TournamentsState = {
-  [categoryName: string]: CategoryData;
+  _globalSettings: GlobalSettings;
+  [categoryName: string]: CategoryData | GlobalSettings;
 }
 
 export type ConsolidatedMatch = {

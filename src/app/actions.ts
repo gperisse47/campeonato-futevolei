@@ -9,18 +9,32 @@ import {
   type GenerateTournamentGroupsOutput,
   type GenerateTournamentGroupsInput
 } from "@/ai/flows/generate-tournament-groups"
-import type { TournamentsState, CategoryData } from "@/lib/types"
+import type { TournamentsState, CategoryData, GlobalSettings } from "@/lib/types"
 
 const dbPath = path.resolve(process.cwd(), "db.json")
 
 async function readDb(): Promise<TournamentsState> {
   try {
     const fileContent = await fs.readFile(dbPath, "utf-8")
-    return JSON.parse(fileContent)
+    const data = JSON.parse(fileContent)
+    // Ensure global settings exist
+    if (!data._globalSettings) {
+      data._globalSettings = {
+        estimatedMatchDuration: 40,
+        numberOfCourts: 2
+      };
+    }
+    return data;
   } catch (error: any) {
     if (error.code === 'ENOENT') {
-      await writeDb({}); // Create the file if it doesn't exist
-      return {} // Return empty object if file doesn't exist
+      const defaultData = {
+        _globalSettings: {
+          estimatedMatchDuration: 40,
+          numberOfCourts: 2
+        }
+      };
+      await writeDb(defaultData);
+      return defaultData;
     }
     console.error("Error reading from DB:", error)
     throw new Error("Could not read from database.")
@@ -43,6 +57,18 @@ export async function getTournaments(): Promise<TournamentsState> {
 export async function getTournamentByCategory(category: string): Promise<CategoryData | null> {
     const db = await readDb();
     return db[category] || null;
+}
+
+export async function saveGlobalSettings(settings: GlobalSettings): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+        db._globalSettings = settings;
+        await writeDb(db);
+        return { success: true };
+    } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.message || "Ocorreu um erro desconhecido ao salvar as configurações globais." };
+    }
 }
 
 
