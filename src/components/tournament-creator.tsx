@@ -107,12 +107,6 @@ Olavo e Dudu`,
   })
 
   const tournamentType = form.watch("tournamentType");
-  const teamsInput = form.watch("teams");
-
-   useEffect(() => {
-    const teamsArray = teamsInput.split('\n').map(t => t.trim()).filter(Boolean);
-    form.setValue('numberOfTeams', teamsArray.length, { shouldValidate: true });
-  }, [teamsInput, form]);
 
 
   useEffect(() => {
@@ -695,7 +689,7 @@ Olavo e Dudu`,
                     />
                   </FormControl>
                   <FormDescription>
-                    Total: {form.getValues('numberOfTeams')} duplas. Use o formato: Jogador1 e Jogador2
+                    Use o formato: Jogador1 e Jogador2
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

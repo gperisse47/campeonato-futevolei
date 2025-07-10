@@ -7,10 +7,9 @@ import fs from "fs/promises"
 import path from "path"
 import {
   generateTournamentGroups,
-  type GenerateTournamentGroupsOutput,
-  type GenerateTournamentGroupsInput
+  type GenerateTournamentGroupsOutput
 } from "@/ai/flows/generate-tournament-groups"
-import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet } from "@/lib/types"
+import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput } from "@/lib/types"
 import { z } from 'zod';
 
 const dbPath = path.resolve(process.cwd(), "db.json")
