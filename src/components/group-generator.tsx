@@ -79,7 +79,7 @@ export function GroupGenerator() {
       }
     };
     fetchInitialData();
-  }, [toast]);
+  }, [toast, activeTab]);
 
   const saveData = async (categoryName: string, data: CategoryData) => {
     setIsSaving(true);
@@ -885,27 +885,33 @@ export function GroupGenerator() {
 
                                       <div>
                                         <h4 className="mb-2 font-semibold">Jogos</h4>
-                                        <div className="space-y-2">
-                                          {group.matches.map((match, matchIndex) => (
-                                            <div key={matchIndex} className="relative flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
-                                              <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
-                                              <div className="flex items-center gap-1">
-                                                <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
-                                                <span className="text-muted-foreground">x</span>
-                                                <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score2', e.target.value)} />
-                                              </div>
-                                              <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
-                                              <div className="absolute top-1/2 -translate-y-1/2 right-full mr-2 flex items-center">
-                                                <Input
+                                        <div className="relative">
+                                          <div className="absolute left-10 top-0 h-full w-px bg-border -z-10"></div>
+                                          <div className="space-y-2">
+                                            {group.matches.map((match, matchIndex) => (
+                                              <div key={matchIndex} className="relative flex items-center gap-4">
+                                                <div className="relative">
+                                                  <div className="h-full w-px bg-border absolute left-1/2 -translate-x-1/2"></div>
+                                                  <Input
                                                     type="text"
-                                                    className="h-7 w-20 text-center"
+                                                    className="h-8 w-20 text-center z-10 relative bg-background"
                                                     placeholder="00:00"
                                                     value={match.time ?? ''}
                                                     onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'time', e.target.value)}
-                                                />
+                                                  />
+                                                </div>
+                                                <div className="flex-1 flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                                    <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
+                                                        <span className="text-muted-foreground">x</span>
+                                                        <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score2', e.target.value)} />
+                                                    </div>
+                                                    <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
+                                                </div>
                                               </div>
-                                            </div>
-                                          ))}
+                                            ))}
+                                          </div>
                                         </div>
                                       </div>
                                     </CardContent>
@@ -944,3 +950,5 @@ export function GroupGenerator() {
     </div>
   )
 }
+
+    
