@@ -185,20 +185,20 @@ export default function TeamsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Categoria</TableHead>
                   <TableHead>Nome da Dupla</TableHead>
                   <TableHead>Integrante 1</TableHead>
                   <TableHead>Integrante 2</TableHead>
+                  <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTeams.map((item, index) => (
                   <TableRow key={`${teamToKey(item.team)}-${item.category}-${index}`}>
-                    <TableCell>{item.category}</TableCell>
                     <TableCell className="font-medium">{`${item.team.player1} e ${item.team.player2}`}</TableCell>
                     <TableCell>{item.team.player1}</TableCell>
                     <TableCell>{item.team.player2}</TableCell>
+                    <TableCell>{item.category}</TableCell>
                     <TableCell className="text-right">
                         <Button variant="outline" size="icon" onClick={() => handleEditClick(item)}>
                             <Pencil className="h-4 w-4" />
