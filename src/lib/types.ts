@@ -65,7 +65,10 @@ export const formSchema = z
         .split("\n")
         .map((t) => t.trim())
         .filter(Boolean);
-      return teamsArray.every((team) => team.includes(" e ") && team.split(" e ").length === 2 && team.split(' e ')[0].trim() && team.split(' e ')[1].trim());
+      return teamsArray.every((team) => {
+        const players = team.split(" e ");
+        return players.length === 2 && players[0].trim() && players[1].trim();
+      });
     },
     {
       message: "Cada dupla deve ter dois jogadores separados por ' e '. Ex: Jogador A e Jogador B.",
@@ -90,7 +93,6 @@ export const formSchema = z
       if (data.tournamentType !== 'groups') return true;
       if (!data.numberOfGroups || !data.teamsPerGroupToAdvance) return false;
       if (data.numberOfTeams <= 0 || data.numberOfGroups <= 0) return true; // Avoid division by zero if other validations fail
-      // The number of advancing teams must be less than the number of teams in the smallest group.
       const teamsInSmallestGroup = Math.floor(data.numberOfTeams / data.numberOfGroups);
       return teamsInSmallestGroup > 0 && data.teamsPerGroupToAdvance < teamsInSmallestGroup;
     },
