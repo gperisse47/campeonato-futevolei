@@ -207,14 +207,11 @@ Olavo e Dudu`,
             const totalQualifiers = values.numberOfTeams;
             if (totalQualifiers < 2) return null;
             
-            if ((totalQualifiers & (totalQualifiers - 1)) !== 0 && values.tournamentType !== 'groups') return null;
-
             let bracket: PlayoffBracket = {};
             
             let teamsInRound = totalQualifiers;
             let roundOrder = Math.log2(teamsInRound);
-            let roundCounter = 1;
-
+            
             const getRoundName = (teams: number) => {
                 return roundNames[teams] || `Rodada de ${teams}`;
             }
@@ -236,7 +233,6 @@ Olavo e Dudu`,
             
             teamsInRound /= 2;
             roundOrder--;
-            roundCounter++;
 
             while (teamsInRound >= 2) {
                 const roundName = getRoundName(teamsInRound);
@@ -249,8 +245,7 @@ Olavo e Dudu`,
 
                 const nextRoundMatches: PlayoffMatch[] = [];
                 
-                const half = nextRoundPlaceholders.length / 2;
-                for (let i = 0; i < half; i++) {
+                for (let i = 0; i < nextRoundPlaceholders.length / 2; i++) {
                     const matchName = `${roundName} Jogo ${i + 1}`;
                     nextRoundMatches.push({
                         id: `${roundName.replace(/\s/g, '')}-${i + 1}`,
@@ -269,9 +264,7 @@ Olavo e Dudu`,
 
                 teamsInRound /= 2;
                 roundOrder--;
-                roundCounter++;
             }
-
 
             if (values.includeThirdPlace && bracket['Semifinal']) {
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.name}`);
@@ -328,7 +321,7 @@ Olavo e Dudu`,
                         time: '',
                         roundOrder
                     });
-                    nextRoundTeams.push(`Vencedor ${roundNameSingle} Jogo ${i + 1}`);
+                    nextRoundTeams.push(`Vencedor ${matchId}`);
                 }
 
                 currentRoundTeams = nextRoundTeams;
@@ -351,8 +344,7 @@ Olavo e Dudu`,
   const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues, aiResult: GenerateTournamentGroupsOutput): PlayoffBracketSet | null => {
         if (!aiResult?.playoffMatches) return null;
 
-        const teams = values.teams.split("\n").map(t => t.trim()).filter(Boolean);
-        const numTeams = teams.length;
+        const numTeams = values.numberOfTeams;
         if (numTeams < 4) return null;
 
         const upperBracket: PlayoffBracket = {};
@@ -375,15 +367,15 @@ Olavo e Dudu`,
         upperBracket[`Upper Rodada ${upperRound}`] = currentRoundMatches;
 
         let teamsInRound = numTeams / 2;
-        let losersPool: { [round: number]: string[] } = { 1: [] };
+        let losersPool: { [round: number]: string[] } = {};
 
         while (teamsInRound >= 1) {
             losersPool[upperRound] = currentRoundMatches.map(m => `Perdedor ${m.name}`);
             
-            if (teamsInRound === 1) break; // We have the two finalists for the upper bracket
+            if (teamsInRound === 1) break;
 
             const nextRoundWinners = [];
-            for (let i = 0; i < currentRoundMatches.length / 2; i++) {
+            for (let i = 0; i < Math.floor(currentRoundMatches.length / 2); i++) {
                  nextRoundWinners.push(`Vencedor ${currentRoundMatches[i * 2].name}`);
                  nextRoundWinners.push(`Vencedor ${currentRoundMatches[i*2 + 1].name}`);
             }
@@ -392,13 +384,13 @@ Olavo e Dudu`,
             roundOrder--;
             const roundName = `Upper Rodada ${upperRound}`;
             const nextRoundMatches: PlayoffMatch[] = [];
-            for (let i = 0; i < teamsInRound / 2; i++) {
+            for (let i = 0; i < nextRoundWinners.length / 2; i++) {
                 const matchName = `${roundName} Jogo ${i + 1}`;
                 nextRoundMatches.push({
                     id: `U-R${upperRound}-${i + 1}`,
                     name: matchName,
-                    team1Placeholder: `Vencedor ${currentRoundMatches[i*2].name}`,
-                    team2Placeholder: `Vencedor ${currentRoundMatches[i*2 + 1].name}`,
+                    team1Placeholder: nextRoundWinners[i*2],
+                    team2Placeholder: nextRoundWinners[i*2 + 1],
                     time: '',
                     roundOrder: roundOrder,
                 });
@@ -408,17 +400,30 @@ Olavo e Dudu`,
             teamsInRound /= 2;
         }
 
+        const wbFinalMatch = upperBracket[`Upper Rodada ${upperRound}`][0];
+        upperBracket[`Final da Chave Superior`] = [{
+            id: 'WB-Final-1',
+            name: 'Final da Chave Superior',
+            team1Placeholder: `Vencedor ${wbFinalMatch.name}`,
+            team2Placeholder: `Perdedor ${wbFinalMatch.name}`, // Placeholder, but one is winner, one is loser
+            time: '',
+            roundOrder: wbFinalMatch.roundOrder - 1,
+        }];
+
+
         // 2. Build Lower Bracket
         let lowerRound = 1;
-        let currentLowerTeams = [...(losersPool[1] || [])];
         let lowerRoundOrder = -1;
+        let currentLowerTeams: string[] = [...(losersPool[1] || [])];
+        
+        let upperLoserRound = 2;
 
-        while(currentLowerTeams.length > 2) {
-             const roundName = `Lower Rodada ${lowerRound}`;
-             const nextLowerTeams = [];
-             const lowerMatches: PlayoffMatch[] = [];
-             
-             for(let i=0; i < currentLowerTeams.length / 2; i++){
+        while(true) {
+            const roundName = `Lower Rodada ${lowerRound}`;
+            const lowerMatches: PlayoffMatch[] = [];
+            const nextLowerTeams: string[] = [];
+
+            for(let i=0; i < currentLowerTeams.length / 2; i++){
                 const matchName = `${roundName} Jogo ${i+1}`;
                 lowerMatches.push({
                     id: `L-R${lowerRound}-${i + 1}`,
@@ -427,41 +432,60 @@ Olavo e Dudu`,
                     team2Placeholder: currentLowerTeams[i*2+1],
                     time: '',
                     roundOrder: lowerRoundOrder,
-                })
+                });
                 nextLowerTeams.push(`Vencedor ${matchName}`);
+            }
+            if(lowerMatches.length > 0) {
+                lowerBracket[roundName] = lowerMatches;
+            }
+
+            const losersFromUpper = losersPool[upperLoserRound];
+            if(!losersFromUpper || losersFromUpper.length === 0) break;
+
+            currentLowerTeams = [...nextLowerTeams, ...losersFromUpper];
+            lowerRound++;
+            lowerRoundOrder--;
+            upperLoserRound++;
+        }
+        
+        let finalLowerTeams = currentLowerTeams;
+        while(finalLowerTeams.length > 1) {
+             const roundName = `Lower Rodada ${lowerRound}`;
+             const lowerMatches: PlayoffMatch[] = [];
+             const nextLowerRound: string[] = [];
+             for(let i=0; i < finalLowerTeams.length / 2; i++) {
+                const matchName = `${roundName} Jogo ${i+1}`;
+                 lowerMatches.push({
+                    id: `L-R${lowerRound}-${i + 1}`,
+                    name: matchName,
+                    team1Placeholder: finalLowerTeams[i*2],
+                    team2Placeholder: finalLowerTeams[i*2+1],
+                    time: '',
+                    roundOrder: lowerRoundOrder,
+                });
+                nextLowerRound.push(`Vencedor ${matchName}`);
              }
              lowerBracket[roundName] = lowerMatches;
-
-             const losersFromUpper = losersPool[lowerRound + 1];
-             if(losersFromUpper) {
-                currentLowerTeams = [...nextLowerTeams, ...losersFromUpper];
-             } else {
-                currentLowerTeams = nextLowerTeams;
-             }
+             finalLowerTeams = nextLowerRound;
              lowerRound++;
              lowerRoundOrder--;
         }
-        
-         // LB Final to get 1st and 2nd
-        if(currentLowerTeams.length === 2) {
-            const roundName = `Lower Final`;
-            lowerBracket[roundName] = [{
-                 id: 'L-Final-1',
+
+        const lbFinalMatch = Object.values(lowerBracket).flat().pop();
+         if (lbFinalMatch) {
+             lowerBracket['Final da Chave Inferior'] = [{
+                 id: 'LB-Final-1',
                  name: 'Final da Chave Inferior',
-                 team1Placeholder: currentLowerTeams[0],
-                 team2Placeholder: currentLowerTeams[1],
+                 team1Placeholder: `Vencedor ${lbFinalMatch.name}`,
+                 team2Placeholder: `Perdedor ${lbFinalMatch.name}`,
                  time: '',
                  roundOrder: lowerRoundOrder,
-            }];
-        }
+             }];
+         }
 
         // 3. Build Final Playoffs
-        const upperFinalists = upperBracket[`Upper Rodada ${upperRound}`];
-        if(!upperFinalists || upperFinalists.length !== 1) return null;
-        
-        const wbFinal = upperFinalists[0];
-        const lbFinal = lowerBracket['Lower Final']?.[0];
-        if(!lbFinal) return null;
+        const wbFinal = upperBracket['Final da Chave Superior'][0];
+        const lbFinal = lowerBracket['Final da Chave Inferior'][0];
 
         playoffs['Semifinal'] = [
             { id: 'Final-Semifinal-1', name: 'Semifinal 1', team1Placeholder: `Vencedor ${wbFinal.name}`, team2Placeholder: `Perdedor ${lbFinal.name}`, time: '', roundOrder: 2 },
@@ -838,7 +862,7 @@ Olavo e Dudu`,
     const placeholder1 = (match.team1Placeholder || '').replace(/Vencedor Semifinal-?(\d)/, 'Vencedor Semifinal $1').replace(/Perdedor Semifinal-?(\d)/, 'Perdedor Semifinal $1');
     const placeholder2 = (match.team2Placeholder || '').replace(/Vencedor Semifinal-?(\d)/, 'Vencedor Semifinal $1').replace(/Perdedor Semifinal-?(\d)/, 'Perdedor Semifinal $1');
   
-    const isFinalRound = roundName === 'Final' || roundName === 'Disputa de 3º Lugar' || roundName === 'Grande Final';
+    const isFinalRound = roundName === 'Final' || roundName.includes('Disputa de 3º Lugar') || roundName.includes('Final da Chave');
     
     return (
       <div className="flex items-center">
@@ -1376,8 +1400,3 @@ Olavo e Dudu`,
 }
 
     
-
-
-
-    
-
