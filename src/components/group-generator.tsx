@@ -505,7 +505,7 @@ export function GroupGenerator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTournamentData, JSON.stringify(activePlayoffs)]);
 
-  const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => {
+  const PlayoffMatchCard = ({ match, roundName, matchIndex, isFirst, isLast }: { match: PlayoffMatch, roundName: string, matchIndex: number, isFirst: boolean, isLast: boolean }) => {
     const getWinner = (m: PlayoffMatch) => {
       if(m.score1 === undefined || m.score2 === undefined || m.score1 === m.score2) return null;
       return m.score1 > m.score2 ? m.team1 : m.team2;
@@ -523,43 +523,51 @@ export function GroupGenerator() {
     const isFinalRound = roundName === 'Final' || roundName === 'Disputa de 3º Lugar';
     
     return (
-      <div className="flex flex-col gap-2 w-full">
-          {(!isFinalRound && roundName !== 'Quartas de Final') && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
-          <div className="relative">
-            <div className="absolute top-1/2 -translate-y-1/2 -left-24 flex items-center">
-              <Input 
-                type="text" 
-                className="h-8 w-20 text-center" 
-                placeholder="00:00"
-                value={match.time ?? ''}
-                onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'time', e.target.value)}
-              />
-              <Clock className="h-4 w-4 ml-2 text-muted-foreground" />
+      <div className="flex items-center">
+        {/* Timeline */}
+        <div className="relative w-24 flex-shrink-0 h-full flex justify-center">
+            <div className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                <Input 
+                    type="text" 
+                    className="h-8 w-20 text-center bg-background" 
+                    placeholder="00:00"
+                    value={match.time ?? ''}
+                    onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'time', e.target.value)}
+                />
+                <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
-                <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                    <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
-                    <Input
-                        type="number"
-                        className="h-8 w-14 shrink-0 text-center"
-                        value={match.score1 ?? ''}
-                        onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'score1', e.target.value)}
-                        disabled={!match.team1 || !match.team2}
-                    />
-                </div>
-                <div className="text-muted-foreground text-xs text-center py-1">vs</div>
-                <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                    <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
-                    <Input
-                        type="number"
-                        className="h-8 w-14 shrink-0 text-center"
-                        value={match.score2 ?? ''}
-                        onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'score2', e.target.value)}
-                        disabled={!match.team1 || !match.team2}
-                    />
-                </div>
-            </div>
+             <div className="w-px bg-border h-full" />
+        </div>
+  
+        {/* Match Details */}
+        <div className="flex-grow pl-4 py-4">
+          <div className="flex flex-col gap-2 w-full">
+              {!isFinalRound && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
+              <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
+                  <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                      <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
+                      <Input
+                          type="number"
+                          className="h-8 w-14 shrink-0 text-center"
+                          value={match.score1 ?? ''}
+                          onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'score1', e.target.value)}
+                          disabled={!match.team1 || !match.team2}
+                      />
+                  </div>
+                  <div className="text-muted-foreground text-xs text-center py-1">vs</div>
+                  <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                      <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
+                      <Input
+                          type="number"
+                          className="h-8 w-14 shrink-0 text-center"
+                          value={match.score2 ?? ''}
+                          onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'score2', e.target.value)}
+                          disabled={!match.team1 || !match.team2}
+                      />
+                  </div>
+              </div>
           </div>
+        </div>
       </div>
   )};
   
@@ -569,52 +577,62 @@ export function GroupGenerator() {
       .map(Number)
       .sort((a,b) => b-a)
       .map(key => roundNames[key])
-      .filter(roundName => playoffs[roundName] && roundName !== 'Final');
+      .filter(roundName => playoffs[roundName] && roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar');
 
     return (
-      <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
+      <div className="flex flex-col items-stretch w-full overflow-x-auto p-4 gap-8">
         {regularRounds.map(roundName => (
-          <Card key={roundName} className="w-full max-w-xl">
+          <Card key={roundName} className="w-full">
             <CardHeader>
               <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-8 w-full">
-              {playoffs[roundName].map((match, matchIndex) => (
-                <PlayoffMatchCard 
-                  key={match.id} 
-                  match={match} 
-                  roundName={roundName} 
-                  matchIndex={matchIndex} 
-                />
-              ))}
+            <CardContent className="p-0">
+              <div className="flex flex-col">
+                {playoffs[roundName].map((match, matchIndex) => (
+                    <React.Fragment key={match.id}>
+                      <PlayoffMatchCard
+                        match={match} 
+                        roundName={roundName} 
+                        matchIndex={matchIndex}
+                        isFirst={matchIndex === 0}
+                        isLast={matchIndex === playoffs[roundName].length - 1}
+                      />
+                      {matchIndex < playoffs[roundName].length - 1 && <Separator />}
+                    </React.Fragment>
+                ))}
+              </div>
             </CardContent>
           </Card>
         ))}
 
         {playoffs['Final'] && (
-             <Card className="w-full max-w-xl">
+             <Card className="w-full">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">Final</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     <PlayoffMatchCard 
                         match={playoffs['Final'][0]} 
                         roundName="Final" 
-                        matchIndex={0} 
+                        matchIndex={0}
+                        isFirst
+                        isLast
                     />
                 </CardContent>
              </Card>
         )}
         {playoffs['Disputa de 3º Lugar'] && (
-             <Card className="w-full max-w-xl">
+             <Card className="w-full">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">Disputa de 3º Lugar</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     <PlayoffMatchCard 
                         match={playoffs['Disputa de 3º Lugar'][0]} 
                         roundName="Disputa de 3º Lugar" 
                         matchIndex={0}
+                        isFirst
+                        isLast
                     />
                 </CardContent>
              </Card>
@@ -945,7 +963,3 @@ export function GroupGenerator() {
     </div>
   )
 }
-
-    
-
-    
