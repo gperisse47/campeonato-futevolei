@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy } from "lucide-react"
@@ -46,17 +46,14 @@ export function GroupGenerator() {
       category: "Masculino",
       numberOfTeams: 8,
       numberOfGroups: 2,
-      teamsPerGroupToAdvance: 2,
+      teamsPerGroupToAdvance: 4,
       teams: "Ana e Bia\nCarla e Dani\nElena e Fernanda\nGabi e Helo\nIsis e Julia\nKarla e Laura\nMaria e Nina\nOlivia e Paula",
       groupFormationStrategy: "balanced",
       includeThirdPlace: true,
     },
   })
 
-  const numberOfTeams = form.watch("numberOfTeams")
-  const includeThirdPlace = form.watch("includeThirdPlace")
-  const teamsPerGroupToAdvance = form.watch("teamsPerGroupToAdvance")
-  const numberOfGroups = form.watch("numberOfGroups")
+  const { teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace, numberOfTeams } = form.watch()
 
   const teamToKey = (team: Team) => `${team.player1} e ${team.player2}`;
 
@@ -65,7 +62,7 @@ export function GroupGenerator() {
       const standings: Record<string, TeamStanding> = {}
       group.teams.forEach(team => {
         const teamKey = teamToKey(team)
-        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
+        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0, points: 0 }
       })
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
       return {
@@ -76,37 +73,43 @@ export function GroupGenerator() {
     })
   }
 
-  const getTeamPlaceholder = (groupIndex: number, position: number) => {
+  const getTeamPlaceholder = useCallback((groupIndex: number, position: number) => {
     const groupLetter = String.fromCharCode(65 + groupIndex);
     return `${position}º do Grupo ${groupLetter}`;
-  }
+  }, []);
 
-  const generatePlayoffPlaceholders = (totalQualifiers: number): string[] => {
-    const placeholders: string[] = [];
+  const generatePlayoffPlaceholders = useCallback((totalQualifiers: number): { [key: string]: string } => {
+    const placeholders: { [key: string]: string } = {};
+    const teamsToSeed = [];
     for (let i = 0; i < numberOfGroups; i++) {
-        for (let j = 1; j <= teamsPerGroupToAdvance; j++) {
-            placeholders.push(getTeamPlaceholder(i, j));
-        }
+      for (let j = 1; j <= teamsPerGroupToAdvance; j++) {
+        teamsToSeed.push(getTeamPlaceholder(i, j));
+      }
     }
-    // Simple seeding: 1A vs 2B, 1B vs 2A etc.
-    // A more complex seeding could be implemented here if needed.
-    return placeholders;
-  }
 
-  const initializePlayoffs = () => {
+    // Simple seeding: 1A vs 2B, 1B vs 2A etc.
+    // This creates pairs for the first round.
+    for (let i = 0; i < totalQualifiers / 2; i++) {
+      placeholders[teamsToSeed[i]] = teamsToSeed[i];
+      placeholders[teamsToSeed[totalQualifiers - 1 - i]] = teamsToSeed[totalQualifiers - 1 - i];
+    }
+    return placeholders;
+  }, [numberOfGroups, teamsPerGroupToAdvance, getTeamPlaceholder]);
+
+  const initializePlayoffs = useCallback(() => {
     const totalQualifiers = numberOfGroups * teamsPerGroupToAdvance;
-    
-    // Must be a power of 2
+
     if (totalQualifiers <= 1 || (totalQualifiers & (totalQualifiers - 1)) !== 0) {
-        setPlayoffs(null);
-        return;
+      setPlayoffs(null);
+      return;
     }
 
     let bracket: PlayoffBracket = {};
-    let placeholders = generatePlayoffPlaceholders(totalQualifiers);
+    const placeholders = generatePlayoffPlaceholders(totalQualifiers);
+    const teamPlaceholders = Object.keys(placeholders);
+
     let round = 1;
     let teamsInRound = totalQualifiers;
-    
     const roundNames: { [key: number]: string } = {
       2: 'Final',
       4: 'Semifinais',
@@ -114,20 +117,21 @@ export function GroupGenerator() {
       16: 'Oitavas de Final'
     };
 
+    let currentRoundTeams = [...teamPlaceholders];
     while (teamsInRound >= 2) {
       const roundName = roundNames[teamsInRound] || `Rodada ${round}`;
       bracket[roundName] = [];
-      const nextRoundPlaceholders = [];
-      
+      const nextRoundTeams = [];
+
       for (let i = 0; i < teamsInRound / 2; i++) {
         bracket[roundName].push({
-          team1Placeholder: placeholders[i],
-          team2Placeholder: placeholders[teamsInRound - 1 - i],
+          team1Placeholder: currentRoundTeams[i],
+          team2Placeholder: currentRoundTeams[teamsInRound - 1 - i],
         });
-        nextRoundPlaceholders.push(`Vencedor ${roundName.slice(0, -1)} ${i + 1}`);
+        nextRoundTeams.push(`Vencedor ${roundName.slice(0, -1)} ${i + 1}`);
       }
-      
-      placeholders = nextRoundPlaceholders;
+
+      currentRoundTeams = nextRoundTeams;
       teamsInRound /= 2;
       round++;
     }
@@ -139,7 +143,71 @@ export function GroupGenerator() {
     }
 
     setPlayoffs(bracket);
-  }
+  }, [numberOfGroups, teamsPerGroupToAdvance, includeThirdPlace, generatePlayoffPlaceholders]);
+
+  const updatePlayoffs = useCallback(() => {
+    if (!tournamentData || !playoffs) return;
+
+    let allGroupMatchesPlayed = tournamentData.groups.every(g => g.matches.every(m => m.score1 !== undefined && m.score2 !== undefined));
+    let qualifiedTeams: { [placeholder: string]: Team } = {};
+
+    if (allGroupMatchesPlayed) {
+      tournamentData.groups.forEach((group, groupIndex) => {
+        group.standings.slice(0, teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+          const placeholder = getTeamPlaceholder(groupIndex, standingIndex + 1);
+          qualifiedTeams[placeholder] = standing.team;
+        });
+      });
+    }
+
+    const newPlayoffs = { ...playoffs };
+    let losers: { [roundName: string]: Team[] } = { 'Semifinais': [] };
+
+    Object.entries(newPlayoffs).forEach(([roundName, matches], roundIndex) => {
+      if (roundName === 'Disputa de 3º Lugar') return;
+
+      matches.forEach((match, matchIndex) => {
+        // Assign teams for the first round
+        if (roundIndex === 0) {
+          if (qualifiedTeams[match.team1Placeholder]) {
+            match.team1 = qualifiedTeams[match.team1Placeholder];
+          }
+          if (qualifiedTeams[match.team2Placeholder]) {
+            match.team2 = qualifiedTeams[match.team2Placeholder];
+          }
+        }
+
+        // Determine winner and advance to next round
+        if (match.team1 && match.team2 && match.score1 !== undefined && match.score2 !== undefined) {
+          const winner = match.score1 > match.score2 ? match.team1 : match.team2;
+          const loser = match.score1 < match.score2 ? match.team1 : match.team2;
+          
+          if (roundName === 'Semifinais') {
+             losers['Semifinais'].push(loser);
+          }
+
+          const nextRoundName = Object.keys(newPlayoffs)[roundIndex + 1];
+          if (nextRoundName && nextRoundName !== 'Disputa de 3º Lugar') {
+            const nextMatchIndex = Math.floor(matchIndex / 2);
+            if (matchIndex % 2 === 0) {
+              newPlayoffs[nextRoundName][nextMatchIndex].team1 = winner;
+            } else {
+              newPlayoffs[nextRoundName][nextMatchIndex].team2 = winner;
+            }
+          }
+        }
+      });
+    });
+
+    // Handle 3rd place match
+    if (newPlayoffs['Disputa de 3º Lugar'] && losers['Semifinais'].length === 2) {
+        newPlayoffs['Disputa de 3º Lugar'][0].team1 = losers['Semifinais'][0];
+        newPlayoffs['Disputa de 3º Lugar'][0].team2 = losers['Semifinais'][1];
+    }
+
+    setPlayoffs(newPlayoffs);
+  }, [tournamentData, playoffs, teamsPerGroupToAdvance, getTeamPlaceholder]);
+
 
   async function onSubmit(values: TournamentFormValues) {
     setIsLoading(true)
@@ -180,14 +248,12 @@ export function GroupGenerator() {
     }
     setIsLoading(false)
   }
-  
-  // Re-initialize playoffs if dependent form values change
-  // Using useEffect to watch for changes
+
   useEffect(() => {
-    if (tournamentData) { // Only run if groups have been generated
+    if (tournamentData) {
       initializePlayoffs();
     }
-  }, [teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace, tournamentData]);
+  }, [teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace, tournamentData, initializePlayoffs]);
 
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
@@ -196,7 +262,7 @@ export function GroupGenerator() {
 
       group.teams.forEach(team => {
         const teamKey = teamToKey(team);
-        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
+        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0, points: 0 }
       })
 
       group.matches.forEach(match => {
@@ -212,11 +278,15 @@ export function GroupGenerator() {
         if (score1 > score2) {
           standings[team1Key].wins++
           standings[team2Key].losses++
+          standings[team1Key].points += 2
+          standings[team2Key].points += 1
         } else {
           standings[team2Key].wins++
           standings[team1Key].losses++
+          standings[team2Key].points += 2
+          standings[team1Key].points += 1
         }
-        
+
         standings[team1Key].setsWon += score1
         standings[team1Key].setsLost += score2
         standings[team2Key].setsWon += score2
@@ -227,6 +297,7 @@ export function GroupGenerator() {
         ...s,
         setDifference: s.setsWon - s.setsLost
       })).sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points
         if (b.wins !== a.wins) return b.wins - a.wins
         if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference
         return b.setsWon - a.setsWon
@@ -239,30 +310,61 @@ export function GroupGenerator() {
   }
 
   const handleScoreChange = (groupIndex: number, matchIndex: number, team: 'team1' | 'team2', value: string) => {
-    if (!tournamentData) return
-    const newTournamentData = { ...tournamentData }
-    const score = value === '' ? undefined : parseInt(value, 10)
+    if (!tournamentData) return;
+    let newTournamentData = JSON.parse(JSON.stringify(tournamentData));
+    const score = value === '' ? undefined : parseInt(value, 10);
     if (team === 'team1') {
-      newTournamentData.groups[groupIndex].matches[matchIndex].score1 = isNaN(score!) ? undefined : score
+      newTournamentData.groups[groupIndex].matches[matchIndex].score1 = isNaN(score!) ? undefined : score;
     } else {
-      newTournamentData.groups[groupIndex].matches[matchIndex].score2 = isNaN(score!) ? undefined : score
+      newTournamentData.groups[groupIndex].matches[matchIndex].score2 = isNaN(score!) ? undefined : score;
     }
-
-    const updatedDataWithStandings = calculateStandings(newTournamentData)
-    setTournamentData(updatedDataWithStandings)
+    const updatedDataWithStandings = calculateStandings(newTournamentData);
+    setTournamentData(updatedDataWithStandings);
   }
 
-  const PlayoffMatchCard = ({ match }: { match: PlayoffMatch }) => (
-    <div className="flex flex-col items-center gap-1">
-      <div className="border rounded-md p-2 w-48 text-center bg-secondary/50 text-sm h-10 flex items-center justify-center">
-        {match.team1Placeholder}
+  const handlePlayoffScoreChange = (roundName: string, matchIndex: number, team: 'team1' | 'team2', value: string) => {
+    if (!playoffs) return;
+    let newPlayoffs = JSON.parse(JSON.stringify(playoffs));
+    const score = value === '' ? undefined : parseInt(value, 10);
+
+    if (team === 'team1') {
+      newPlayoffs[roundName][matchIndex].score1 = isNaN(score!) ? undefined : score;
+    } else {
+      newPlayoffs[roundName][matchIndex].score2 = isNaN(score!) ? undefined : score;
+    }
+    setPlayoffs(newPlayoffs);
+  };
+  
+  useEffect(() => {
+    updatePlayoffs();
+  }, [tournamentData, updatePlayoffs]);
+  
+  const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => (
+      <div className="flex flex-col items-center justify-center gap-2 w-full">
+          <div className="flex items-center w-full">
+              <span className="flex-1 text-right truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : match.team1Placeholder}</span>
+              <Input
+                  type="number"
+                  className="h-8 w-14 text-center"
+                  value={match.score1 ?? ''}
+                  onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team1', e.target.value)}
+                  disabled={!match.team1 || !match.team2}
+              />
+          </div>
+          <div className="text-muted-foreground text-xs">vs</div>
+          <div className="flex items-center w-full">
+              <span className="flex-1 text-right truncate pr-2 text-sm">{match.team2 ? teamToKey(match.team2) : match.team2Placeholder}</span>
+              <Input
+                  type="number"
+                  className="h-8 w-14 text-center"
+                  value={match.score2 ?? ''}
+                  onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team2', e.target.value)}
+                  disabled={!match.team1 || !match.team2}
+              />
+          </div>
       </div>
-      <div className="text-muted-foreground text-xs">vs</div>
-      <div className="border rounded-md p-2 w-48 text-center bg-secondary/50 text-sm h-10 flex items-center justify-center">
-        {match.team2Placeholder}
-      </div>
-    </div>
   );
+
 
   return (
     <div className="flex flex-col gap-8">
@@ -318,19 +420,19 @@ export function GroupGenerator() {
                     )}
                   />
                 </div>
-                 <FormField
-                    control={form.control}
-                    name="teamsPerGroupToAdvance"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Classificados por Grupo</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <FormField
+                  control={form.control}
+                  name="teamsPerGroupToAdvance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Classificados por Grupo</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -430,17 +532,17 @@ export function GroupGenerator() {
               {isLoading && (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {[...Array(form.getValues("numberOfGroups"))].map((_, i) => (
-                      <Card key={i}>
-                          <CardHeader>
-                              <Skeleton className="h-6 w-24" />
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                              <Skeleton className="h-5 w-full" />
-                              <Skeleton className="h-5 w-5/6" />
-                              <Skeleton className="h-5 w-full" />
-                              <Skeleton className="h-5 w-4/6" />
-                          </CardContent>
-                      </Card>
+                    <Card key={i}>
+                      <CardHeader>
+                        <Skeleton className="h-6 w-24" />
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <Skeleton className="h-5 w-full" />
+                        <Skeleton className="h-5 w-5/6" />
+                        <Skeleton className="h-5 w-full" />
+                        <Skeleton className="h-5 w-4/6" />
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               )}
@@ -453,36 +555,36 @@ export function GroupGenerator() {
                           <CardTitle className="text-primary">{group.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-1 flex-col space-y-4">
-                          
+
                           {group.standings && (
-                              <div>
-                                <h4 className="mb-2 font-semibold">Classificação</h4>
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead className="p-2">Dupla</TableHead>
-                                      <TableHead className="p-2 text-center">J</TableHead>
-                                      <TableHead className="p-2 text-center">V</TableHead>
-                                      <TableHead className="p-2 text-center">D</TableHead>
-                                      <TableHead className="p-2 text-center">SS</TableHead>
+                            <div>
+                              <h4 className="mb-2 font-semibold">Classificação</h4>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="p-2">Dupla</TableHead>
+                                    <TableHead className="p-2 text-center">Pts</TableHead>
+                                    <TableHead className="p-2 text-center">J</TableHead>
+                                    <TableHead className="p-2 text-center">V</TableHead>
+                                    <TableHead className="p-2 text-center">SS</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {group.standings.map((standing, index) => (
+                                    <TableRow key={teamToKey(standing.team)} className={index < teamsPerGroupToAdvance ? "bg-green-100 dark:bg-green-900/30" : ""}>
+                                      <TableCell className="p-2 font-medium">{teamToKey(standing.team)}</TableCell>
+                                      <TableCell className="p-2 text-center">{standing.points}</TableCell>
+                                      <TableCell className="p-2 text-center">{standing.played}</TableCell>
+                                      <TableCell className="p-2 text-center">{standing.wins}</TableCell>
+                                      <TableCell className="p-2 text-center">{standing.setDifference > 0 ? `+${standing.setDifference}` : standing.setDifference}</TableCell>
                                     </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {group.standings.map((standing, index) => (
-                                      <TableRow key={teamToKey(standing.team)} className={index < teamsPerGroupToAdvance ? "bg-green-100 dark:bg-green-900/30" : ""}>
-                                        <TableCell className="p-2 font-medium">{teamToKey(standing.team)}</TableCell>
-                                        <TableCell className="p-2 text-center">{standing.played}</TableCell>
-                                        <TableCell className="p-2 text-center">{standing.wins}</TableCell>
-                                        <TableCell className="p-2 text-center">{standing.losses}</TableCell>
-                                        <TableCell className="p-2 text-center">{standing.setDifference > 0 ? `+${standing.setDifference}` : standing.setDifference}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
                           )}
-                          
-                          <Separator/>
+
+                          <Separator />
 
                           <div>
                             <h4 className="mb-2 font-semibold">Jogos</h4>
@@ -500,7 +602,7 @@ export function GroupGenerator() {
                               ))}
                             </div>
                           </div>
-                          
+
                         </CardContent>
                       </Card>
                     ))}
@@ -511,14 +613,14 @@ export function GroupGenerator() {
                          <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary" />Playoffs - Mata-Mata</CardTitle>
                          <CardDescription>Chaveamento gerado com base na classificação dos grupos.</CardDescription>
                        </CardHeader>
-                       <CardContent className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-4 p-6 overflow-x-auto">
-                        
+                       <CardContent className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12 p-6 overflow-x-auto">
+
                          {Object.entries(playoffs).map(([roundName, matches]) => (
-                            <div key={roundName} className="flex flex-col gap-8">
-                                <h4 className="text-lg font-semibold text-center text-primary">{roundName}</h4>
+                            <div key={roundName} className="flex flex-col items-center gap-6">
+                                <h4 className="text-lg font-semibold text-center text-primary whitespace-nowrap">{roundName}</h4>
                                 <div className="flex flex-col gap-10">
                                 {matches.map((match, index) => (
-                                    <PlayoffMatchCard key={`${roundName}-${index}`} match={match} />
+                                    <PlayoffMatchCard key={`${roundName}-${index}`} match={match} roundName={roundName} matchIndex={index}/>
                                 ))}
                                 </div>
                             </div>
@@ -530,9 +632,9 @@ export function GroupGenerator() {
                 </div>
               )}
               {!isLoading && !tournamentData && (
-                  <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
-                      <p className="text-muted-foreground">Os grupos e jogos aparecerão aqui após a geração.</p>
-                  </div>
+                <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
+                  <p className="text-muted-foreground">Os grupos e jogos aparecerão aqui após a geração.</p>
+                </div>
               )}
             </CardContent>
           </Card>

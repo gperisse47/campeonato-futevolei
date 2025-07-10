@@ -72,6 +72,7 @@ export const formSchema = z
   .refine(
     (data) => {
       const qualifiers = data.numberOfGroups * data.teamsPerGroupToAdvance;
+      // Check if qualifiers is a power of 2 (and > 1)
       return qualifiers > 1 && (qualifiers & (qualifiers - 1)) === 0;
     },
     {
@@ -110,7 +111,7 @@ export type TeamStanding = {
   team: Team;
   played: number;
   wins: number;
-
+  points: number;
   losses: number;
   setsWon: number;
   setsLost: number;
@@ -120,4 +121,8 @@ export type TeamStanding = {
 export type PlayoffMatch = {
   team1Placeholder: string;
   team2Placeholder: string;
+  team1?: Team;
+  team2?: Team;
+  score1?: number;
+  score2?: number;
 };
