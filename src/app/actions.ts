@@ -9,8 +9,10 @@ import {
   generateTournamentGroups,
   type GenerateTournamentGroupsOutput
 } from "@/ai/flows/generate-tournament-groups"
-import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput } from "@/lib/types"
+import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput, PlayoffMatch } from "@/lib/types"
 import { z } from 'zod';
+import { format, addMinutes, parse } from 'date-fns';
+
 
 const dbPath = path.resolve(process.cwd(), "db.json")
 
@@ -70,6 +72,112 @@ async function writeDb(data: TournamentsState) {
   }
 }
 
+function scheduleMatches(categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData {
+    const { formValues, tournamentData, playoffs } = categoryData;
+    const { startTime: categoryStartTime } = formValues;
+    const { estimatedMatchDuration, courts, startTime: globalStartTime } = globalSettings;
+
+    const effectiveStartTime = categoryStartTime || globalStartTime || '08:00';
+
+    if (!estimatedMatchDuration || !courts || courts.length === 0) {
+        console.warn("Scheduling prerequisites not met. Returning original data.", {estimatedMatchDuration, courts});
+        return categoryData;
+    }
+
+    const allMatchesToSchedule: ({ source: string; match: any })[] = [];
+
+    if (formValues.tournamentType === 'groups' && tournamentData?.groups) {
+        tournamentData.groups.forEach(group => {
+            group.matches.forEach(match => allMatchesToSchedule.push({ source: 'group', match }));
+        });
+    }
+    if (playoffs) {
+        const collectPlayoffMatches = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
+            if (!bracket) return;
+            if ('upper' in bracket || 'lower' in bracket || 'playoffs' in bracket) {
+                const bracketSet = bracket as PlayoffBracketSet;
+                collectPlayoffMatches(bracketSet.upper);
+                collectPlayoffMatches(bracketSet.lower);
+                collectPlayoffMatches(bracketSet.playoffs);
+                return;
+            }
+            Object.values(bracket as PlayoffBracket).flat().sort((a, b) => (a.roundOrder || 0) - (b.roundOrder || 0)).forEach(match => allMatchesToSchedule.push({ source: 'playoff', match }));
+        }
+        collectPlayoffMatches(playoffs);
+    }
+
+    const baseDate = new Date();
+    const parseTime = (timeStr: string) => {
+        if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) {
+          console.error("Invalid time string for parsing:", timeStr);
+          return baseDate; // return a default value
+        }
+        const [h, m] = timeStr.split(':').map(Number);
+        return parse(`${h}:${m}`, 'HH:mm', baseDate);
+    };
+
+    const courtAvailability = courts.map((court, index) => ({
+        index,
+        name: court.name,
+        slots: court.slots.map(slot => ({
+            start: parseTime(slot.startTime),
+            end: parseTime(slot.endTime)
+        })).sort((a, b) => a.start.getTime() - b.start.getTime()),
+        nextAvailableTime: parseTime(effectiveStartTime)
+    }));
+
+    allMatchesToSchedule.forEach(({ match }) => {
+        let bestCourtIndex = -1;
+        let bestTime: Date | null = null;
+
+        for (let i = 0; i < courtAvailability.length; i++) {
+            const court = courtAvailability[i];
+            let potentialStartTime = court.nextAvailableTime;
+
+            let slotFound = false;
+            for (const slot of court.slots) {
+                // If potential start is before this slot, move it to the start of the slot
+                if (potentialStartTime < slot.start) {
+                    potentialStartTime = slot.start;
+                }
+                
+                const potentialEndTime = addMinutes(potentialStartTime, estimatedMatchDuration);
+
+                // Check if the match fits within this slot
+                if (potentialEndTime <= slot.end) {
+                    slotFound = true;
+                    break; 
+                }
+                // If it doesn't fit, we continue to the next slot (the loop will handle this)
+            }
+            
+            // If a valid start time was found in the slots for this court
+            if (slotFound) {
+                 // Check if this court offers an earlier start time than the best one found so far
+                 if (bestTime === null || potentialStartTime < bestTime) {
+                    bestTime = potentialStartTime;
+                    bestCourtIndex = i;
+                }
+            }
+        }
+        
+        if (bestCourtIndex !== -1 && bestTime) {
+            const assignedCourt = courtAvailability[bestCourtIndex];
+            match.time = format(bestTime, 'HH:mm');
+            match.court = assignedCourt.name;
+            // Update this court's next available time for the next match
+            assignedCourt.nextAvailableTime = addMinutes(bestTime, estimatedMatchDuration);
+        } else {
+            // Fallback or error handling if no slot can be found for the match
+            match.time = 'N/A';
+            match.court = 'N/A';
+        }
+    });
+
+    return categoryData;
+}
+
+
 export async function getTournaments(): Promise<TournamentsState> {
     return await readDb();
 }
@@ -95,7 +203,14 @@ export async function saveGlobalSettings(settings: GlobalSettings): Promise<{ su
 export async function saveTournament(categoryName: string, data: CategoryData): Promise<{ success: boolean; error?: string }> {
     try {
         const db = await readDb();
+        
+        // Save the unscheduled data first
         db[categoryName] = data;
+
+        // Now schedule the matches
+        const scheduledData = scheduleMatches(data, db._globalSettings);
+        db[categoryName] = scheduledData;
+
         await writeDb(db);
         return { success: true };
     } catch (e: any) {
@@ -103,6 +218,27 @@ export async function saveTournament(categoryName: string, data: CategoryData): 
         return { success: false, error: e.message || "Ocorreu um erro desconhecido ao salvar." };
     }
 }
+
+export async function rescheduleCategory(categoryName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+        const categoryData = db[categoryName];
+
+        if (!categoryData) {
+            return { success: false, error: "Categoria não encontrada." };
+        }
+
+        const rescheduledData = scheduleMatches(categoryData, db._globalSettings);
+        db[categoryName] = rescheduledData;
+
+        await writeDb(db);
+        return { success: true };
+    } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.message || "Ocorreu um erro desconhecido ao reagendar." };
+    }
+}
+
 
 export async function renameTournament(oldCategoryName: string, newCategoryName: string): Promise<{ success: boolean; error?: string }> {
     try {

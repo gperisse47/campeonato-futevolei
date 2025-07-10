@@ -9,8 +9,8 @@ import { getTournamentByCategory } from "@/app/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Trophy } from "lucide-react";
-import type { CategoryData, PlayoffBracket, PlayoffMatch, Team, GroupWithScores, PlayoffBracketSet } from "@/lib/types";
+import { Loader2, Trophy, Clock } from "lucide-react";
+import type { CategoryData, PlayoffBracket, PlayoffMatch, Team, GroupWithScores, PlayoffBracketSet, MatchWithScore } from "@/lib/types";
 
 const roundNames: { [key: string]: string } = {
     2: 'Final',
@@ -177,6 +177,7 @@ export default function TournamentPage() {
     const [data, setData] = useState<CategoryData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [firstMatchTime, setFirstMatchTime] = useState<string | null>(null);
 
     const category = Array.isArray(params.category) ? params.category[0] : params.category;
 
@@ -191,6 +192,29 @@ export default function TournamentPage() {
                 const tournamentData = await getTournamentByCategory(decodedCategory);
                 if (tournamentData) {
                     setData(tournamentData);
+                    
+                    // Find the first match time
+                    let allMatches: (MatchWithScore | PlayoffMatch)[] = [];
+                    if (tournamentData.tournamentData?.groups) {
+                        allMatches.push(...tournamentData.tournamentData.groups.flatMap(g => g.matches));
+                    }
+                    if (tournamentData.playoffs) {
+                         if ('upper' in tournamentData.playoffs || 'lower' in tournamentData.playoffs || 'playoffs' in tournamentData.playoffs) {
+                            const bracketSet = tournamentData.playoffs as PlayoffBracketSet;
+                             if(bracketSet.upper) allMatches.push(...Object.values(bracketSet.upper).flat());
+                             if(bracketSet.lower) allMatches.push(...Object.values(bracketSet.lower).flat());
+                             if(bracketSet.playoffs) allMatches.push(...Object.values(bracketSet.playoffs).flat());
+                         } else {
+                            allMatches.push(...Object.values(tournamentData.playoffs as PlayoffBracket).flat());
+                         }
+                    }
+
+                    const sortedMatches = allMatches
+                        .filter(m => m.time && m.time !== 'N/A')
+                        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+                        
+                    setFirstMatchTime(sortedMatches.length > 0 ? sortedMatches[0].time! : null);
+
                 } else {
                     setError("Categoria não encontrada.");
                 }
@@ -251,9 +275,24 @@ export default function TournamentPage() {
 
     return (
         <div className="container mx-auto p-4 space-y-8">
-            <div className="text-center">
+            <div className="text-center space-y-4">
                 <h1 className="text-4xl font-bold tracking-tight text-primary">{categoryName}</h1>
                 <p className="text-lg text-muted-foreground">Acompanhe os jogos e classificações em tempo real.</p>
+                 <Card className="max-w-md mx-auto">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center justify-center gap-2"><Clock className="h-5 w-5"/> Horários</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex justify-around text-sm">
+                        <div className="text-center">
+                            <div className="font-semibold">Início Desejado</div>
+                            <div className="text-muted-foreground">{formValues.startTime || 'Não especificado'}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="font-semibold">Início Real</div>
+                            <div className="text-muted-foreground">{firstMatchTime || 'Aguardando'}</div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {isGroupTournament && tournamentData && (

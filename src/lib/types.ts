@@ -64,7 +64,7 @@ export const formSchema = z
     }),
     includeThirdPlace: z.boolean().default(true),
     updatedAt: z.string().optional(),
-    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional(),
+    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional().or(z.literal('')),
   })
   .refine(
     (data) => {
