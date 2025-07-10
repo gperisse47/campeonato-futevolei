@@ -110,7 +110,7 @@ export const formSchema = z
         path: ["numberOfTeams"],
     }
    )
-  .refine(
+   .refine(
     (data) => {
       if (data.tournamentType !== 'doubleElimination') return true;
       if (data.numberOfTeams < 4) return false;
@@ -208,17 +208,3 @@ export type ConsolidatedMatch = {
     score2?: number;
     time?: string;
 };
-
-
-
-
-
-
-
-    
-
-    
-
-
-
-    
