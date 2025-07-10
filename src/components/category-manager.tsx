@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid, Pencil } from "lucide-react"
 
 import { getTournaments, saveTournament, deleteTournament, renameTournament, rescheduleCategory } from "@/app/actions"
-import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
+import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings, MatchWithScore } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -67,6 +67,31 @@ export function CategoryManager() {
   const activePlayoffs = activeCategoryData?.playoffs;
   const activeFormValues = activeCategoryData?.formValues;
 
+  const getFirstMatchTime = (categoryData: CategoryData | null): string | null => {
+    if (!categoryData) return null;
+
+    let allMatches: (MatchWithScore | PlayoffMatch)[] = [];
+    if (categoryData.tournamentData?.groups) {
+        allMatches.push(...categoryData.tournamentData.groups.flatMap(g => g.matches));
+    }
+    if (categoryData.playoffs) {
+        if ('upper' in categoryData.playoffs || 'lower' in categoryData.playoffs || 'playoffs' in categoryData.playoffs) {
+            const bracketSet = categoryData.playoffs as PlayoffBracketSet;
+            if(bracketSet.upper) allMatches.push(...Object.values(bracketSet.upper).flat());
+            if(bracketSet.lower) allMatches.push(...Object.values(bracketSet.lower).flat());
+            if(bracketSet.playoffs) allMatches.push(...Object.values(bracketSet.playoffs).flat());
+        } else {
+            allMatches.push(...Object.values(categoryData.playoffs as PlayoffBracket).flat());
+        }
+    }
+
+    const sortedMatches = allMatches
+        .filter(m => m.time && m.time !== 'N/A')
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        
+    return sortedMatches.length > 0 ? sortedMatches[0].time! : null;
+  };
+
 
   // Load initial data from the "DB"
   useEffect(() => {
@@ -107,6 +132,9 @@ export function CategoryManager() {
         title: "Erro ao salvar",
         description: result.error || "Não foi possível salvar as alterações.",
       });
+    } else {
+        const updatedTournaments = await getTournaments();
+        setTournaments(updatedTournaments);
     }
     setIsSaving(false);
   };
@@ -616,6 +644,8 @@ export function CategoryManager() {
               if (!categoryData) return null;
 
               const { formValues, tournamentData, playoffs, totalMatches } = categoryData;
+              const firstMatchTime = getFirstMatchTime(categoryData);
+
               const getBracketRounds = (bracket: PlayoffBracket | undefined) => {
                   if (!bracket) return {};
                   return Object.keys(bracket).reduce((acc, key) => {
@@ -632,22 +662,31 @@ export function CategoryManager() {
               return (
               <TabsContent key={categoryName} value={categoryName}>
                   <Card className="min-h-full mt-4">
-                    <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div>
                         <CardTitle>Gerenciador - {categoryName}</CardTitle>
-                        <CardDescription className="flex items-center gap-2 pt-1">
-                          {formValues.tournamentType === 'groups' && 'Visualize os grupos, preencha os resultados e acompanhe os playoffs.'}
-                          {formValues.tournamentType === 'singleElimination' && 'Acompanhe e preencha os resultados do mata-mata.'}
-                          {formValues.tournamentType === 'doubleElimination' && 'Gerencie as chaves superior, inferior e a fase final.'}
+                        <CardDescription className="flex items-center flex-wrap gap-x-4 gap-y-1 pt-2">
                            {totalMatches !== undefined && (
-                            <span className="flex items-center text-xs font-medium text-muted-foreground border-l pl-2 ml-2">
+                            <span className="flex items-center text-xs font-medium text-muted-foreground">
                                 <Swords className="mr-1.5 h-4 w-4" />
                                 {totalMatches} Jogos
                             </span>
                            )}
+                           {formValues.startTime && (
+                               <span className="flex items-center text-xs font-medium text-muted-foreground">
+                                <Clock className="mr-1.5 h-4 w-4" />
+                                Início Desejado: {formValues.startTime}
+                            </span>
+                           )}
+                           {firstMatchTime && (
+                                <span className="flex items-center text-xs font-medium text-muted-foreground">
+                                <Clock className="mr-1.5 h-4 w-4 text-primary" />
+                                Início Real: {firstMatchTime}
+                            </span>
+                           )}
                         </CardDescription>
                       </div>
-                       <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-2 self-start sm:self-center">
                             <Button variant="outline" size="icon" onClick={handleReschedule} disabled={isLoading || isSaving} title="Recalcular horários">
                                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
                             </Button>

@@ -278,21 +278,12 @@ export default function TournamentPage() {
             <div className="text-center space-y-4">
                 <h1 className="text-4xl font-bold tracking-tight text-primary">{categoryName}</h1>
                 <p className="text-lg text-muted-foreground">Acompanhe os jogos e classificações em tempo real.</p>
-                 <Card className="max-w-md mx-auto">
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center justify-center gap-2"><Clock className="h-5 w-5"/> Horários</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex justify-around text-sm">
-                        <div className="text-center">
-                            <div className="font-semibold">Início Desejado</div>
-                            <div className="text-muted-foreground">{formValues.startTime || 'Não especificado'}</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="font-semibold">Início Real</div>
-                            <div className="text-muted-foreground">{firstMatchTime || 'Aguardando'}</div>
-                        </div>
-                    </CardContent>
-                </Card>
+                 {firstMatchTime && (
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>Hora de início da categoria: {firstMatchTime}</span>
+                    </div>
+                )}
             </div>
 
             {isGroupTournament && tournamentData && (
