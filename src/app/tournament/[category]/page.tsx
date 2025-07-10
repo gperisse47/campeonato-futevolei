@@ -69,7 +69,7 @@ const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
         .map(Number)
         .sort((a, b) => b - a)
         .map(key => roundNames[key])
-        .filter(roundName => playoffs[roundName]);
+        .filter(roundName => playoffs[roundName] && roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar');
 
     return (
         <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
@@ -79,7 +79,7 @@ const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
                         <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-8 w-full">
-                        {playoffs[roundName].map((match, matchIndex) => (
+                        {playoffs[roundName].map((match) => (
                             <PlayoffMatchCard
                                 key={match.id}
                                 match={match}
