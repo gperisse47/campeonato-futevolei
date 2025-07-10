@@ -93,8 +93,9 @@ export function TournamentCreator() {
 
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && watchedCategoryName) {
       const existingCategoryData = tournaments[watchedCategoryName];
+      // Only reset the form if there's an exact match for an existing category
       if (existingCategoryData) {
         form.reset(existingCategoryData.formValues);
       }
