@@ -64,7 +64,7 @@ export default function TeamsPage() {
     loadTeams();
   }, []);
 
-  const teamToKey = (team: Team) => `${team.player1} e ${team.player2}`;
+  const teamToKey = (team: Team) => `${team.player1}-${team.player2}`;
 
   return (
     <div className="flex flex-col gap-8">
@@ -93,15 +93,17 @@ export default function TeamsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Dupla</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Integrante 1</TableHead>
+                  <TableHead>Integrante 2</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {teams.map((item, index) => (
                   <TableRow key={`${teamToKey(item.team)}-${item.category}-${index}`}>
-                    <TableCell className="font-medium">{teamToKey(item.team)}</TableCell>
                     <TableCell>{item.category}</TableCell>
+                    <TableCell className="font-medium">{item.team.player1}</TableCell>
+                    <TableCell className="font-medium">{item.team.player2}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

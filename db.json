@@ -50,9 +50,9 @@
     ],
     "startTime": "08:00"
   },
-  "Masculino": {
+  "Masculino Avançado": {
     "formValues": {
-      "category": "Masculino",
+      "category": "Masculino Avançado",
       "tournamentType": "groups",
       "numberOfTeams": 16,
       "numberOfGroups": 4,
@@ -666,7 +666,7 @@
     },
     "totalMatches": 32
   },
-  "Misto": {
+  "Misto Avançado": {
     "formValues": {
       "category": "Misto",
       "tournamentType": "groups",
@@ -771,6 +771,16 @@
           "standings": [
             {
               "team": {
+                "player1": "Sosô",
+                "player2": "Neves"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
                 "player1": "Ingrid",
                 "player2": "Yan"
               },
@@ -783,16 +793,6 @@
               "team": {
                 "player1": "Ju",
                 "player2": "Russo"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Sosô",
-                "player2": "Neves"
               },
               "played": 0,
               "wins": 0,
@@ -902,6 +902,16 @@
           "standings": [
             {
               "team": {
+                "player1": "Renata",
+                "player2": "João"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
                 "player1": "Clara",
                 "player2": "Peri"
               },
@@ -914,16 +924,6 @@
               "team": {
                 "player1": "Gabe",
                 "player2": "Bia"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Renata",
-                "player2": "João"
               },
               "played": 0,
               "wins": 0,
@@ -953,7 +953,8 @@
                 "player1": "Isa Liron",
                 "player2": "Carelli"
               },
-              "time": ""
+              "time": "",
+              "score1": 0
             },
             {
               "team1": {
@@ -1033,16 +1034,6 @@
           "standings": [
             {
               "team": {
-                "player1": "Fabi",
-                "player2": "Alex"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
                 "player1": "Gabi Queiroz",
                 "player2": "Gularte"
               },
@@ -1055,6 +1046,16 @@
               "team": {
                 "player1": "Isa Liron",
                 "player2": "Carelli"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Fabi",
+                "player2": "Alex"
               },
               "played": 0,
               "wins": 0,
