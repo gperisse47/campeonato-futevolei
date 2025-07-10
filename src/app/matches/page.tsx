@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Swords } from "lucide-react";
-import type { ConsolidatedMatch } from "@/lib/types";
+import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, PlayoffMatch } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
 
 export default function MatchesPage() {
@@ -24,6 +24,25 @@ export default function MatchesPage() {
         const savedTournaments = await getTournaments();
         if (savedTournaments) {
           const allMatches: ConsolidatedMatch[] = [];
+
+          const processBracket = (bracket: PlayoffBracket, categoryName: string) => {
+            for (const roundName in bracket) {
+              const roundMatches = bracket[roundName];
+              if (Array.isArray(roundMatches)) {
+                roundMatches.forEach(match => {
+                  allMatches.push({
+                    category: categoryName,
+                    stage: match.name,
+                    team1: match.team1 ? teamToKey(match.team1) : match.team1Placeholder,
+                    team2: match.team2 ? teamToKey(match.team2) : match.team2Placeholder,
+                    score1: match.score1,
+                    score2: match.score2,
+                    time: match.time,
+                  });
+                });
+              }
+            }
+          };
 
           for (const categoryName in savedTournaments) {
             const categoryData = savedTournaments[categoryName];
@@ -47,20 +66,14 @@ export default function MatchesPage() {
 
             // Playoff Matches
             if (categoryData.playoffs) {
-                for (const roundName in categoryData.playoffs) {
-                    const roundMatches = categoryData.playoffs[roundName];
-                    roundMatches.forEach(match => {
-                        allMatches.push({
-                            category: categoryName,
-                            stage: match.name,
-                            team1: match.team1 ? teamToKey(match.team1) : match.team1Placeholder,
-                            team2: match.team2 ? teamToKey(match.team2) : match.team2Placeholder,
-                            score1: match.score1,
-                            score2: match.score2,
-                            time: match.time,
-                        });
-                    });
-                }
+              const playoffs = categoryData.playoffs as PlayoffBracketSet;
+              if (categoryData.formValues.tournamentType === 'doubleElimination' && ('upper' in playoffs || 'lower' in playoffs || 'playoffs' in playoffs)) {
+                  if (playoffs.upper) processBracket(playoffs.upper, categoryName);
+                  if (playoffs.lower) processBracket(playoffs.lower, categoryName);
+                  if (playoffs.playoffs) processBracket(playoffs.playoffs, categoryName);
+              } else {
+                  processBracket(playoffs as PlayoffBracket, categoryName);
+              }
             }
           }
           setMatches(allMatches);
