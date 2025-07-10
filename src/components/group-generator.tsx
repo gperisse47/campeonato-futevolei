@@ -89,7 +89,6 @@ export function GroupGenerator() {
       }
     };
     fetchInitialData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveData = async (categoryName: string, data: CategoryData) => {
@@ -336,89 +335,89 @@ Olavo e Dudu`,
     const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues, initialUpperBracket: PlayoffBracket): PlayoffBracketSet => {
         const lowerBracket: PlayoffBracket = {};
         const grandFinal: PlayoffBracket = {};
-
+    
         const upperRounds = Object.keys(initialUpperBracket)
             .sort((a, b) => (initialUpperBracket[b][0]?.roundOrder || 0) - (initialUpperBracket[a][0]?.roundOrder || 0));
-
+    
         if (upperRounds.length === 0) return { upper: initialUpperBracket, lower: {}, grandFinal: {} };
-
+    
         let lowerRoundPlaceholders: string[] = [];
         let lowerRoundCounter = 1;
         let lowerRoundOrder = 100;
-
-        // Round 1 of Lower Bracket: Losers of Round 1 of Upper Bracket
-        const firstUpperRoundName = upperRounds[0];
-        const firstUpperRoundMatches = initialUpperBracket[firstUpperRoundName];
-        if (firstUpperRoundMatches && firstUpperRoundMatches.length > 0) {
-            const firstRoundLosers = firstUpperRoundMatches.map(m => `Perdedor ${m.name}`);
-            const lowerRoundName = `Lower Rodada ${lowerRoundCounter}`;
-            lowerBracket[lowerRoundName] = [];
-            for (let i = 0; i < firstRoundLosers.length; i += 2) {
-                const match = {
-                    id: `L${lowerRoundCounter}-${i / 2 + 1}`,
-                    name: `Lower Rodada ${lowerRoundCounter} Jogo ${i / 2 + 1}`,
-                    team1Placeholder: firstRoundLosers[i],
-                    team2Placeholder: firstRoundLosers[i + 1],
-                    time: '',
-                    roundOrder: lowerRoundOrder--,
-                };
-                lowerBracket[lowerRoundName].push(match);
-            }
-            lowerRoundPlaceholders = lowerBracket[lowerRoundName].map(m => `Vencedor ${m.name}`);
-            lowerRoundCounter++;
-        }
-
-        // Subsequent Lower Bracket Rounds
-        for (let i = 1; i < upperRounds.length; i++) {
-            // Round where winners advance, and losers drop
+    
+        for (let i = 0; i < upperRounds.length; i++) {
             const upperRoundName = upperRounds[i];
             const upperRoundMatches = initialUpperBracket[upperRoundName];
-            if (!upperRoundMatches || upperRoundMatches.length === 0) continue;
-            
+    
+            if (!Array.isArray(upperRoundMatches) || upperRoundMatches.length === 0) continue;
+    
             const losersFromUpper = upperRoundMatches.map(m => `Perdedor ${m.name}`);
-
-            const lowerTeamsForRound1 = [...lowerRoundPlaceholders];
-            const lowerTeamsForRound2 = [...losersFromUpper];
-
-            // Lower Round (Winners from previous lower round)
-            let round1Name = `Lower Rodada ${lowerRoundCounter}`;
-            lowerBracket[round1Name] = [];
-            for(let j=0; j < lowerTeamsForRound1.length; j+=2) {
-                const match = {
-                    id: `L${lowerRoundCounter}-${j/2 + 1}`,
-                    name: `Lower Rodada ${lowerRoundCounter} Jogo ${j/2+1}`,
-                    team1Placeholder: lowerTeamsForRound1[j],
-                    team2Placeholder: lowerTeamsForRound1[j+1],
-                    time: '',
-                    roundOrder: lowerRoundOrder--,
-                };
-                lowerBracket[round1Name].push(match);
+    
+            // First lower round is populated by losers of first upper round
+            if (i === 0) {
+                const roundName = `Lower Rodada ${lowerRoundCounter}`;
+                lowerBracket[roundName] = [];
+                for (let j = 0; j < losersFromUpper.length; j += 2) {
+                    const match = {
+                        id: `L${lowerRoundCounter}-${j / 2 + 1}`,
+                        name: `Lower Rodada ${lowerRoundCounter} Jogo ${j / 2 + 1}`,
+                        team1Placeholder: losersFromUpper[j],
+                        team2Placeholder: losersFromUpper[j + 1],
+                        time: '',
+                        roundOrder: lowerRoundOrder--,
+                    };
+                    lowerBracket[roundName].push(match);
+                }
+                lowerRoundPlaceholders = lowerBracket[roundName].map(m => `Vencedor ${m.name}`);
+                lowerRoundCounter++;
+                continue;
             }
-            lowerRoundCounter++;
-            const round1Winners = lowerBracket[round1Name].map(m => `Vencedor ${m.name}`);
-            
-            // Lower Round (Losers from upper bracket vs winners from previous lower round)
-            let round2Name = `Lower Rodada ${lowerRoundCounter}`;
-            const teamsForNextRound = [...round1Winners, ...lowerTeamsForRound2];
+    
+            // Subsequent lower rounds:
+            // 1. A round for winners of previous lower round
+            // 2. A round combining those winners with losers from the current upper round
+    
+            // Round 1: Winners from previous lower round play each other
+            if (lowerRoundPlaceholders.length > 1) {
+                const round1Name = `Lower Rodada ${lowerRoundCounter}`;
+                lowerBracket[round1Name] = [];
+                for (let j = 0; j < lowerRoundPlaceholders.length; j += 2) {
+                    const match = {
+                        id: `L${lowerRoundCounter}-${j / 2 + 1}`,
+                        name: `Lower Rodada ${lowerRoundCounter} Jogo ${j / 2 + 1}`,
+                        team1Placeholder: lowerRoundPlaceholders[j],
+                        team2Placeholder: lowerRoundPlaceholders[j + 1],
+                        time: '',
+                        roundOrder: lowerRoundOrder--,
+                    };
+                    lowerBracket[round1Name].push(match);
+                }
+                lowerRoundPlaceholders = lowerBracket[round1Name].map(m => `Vencedor ${m.name}`);
+                lowerRoundCounter++;
+            }
+    
+            // Round 2: Combine winners with losers from upper bracket
+            const round2Name = `Lower Rodada ${lowerRoundCounter}`;
+            const teamsForNextRound = [...lowerRoundPlaceholders, ...losersFromUpper];
             lowerBracket[round2Name] = [];
-            for(let j=0; j < teamsForNextRound.length; j+=2) {
-                const match = {
-                    id: `L${lowerRoundCounter}-${j/2 + 1}`,
-                    name: `Lower Rodada ${lowerRoundCounter} Jogo ${j/2+1}`,
-                    team1Placeholder: teamsForNextRound[j],
-                    team2Placeholder: teamsForNextRound[j+1],
-                    time: '',
-                    roundOrder: lowerRoundOrder--,
-                };
+             for (let j = 0; j < teamsForNextRound.length; j += 2) {
+                 const match = {
+                     id: `L${lowerRoundCounter}-${j / 2 + 1}`,
+                     name: `Lower Rodada ${lowerRoundCounter} Jogo ${j / 2 + 1}`,
+                     team1Placeholder: teamsForNextRound[j],
+                     team2Placeholder: teamsForNextRound[j+1],
+                     time: '',
+                     roundOrder: lowerRoundOrder--,
+                 };
                  lowerBracket[round2Name].push(match);
-            }
+             }
             lowerRoundPlaceholders = lowerBracket[round2Name].map(m => `Vencedor ${m.name}`);
             lowerRoundCounter++;
         }
     
         // Grand Final
         const upperFinalWinner = `Vencedor ${upperRounds[upperRounds.length - 1]}`;
-        const lowerFinalWinner = lowerRoundPlaceholders[0] || "Vencedor Chave Inferior";
+        const lowerFinalWinner = lowerRoundPlaceholders.length > 0 ? lowerRoundPlaceholders[0] : "Vencedor Chave Inferior";
         
         grandFinal['Grande Final'] = [{
             id: 'grand-final-1',
@@ -576,7 +575,7 @@ Olavo e Dudu`,
       .map((t) => t.trim())
       .filter(Boolean)
       .map((teamString) => {
-        const players = teamString.split(" e ").map((p) => p.trim())
+        const players = teamString.split(/\s+e\s+/i).map((p) => p.trim())
         return { player1: players[0] || "", player2: players[1] || "" }
       })
 
