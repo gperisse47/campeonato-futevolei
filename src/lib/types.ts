@@ -65,11 +65,11 @@ export const formSchema = z
         .split("\n")
         .map((t) => t.trim())
         .filter(Boolean);
-      // Use regex to ensure format is "text e text"
-      return teamsArray.every((team) => /.+ e .+/i.test(team));
+      // Use regex to ensure format is "text e text", allowing for flexible spacing around "e"
+      return teamsArray.every((team) => /.+\s+e\s+.+/i.test(team));
     },
     {
-      message: "Cada dupla deve ter dois jogadores separados por ' e '. Ex: Jogador A e Jogador B.",
+      message: "Cada dupla deve ter dois jogadores separados por 'e'. Ex: Jogador A e Jogador B.",
       path: ["teams"],
     }
   )
@@ -116,7 +116,7 @@ export const formSchema = z
         .split('\n')
         .map((t) => t.trim())
         .filter(Boolean)
-        .flatMap((teamString) => teamString.split(/ e /i).map((p) => p.trim()));
+        .flatMap((teamString) => teamString.split(/\s+e\s+/i).map((p) => p.trim()));
 
       const uniquePlayers = new Set(players);
       return players.length === uniquePlayers.size;
