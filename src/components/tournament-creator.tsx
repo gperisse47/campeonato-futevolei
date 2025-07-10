@@ -46,14 +46,13 @@ const defaultFormValues: TournamentFormValues = {
   groupFormationStrategy: "order",
   includeThirdPlace: true,
   startTime: "",
-  priority: 1,
 };
 
 
 export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }] } })
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] } })
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -96,7 +95,7 @@ export function TournamentCreator() {
     if (isLoaded && watchedCategoryName) {
       const existingCategoryData = tournaments[watchedCategoryName];
       // Only reset the form if there's an exact match for an existing category
-      if (existingCategoryData) {
+      if (existingCategoryData && watchedCategoryName === existingCategoryData.formValues.category) {
         form.reset(existingCategoryData.formValues);
       }
     }
@@ -706,7 +705,7 @@ export function TournamentCreator() {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <FormField
                 control={form.control}
                 name="startTime"
@@ -718,22 +717,6 @@ export function TournamentCreator() {
                     </FormControl>
                     <FormDescription>
                         Início desejado da categoria.
-                    </FormDescription>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                 <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Prioridade</FormLabel>
-                    <FormControl>
-                        <Input type="number" placeholder="1" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/>
-                    </FormControl>
-                     <FormDescription>
-                        1 = Mais alta. Define a ordem dos jogos.
                     </FormDescription>
                     <FormMessage />
                     </FormItem>

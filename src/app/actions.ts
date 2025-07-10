@@ -125,21 +125,22 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
         type MatchReference = (MatchWithScore | PlayoffMatch) & { 
             categoryName: string; 
-            categoryPriority: number 
+            categoryStartTime?: string;
         };
 
         const allMatches: MatchReference[] = [];
 
+        // Clear all existing times and collect all matches
         categories.forEach(catName => {
             const catData = db[catName] as CategoryData;
-            const categoryPriority = catData.formValues.priority || 99;
+            const categoryStartTime = catData.formValues.startTime;
 
             // Group matches
             catData.tournamentData?.groups.forEach(group => {
                 group.matches.forEach(match => {
                     match.time = '';
                     match.court = '';
-                    allMatches.push({ ...match, categoryName: catName, categoryPriority, roundOrder: -1 });
+                    allMatches.push({ ...match, categoryName: catName, categoryStartTime, roundOrder: -1 }); // roundOrder -1 for group matches
                 });
             });
 
@@ -149,7 +150,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 Object.values(bracket).flat().forEach(match => {
                     match.time = '';
                     match.court = '';
-                    allMatches.push({ ...match, categoryName: catName, categoryPriority });
+                    allMatches.push({ ...match, categoryName: catName, categoryStartTime });
                 });
             };
 
@@ -165,13 +166,8 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             }
         });
         
-        allMatches.sort((a, b) => {
-            if (a.categoryPriority !== b.categoryPriority) {
-                return a.categoryPriority - b.categoryPriority;
-            }
-            return (b.roundOrder ?? -1) - (a.roundOrder ?? -1);
-        });
-
+        // No complex sorting, just find a slot
+        
         const courtAvailability = _globalSettings.courts
             .map(court => ({
                 name: court.name,
@@ -192,91 +188,122 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         });
         allPlayers.forEach(p => playerAvailability[p] = parseTime(_globalSettings.startTime));
         
-        allMatches.forEach(matchRef => {
-            if (!matchRef.team1 || !matchRef.team2) {
-                return; // Can't schedule matches without teams
-            }
-            
-            let bestTime: Date | null = null;
-            let bestCourtIndex = -1;
+        const unscheduledMatches = new Set(allMatches);
 
-            const categoryStartTime = (db[matchRef.categoryName] as CategoryData)?.formValues?.startTime;
-            const effectiveStartTime = parseTime(categoryStartTime || _globalSettings.startTime);
+        let currentTime = parseTime(_globalSettings.startTime);
+        
+        while (unscheduledMatches.size > 0) {
+            let scheduledInPass = false;
 
-            const playersInMatch = [matchRef.team1.player1, matchRef.team1.player2, matchRef.team2.player1, matchRef.team2.player2].filter(Boolean) as string[];
-            const playersNextAvailableTimes = playersInMatch.map(p => playerAvailability[p] || effectiveStartTime);
-            
-            let earliestPossibleStart = max([effectiveStartTime, ...playersNextAvailableTimes]);
+            for (let i = 0; i < courtAvailability.length; i++) {
+                const court = courtAvailability[i];
+                if (currentTime < court.nextAvailableTime) {
+                    continue;
+                }
 
-            let foundSlot = false;
-            let potentialStartTime = earliestPossibleStart;
-
-            while (!foundSlot) {
-                for (let i = 0; i < courtAvailability.length; i++) {
-                     const court = courtAvailability[i];
-
-                     const courtStartTime = max([potentialStartTime, court.nextAvailableTime]);
-                     const courtEndTime = addMinutes(courtStartTime, _globalSettings.estimatedMatchDuration);
-
-                     let isInSlot = false;
-                     for (const slot of court.slots) {
-                         if (courtStartTime >= slot.start && courtEndTime <= slot.end) {
-                             isInSlot = true;
-                             break;
-                         }
-                     }
-                     if (isInSlot) {
-                        bestTime = courtStartTime;
-                        bestCourtIndex = i;
-                        foundSlot = true;
-                        break; 
-                     }
-                 }
-                 if (!foundSlot) {
-                    // if no slot found, advance time by 1 minute and retry
-                    potentialStartTime = addMinutes(potentialStartTime, 1);
-                 }
-            }
-            
-            
-            if (bestCourtIndex !== -1 && bestTime) {
-                const assignedCourt = courtAvailability[bestCourtIndex];
-                const timeStr = format(bestTime, 'HH:mm');
-                const courtName = assignedCourt.name;
-
-                // Find the original match object in the db and update it
-                const categoryData = db[matchRef.categoryName] as CategoryData;
-                let originalMatch: MatchWithScore | PlayoffMatch | undefined;
-
-                if (matchRef.roundOrder === -1) { // Group match
-                   originalMatch = categoryData.tournamentData?.groups
-                    .flatMap(g => g.matches)
-                    .find(m => m.team1.player1 === matchRef.team1.player1 && m.team1.player2 === matchRef.team1.player2 && m.team2.player1 === matchRef.team2.player1 && m.team2.player2 === matchRef.team2.player2 && !m.time);
-                } else { // Playoff match
-                    const findInBracket = (bracket: PlayoffBracket | undefined) => {
-                        if (!bracket) return undefined;
-                        return Object.values(bracket).flat().find(m => m.id === matchRef.id && !m.time);
+                // Check if current time is within any slot for this court
+                let isInSlot = false;
+                for (const slot of court.slots) {
+                    const slotEnd = addMinutes(slot.end, -_globalSettings.estimatedMatchDuration);
+                    if (currentTime >= slot.start && currentTime <= slotEnd) {
+                        isInSlot = true;
+                        break;
                     }
-                    if ('upper' in categoryData.playoffs! || 'lower' in categoryData.playoffs! || 'playoffs' in categoryData.playoffs!) {
-                        const bracketSet = categoryData.playoffs as PlayoffBracketSet;
-                        originalMatch = findInBracket(bracketSet.upper) || findInBracket(bracketSet.lower) || findInBracket(bracketSet.playoffs);
+                }
+                if (!isInSlot) {
+                    continue;
+                }
+
+                // Find a match that can be scheduled
+                for (const matchRef of unscheduledMatches) {
+                    if (!matchRef.team1 || !matchRef.team2) {
+                        continue; // Can't schedule matches without teams
+                    }
+                    
+                    const playersInMatch = [matchRef.team1.player1, matchRef.team1.player2, matchRef.team2.player1, matchRef.team2.player2].filter(Boolean) as string[];
+                    const playersAvailable = playersInMatch.every(p => currentTime >= (playerAvailability[p] || parseTime(_globalSettings.startTime)));
+                    const categoryStartTime = parseTime(matchRef.categoryStartTime || _globalSettings.startTime);
+
+                    if (playersAvailable && currentTime >= categoryStartTime) {
+                        // Schedule the match
+                        const timeStr = format(currentTime, 'HH:mm');
+                        
+                        // Find the original match object in the db and update it
+                        const categoryData = db[matchRef.categoryName] as CategoryData;
+                        let originalMatch: (MatchWithScore | PlayoffMatch | undefined);
+                        
+                        if (matchRef.roundOrder === -1) { // Group match
+                           const groupMatches = categoryData.tournamentData?.groups.flatMap(g => g.matches) || [];
+                           originalMatch = groupMatches.find(m => 
+                               !m.time && // only unscheduled
+                               m.team1.player1 === matchRef.team1.player1 && m.team1.player2 === matchRef.team1.player2 && 
+                               m.team2.player1 === matchRef.team2.player1 && m.team2.player2 === matchRef.team2.player2
+                           );
+                        } else { // Playoff match
+                            const findInBracket = (bracket: PlayoffBracket | undefined) => {
+                                if (!bracket) return undefined;
+                                return Object.values(bracket).flat().find(m => m.id === matchRef.id && !m.time);
+                            }
+                            if ('upper' in categoryData.playoffs! || 'lower' in categoryData.playoffs! || 'playoffs' in categoryData.playoffs!) {
+                                const bracketSet = categoryData.playoffs as PlayoffBracketSet;
+                                originalMatch = findInBracket(bracketSet.upper) || findInBracket(bracketSet.lower) || findInBracket(bracketSet.playoffs);
+                            } else {
+                                originalMatch = findInBracket(categoryData.playoffs as PlayoffBracket);
+                            }
+                        }
+
+                        if (originalMatch) {
+                            originalMatch.time = timeStr;
+                            originalMatch.court = court.name;
+
+                            const matchEndTime = addMinutes(currentTime, _globalSettings.estimatedMatchDuration);
+                            court.nextAvailableTime = matchEndTime;
+                            playersInMatch.forEach(p => playerAvailability[p] = matchEndTime);
+                            
+                            unscheduledMatches.delete(matchRef);
+                            scheduledInPass = true;
+                            break; // Move to the next court
+                        }
+                    }
+                }
+            }
+
+            if (!scheduledInPass) {
+                // If no match was scheduled in a full pass, advance time
+                const nextCourtTimes = courtAvailability.map(c => c.nextAvailableTime).filter(t => t > currentTime);
+                const nextPlayerTimes = Object.values(playerAvailability).filter(t => t > currentTime);
+
+                const allNextTimes = [...nextCourtTimes, ...nextPlayerTimes];
+
+                if (allNextTimes.length > 0) {
+                    currentTime = new Date(Math.min(...allNextTimes.map(t => t.getTime())));
+                } else {
+                     // If no future events, just increment time slightly to prevent infinite loops.
+                     // A better approach would be to find the next available slot start time.
+                    let nextSlotStartTime = new Date(Number.MAX_VALUE);
+                    for (const court of courtAvailability) {
+                        for(const slot of court.slots){
+                           if(slot.start > currentTime && slot.start < nextSlotStartTime){
+                                nextSlotStartTime = slot.start;
+                           }
+                        }
+                    }
+
+                    if (nextSlotStartTime.getTime() !== Number.MAX_VALUE) {
+                        currentTime = nextSlotStartTime;
                     } else {
-                        originalMatch = findInBracket(categoryData.playoffs as PlayoffBracket);
+                        // No more slots available, break the loop to prevent it from running forever.
+                         console.warn("No more available slots to schedule remaining matches.");
+                         break;
                     }
                 }
-                
-                if (originalMatch) {
-                    originalMatch.time = timeStr;
-                    originalMatch.court = courtName;
-                }
-                
-                const matchEndTime = addMinutes(bestTime, _globalSettings.estimatedMatchDuration);
-                assignedCourt.nextAvailableTime = matchEndTime;
-                
-                const playerAvailableAgainTime = matchEndTime;
-                playersInMatch.forEach(p => playerAvailability[p] = playerAvailableAgainTime);
             }
-        });
+        }
+
+
+        if (unscheduledMatches.size > 0) {
+            console.warn(`${unscheduledMatches.size} matches could not be scheduled.`);
+        }
 
         await writeDb(db);
         return { success: true };
