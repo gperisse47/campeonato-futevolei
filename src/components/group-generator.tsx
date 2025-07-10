@@ -116,7 +116,6 @@ export function GroupGenerator() {
     let bracket: PlayoffBracket = {};
     const placeholders = generatePlayoffPlaceholders(totalQualifiers);
     const teamPlaceholders = Object.keys(placeholders).sort((a, b) => {
-      // Custom sort to group by letter (A, B, C...) then by number (1, 2, 3...)
       const aMatch = a.match(/(\d+)º do Grupo ([A-Z])/);
       const bMatch = b.match(/(\d+)º do Grupo ([A-Z])/);
       if (aMatch && bMatch) {
@@ -137,7 +136,6 @@ export function GroupGenerator() {
         bracket[roundName] = [];
         const nextRoundTeams = [];
         
-        // Matchmaking for the bracket (e.g., 1st vs last, 2nd vs 2nd-to-last)
         const roundMatches = [];
         const half = currentRoundTeams.length / 2;
         for (let i = 0; i < half; i++) {
@@ -207,15 +205,27 @@ export function GroupGenerator() {
 
     roundOrder.forEach(roundName => {
       newPlayoffs[roundName]?.forEach(match => {
-        // Assign teams from placeholders or previous matches
         if (!match.team1 && match.team1Placeholder) {
-           match.team1 = qualifiedTeams[match.team1Placeholder] || winners[match.team1Placeholder.replace('Vencedor ', '')] || losers[match.team1Placeholder.replace('Perdedor ', '')] || undefined;
+          const placeholder = match.team1Placeholder;
+          if (placeholder.startsWith('Vencedor ')) {
+            match.team1 = winners[placeholder.replace('Vencedor ', '')];
+          } else if (placeholder.startsWith('Perdedor ')) {
+            match.team1 = losers[placeholder.replace('Perdedor ', '')];
+          } else {
+            match.team1 = qualifiedTeams[placeholder];
+          }
         }
         if (!match.team2 && match.team2Placeholder) {
-          match.team2 = qualifiedTeams[match.team2Placeholder] || winners[match.team2Placeholder.replace('Vencedor ', '')] || losers[match.team2Placeholder.replace('Perdedor ', '')] || undefined;
+          const placeholder = match.team2Placeholder;
+          if (placeholder.startsWith('Vencedor ')) {
+            match.team2 = winners[placeholder.replace('Vencedor ', '')];
+          } else if (placeholder.startsWith('Perdedor ')) {
+            match.team2 = losers[placeholder.replace('Perdedor ', '')];
+          } else {
+            match.team2 = qualifiedTeams[placeholder];
+          }
         }
 
-        // Determine winner and loser
         if (match.team1 && match.team2 && typeof match.score1 === 'number' && typeof match.score2 === 'number') {
           if (match.score1 > match.score2) {
             winners[match.id] = match.team1;
@@ -228,7 +238,6 @@ export function GroupGenerator() {
       });
     });
 
-    // Only update state if there's a change to avoid loops
     if (JSON.stringify(playoffs) !== JSON.stringify(newPlayoffs)) {
         setPlayoffs(newPlayoffs);
     }
@@ -384,7 +393,7 @@ export function GroupGenerator() {
       <div className="flex flex-col items-center justify-center gap-2 w-full max-w-sm mx-auto">
           <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4>
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className="flex-1 text-right truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : match.team1Placeholder}</span>
+                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : match.team1Placeholder}</span>
                 <Input
                     type="number"
                     className="h-8 w-14 text-center"
@@ -396,7 +405,7 @@ export function GroupGenerator() {
             <div className="text-muted-foreground text-xs py-1">vs</div>
 
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className="flex-1 text-right truncate pr-2 text-sm">{match.team2 ? teamToKey(match.team2) : match.team2Placeholder}</span>
+                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team2 ? teamToKey(match.team2) : match.team2Placeholder}</span>
                 <Input
                     type="number"
                     className="h-8 w-14 text-center"
@@ -419,7 +428,7 @@ export function GroupGenerator() {
 
     const finalMatch = playoffs['Final']?.[0];
 
-    const bracketRounds = roundOrder.filter(r => r !== 'Final');
+    const bracketRounds = roundOrder.filter(r => r !== 'Final' && r !== 'Disputa de 3º Lugar');
   
     return (
       <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
