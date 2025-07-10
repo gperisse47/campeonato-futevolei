@@ -55,7 +55,7 @@ export default function Home() {
                     <path d="M22 12h-2" />
                     </svg>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">Bem-vindo ao Futevôlei Manager</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Bem-vindo ao Campeonato Amigos do Peri</h1>
          </div>
         <p className="text-muted-foreground text-lg">
           Acompanhe os torneios, jogos e classificações em tempo real.
@@ -66,7 +66,7 @@ export default function Home() {
         <CardHeader>
           <CardTitle className="flex items-center justify-center">
             <Trophy className="mr-2 h-6 w-6 text-primary" />
-            Torneios em Andamento
+            Categorias em Andamento
           </CardTitle>
           <CardDescription>
             Selecione uma categoria para ver os detalhes.

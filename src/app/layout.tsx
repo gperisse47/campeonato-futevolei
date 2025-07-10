@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Gerenciador de Futevôlei',
+  title: 'Campeonato Amigos do Peri',
   description: 'Sistema de gerenciamento de campeonatos de futevôlei',
 };
 

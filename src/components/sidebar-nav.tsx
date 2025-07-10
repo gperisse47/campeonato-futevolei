@@ -70,7 +70,7 @@ export function SidebarNav() {
                     <path d="M22 12h-2" />
                     </svg>
             </div>
-            <h2 className="text-lg font-semibold tracking-tight">Futevôlei Manager</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Campeonato Amigos do Peri</h2>
         </div>
       </SidebarHeader>
       <SidebarContent>
