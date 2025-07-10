@@ -273,8 +273,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 const matchEndTime = addMinutes(bestTime, _globalSettings.estimatedMatchDuration);
                 assignedCourt.nextAvailableTime = matchEndTime;
                 
-                // Add a 40-minute break for players
-                const playerAvailableAgainTime = addMinutes(matchEndTime, 40);
+                const playerAvailableAgainTime = matchEndTime;
                 playersInMatch.forEach(p => playerAvailability[p] = playerAvailableAgainTime);
             }
         });
