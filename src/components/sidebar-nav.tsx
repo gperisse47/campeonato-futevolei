@@ -49,26 +49,8 @@ export function SidebarNav() {
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary">
-                 <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="hsl(var(--primary-foreground))"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-6 w-6"
-                >
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                    <path d="M4 22h16"></path>
-                    <path d="M10 14.5a2.5 2.5 0 0 0-5 0V22h5v-7.5Z"></path>
-                    <path d="M19 14.5a2.5 2.5 0 0 0-5 0V22h5v-7.5Z"></path>
-                    <path d="M5 10V5c0-1.66 1.34-3 3-3h8c1.66 0 3 1.34 3 3v5"></path>
-                </svg>
+            <div className="p-1.5 rounded-lg bg-primary text-primary-foreground">
+                <Trophy className="h-6 w-6" />
             </div>
             <h2 className="text-lg font-semibold tracking-tight">Campeonato Amigos do Peri</h2>
         </div>
