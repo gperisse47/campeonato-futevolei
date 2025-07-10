@@ -43,7 +43,7 @@ export function SidebarNav() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const categories = Object.keys(tournaments);
+  const categories = Object.keys(tournaments).filter(k => k !== '_globalSettings');
 
   return (
     <>

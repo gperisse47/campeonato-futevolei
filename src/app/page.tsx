@@ -28,7 +28,7 @@ export default function Home() {
     fetchTournaments();
   }, []);
 
-  const categories = Object.keys(tournaments);
+  const categories = Object.keys(tournaments).filter(k => k !== '_globalSettings');
 
   return (
     <div className="flex flex-col gap-8 items-center text-center">

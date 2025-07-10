@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Users } from "lucide-react";
-import type { Team, TournamentsState } from "@/lib/types";
+import type { Team, TournamentsState, CategoryData } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
 
 type TeamWithCategory = {
@@ -26,7 +26,9 @@ export default function TeamsPage() {
                 const allTeams: TeamWithCategory[] = [];
 
                 for (const categoryName in savedTournaments) {
-                    const categoryData = savedTournaments[categoryName];
+                    if (categoryName === '_globalSettings') continue;
+
+                    const categoryData = savedTournaments[categoryName] as CategoryData;
                     let teamsToProcess: Team[] = [];
 
                     if (categoryData.tournamentData?.groups) {

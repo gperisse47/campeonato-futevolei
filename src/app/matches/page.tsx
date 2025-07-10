@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Swords } from "lucide-react";
-import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, PlayoffMatch } from "@/lib/types";
+import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
 
 export default function MatchesPage() {
@@ -45,7 +45,9 @@ export default function MatchesPage() {
           };
 
           for (const categoryName in savedTournaments) {
-            const categoryData = savedTournaments[categoryName];
+            if (categoryName === '_globalSettings') continue;
+            
+            const categoryData = savedTournaments[categoryName] as CategoryData;
 
             // Group Stage Matches
             if (categoryData.tournamentData?.groups) {
