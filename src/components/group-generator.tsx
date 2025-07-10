@@ -147,13 +147,14 @@ export function GroupGenerator() {
   
         for (let i = 0; i < roundMatches.length; i++) {
             const match = roundMatches[i];
-            const matchId = `${roundName.replace(/\s/g, '')}-${i + 1}`;
+            const roundNameSingle = roundName.replace(/s$/, '');
+            const matchId = `${roundNameSingle.replace(/\s/g, '')}-${i + 1}`;
             bracket[roundName].push({
                 id: matchId,
-                name: `${roundName.replace(/s$/,'')} ${i + 1}`,
+                name: `${roundNameSingle} ${i + 1}`,
                 ...match
             });
-            nextRoundTeams.push(`Vencedor ${matchId}`);
+            nextRoundTeams.push(`Vencedor ${roundNameSingle} ${i + 1}`);
         }
   
         currentRoundTeams = nextRoundTeams;
@@ -161,7 +162,7 @@ export function GroupGenerator() {
     }
   
     if (includeThirdPlace && bracket['Semifinais']) {
-        const semiFinalLosers = bracket['Semifinais'].map(m => `Perdedor ${m.id}`);
+        const semiFinalLosers = bracket['Semifinais'].map(m => `Perdedor ${m.name}`);
         bracket['Disputa de 3º Lugar'] = [
             { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1] }
         ];
@@ -200,8 +201,8 @@ export function GroupGenerator() {
         roundOrder.push('Disputa de 3º Lugar');
     }
 
-    const winners: { [matchId: string]: Team | undefined } = {};
-    const losers: { [matchId: string]: Team | undefined } = {};
+    const winners: { [matchName: string]: Team | undefined } = {};
+    const losers: { [matchName: string]: Team | undefined } = {};
 
     roundOrder.forEach(roundName => {
       newPlayoffs[roundName]?.forEach(match => {
@@ -228,11 +229,11 @@ export function GroupGenerator() {
 
         if (match.team1 && match.team2 && typeof match.score1 === 'number' && typeof match.score2 === 'number') {
           if (match.score1 > match.score2) {
-            winners[match.id] = match.team1;
-            losers[match.id] = match.team2;
+            winners[match.name] = match.team1;
+            losers[match.name] = match.team2;
           } else {
-            winners[match.id] = match.team2;
-            losers[match.id] = match.team1;
+            winners[match.name] = match.team2;
+            losers[match.name] = match.team1;
           }
         }
       });
@@ -377,7 +378,7 @@ export function GroupGenerator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentData, JSON.stringify(playoffs)]);
 
-  const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => {
+  const PlayoffMatchCard = ({ match, roundName, matchIndex, isFinalRound }: { match: PlayoffMatch, roundName: string, matchIndex: number, isFinalRound?: boolean }) => {
     const getWinner = (m: PlayoffMatch) => {
       if(m.score1 === undefined || m.score2 === undefined || m.score1 === m.score2) return null;
       return m.score1 > m.score2 ? m.team1 : m.team2;
@@ -390,8 +391,8 @@ export function GroupGenerator() {
     const team2Key = match.team2 ? teamToKey(match.team2) : null;
 
     return (
-      <div className="flex flex-col items-center justify-center gap-2 w-full max-w-sm mx-auto">
-          <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4>
+      <div className={`flex flex-col items-center justify-center gap-2 w-full ${isFinalRound ? 'max-w-md' : 'max-w-sm'} mx-auto`}>
+          {isFinalRound !== true && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
                 <span className="flex-1 text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : match.team1Placeholder}</span>
                 <Input
@@ -425,9 +426,7 @@ export function GroupGenerator() {
       .filter(roundName => playoffs[roundName]);
   
     const thirdPlaceMatch = playoffs['Disputa de 3º Lugar']?.[0];
-
     const finalMatch = playoffs['Final']?.[0];
-
     const bracketRounds = roundOrder.filter(r => r !== 'Final' && r !== 'Disputa de 3º Lugar');
   
     return (
@@ -452,17 +451,17 @@ export function GroupGenerator() {
         
         {(thirdPlaceMatch || finalMatch) && <Separator className="my-4"/>}
 
-        <div className="flex flex-row items-start justify-center w-full gap-8">
+        <div className="flex flex-col items-center justify-center w-full gap-8">
            {finalMatch && (
-               <div className="flex flex-col items-center gap-6">
+               <div className="flex flex-col items-center gap-4">
                   <h3 className="text-xl font-bold text-primary">Final</h3>
-                  <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0}/>
+                  <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinalRound={true} />
                </div>
            )}
            {thirdPlaceMatch && (
-              <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-4 mt-4">
                   <h3 className="text-lg font-bold text-primary">Disputa de 3º Lugar</h3>
-                   <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0}/>
+                   <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isFinalRound={true} />
               </div>
            )}
         </div>
