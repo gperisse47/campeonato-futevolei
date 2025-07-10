@@ -177,19 +177,22 @@ export function GroupGenerator() {
   const updatePlayoffs = useCallback(() => {
     if (!tournamentData || !playoffs) return;
 
-    const allGroupMatchesPlayed = tournamentData.groups.every(g =>
-      g.matches.every(m => m.score1 !== undefined && m.score2 !== undefined)
-    );
-
     const qualifiedTeams: { [placeholder: string]: Team } = {};
-    if (allGroupMatchesPlayed) {
-        tournamentData.groups.forEach((group, groupIndex) => {
+
+    tournamentData.groups.forEach((group, groupIndex) => {
+        // Check if all matches in *this specific group* are played
+        const allMatchesInGroupPlayed = group.matches.every(
+            m => m.score1 !== undefined && m.score2 !== undefined
+        );
+
+        if (allMatchesInGroupPlayed) {
+            // If so, populate qualifiedTeams with the top teams from this group
             group.standings.slice(0, teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
                 const placeholder = getTeamPlaceholder(groupIndex, standingIndex + 1);
                 qualifiedTeams[placeholder] = standing.team;
             });
-        });
-    }
+        }
+    });
 
     const newPlayoffs = JSON.parse(JSON.stringify(playoffs)) as PlayoffBracket;
     const roundOrder = Object.keys(roundNames)
@@ -388,40 +391,45 @@ export function GroupGenerator() {
       if(m.score1 === undefined || m.score2 === undefined || m.score1 === m.score2) return null;
       return m.score1 > m.score2 ? m.team1 : m.team2;
     }
-
+  
     const winnerTeam = getWinner(match);
     const winnerKey = winnerTeam ? teamToKey(winnerTeam) : null;
-
+  
     const team1Key = match.team1 ? teamToKey(match.team1) : null;
     const team2Key = match.team2 ? teamToKey(match.team2) : null;
-    
+      
+    const placeholder1 = match.team1Placeholder.replace(/Vencedor Semifinal-?(\d)/, 'Vencedor Semifinal $1').replace(/Perdedor Semifinal-?(\d)/, 'Perdedor Semifinal $1');
+    const placeholder2 = match.team2Placeholder.replace(/Vencedor Semifinal-?(\d)/, 'Vencedor Semifinal $1').replace(/Perdedor Semifinal-?(\d)/, 'Perdedor Semifinal $1');
+  
     return (
-      <div className={`flex flex-col items-center justify-center gap-2 w-full ${isFinalRound ? 'max-w-md' : 'max-w-sm'} mx-auto`}>
-          {roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar' && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
-            <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className={`${isFinalRound ? 'w-full' : 'flex-1'} text-left truncate pr-2 text-sm`}>{match.team1 ? teamToKey(match.team1) : match.team1Placeholder.replace('Vencedor Semifinal 1', 'Vencedor Semifinal 1').replace('Vencedor Semifinal 2', 'Vencedor Semifinal 2')}</span>
-                <Input
-                    type="number"
-                    className="h-8 w-14 shrink-0 text-center"
-                    value={match.score1 ?? ''}
-                    onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team1', e.target.value)}
-                    disabled={!match.team1 || !match.team2}
-                />
-            </div>
-            <div className="text-muted-foreground text-xs py-1">vs</div>
-
-            <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className={`${isFinalRound ? 'w-full' : 'flex-1'} text-left truncate pr-2 text-sm`}>{match.team2 ? teamToKey(match.team2) : match.team2Placeholder.replace('Vencedor Semifinal 1', 'Vencedor Semifinal 1').replace('Vencedor Semifinal 2', 'Vencedor Semifinal 2')}</span>
-                <Input
-                    type="number"
-                    className="h-8 w-14 shrink-0 text-center"
-                    value={match.score2 ?? ''}
-                    onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team2', e.target.value)}
-                    disabled={!match.team1 || !match.team2}
-                />
-            </div>
+      <div className="flex flex-col gap-2 w-full">
+          {(roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar') && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
+          <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
+              <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                  <span className={`${isFinalRound ? 'w-full' : 'flex-1'} text-left truncate pr-2 text-sm`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
+                  <Input
+                      type="number"
+                      className="h-8 w-14 shrink-0 text-center"
+                      value={match.score1 ?? ''}
+                      onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team1', e.target.value)}
+                      disabled={!match.team1 || !match.team2}
+                  />
+              </div>
+              <div className="text-muted-foreground text-xs text-center py-1">vs</div>
+              <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                  <span className={`${isFinalRound ? 'w-full' : 'flex-1'} text-left truncate pr-2 text-sm`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
+                  <Input
+                      type="number"
+                      className="h-8 w-14 shrink-0 text-center"
+                      value={match.score2 ?? ''}
+                      onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team2', e.target.value)}
+                      disabled={!match.team1 || !match.team2}
+                  />
+              </div>
+          </div>
       </div>
   )};
+  
 
   const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
     const roundOrder = Object.keys(roundNames)
@@ -430,8 +438,8 @@ export function GroupGenerator() {
       .map(key => roundNames[key])
       .filter(roundName => playoffs[roundName]);
   
-    const thirdPlaceMatch = playoffs['Disputa de 3º Lugar']?.[0];
     const finalMatch = playoffs['Final']?.[0];
+    const thirdPlaceMatch = playoffs['Disputa de 3º Lugar']?.[0];
     const bracketRounds = roundOrder.filter(r => r !== 'Final' && r !== 'Disputa de 3º Lugar');
   
     return (
@@ -454,21 +462,25 @@ export function GroupGenerator() {
             ))}
         </div>
         
-        {(thirdPlaceMatch || finalMatch) && <Separator className="my-4"/>}
-
-        <div className="flex flex-col items-center justify-center w-full gap-8">
-           {finalMatch && (
-               <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full max-w-lg">
-                  <h3 className="text-xl font-bold text-primary">Final</h3>
-                  <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinalRound={true} />
-               </div>
-           )}
-           {thirdPlaceMatch && (
-              <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full max-w-lg mt-4">
-                  <h3 className="text-lg font-bold text-primary">Disputa de 3º Lugar</h3>
-                   <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isFinalRound={true} />
+        {(finalMatch || thirdPlaceMatch) && <Separator className="my-4"/>}
+  
+        <div className="flex flex-col md:flex-row items-start justify-center w-full gap-8">
+          <div className="flex flex-col items-center gap-4 w-full md:w-auto">
+            {finalMatch && (
+              <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full">
+                <h3 className="text-xl font-bold text-primary">Final</h3>
+                <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinalRound={true} />
               </div>
-           )}
+            )}
+          </div>
+          <div className="flex flex-col items-center gap-4 w-full md:w-auto">
+            {thirdPlaceMatch && (
+              <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full">
+                <h3 className="text-xl font-bold text-primary">Disputa de 3º Lugar</h3>
+                <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isFinalRound={true} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
