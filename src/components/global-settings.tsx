@@ -228,7 +228,7 @@ export function GlobalSettings() {
                                     <FormItem>
                                     <FormLabel>Prioridade</FormLabel>
                                     <FormControl>
-                                        <Input type="number" className="w-24" placeholder="Ex: 1" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                        <Input type="number" className="w-24" placeholder="Ex: 1" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)} />
                                     </FormControl>
                                     <FormMessage />
                                     </FormItem>
