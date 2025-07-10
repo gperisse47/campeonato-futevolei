@@ -74,6 +74,14 @@ export function SidebarNav() {
                     </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
+               <SidebarMenuItem>
+                <Link href="/teams" passHref>
+                    <SidebarMenuButton isActive={pathname === '/teams'} tooltip="Duplas">
+                        <Users/>
+                        <span>Duplas</span>
+                    </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
             </SidebarMenu>
             
             <SidebarSeparator className="my-4" />

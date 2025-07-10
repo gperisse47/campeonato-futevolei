@@ -10,7 +10,7 @@ import {
   type GenerateTournamentGroupsOutput,
   type GenerateTournamentGroupsInput
 } from "@/ai/flows/generate-tournament-groups"
-import type { TournamentsState, CategoryData, GlobalSettings } from "@/lib/types"
+import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet } from "@/lib/types"
 
 const dbPath = path.resolve(process.cwd(), "db.json")
 
@@ -171,4 +171,89 @@ export async function verifyPassword(password: string): Promise<{ success: boole
     return { success: false };
   }
   return { success: password === correctPassword };
+}
+
+
+export async function updateTeamInTournament(
+  categoryName: string,
+  originalTeam: Team,
+  updatedTeam: Team
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = await readDb();
+    const categoryData = db[categoryName];
+
+    if (!categoryData) {
+      return { success: false, error: "Categoria não encontrada." };
+    }
+
+    const originalTeamKey = `${originalTeam.player1} e ${originalTeam.player2}`;
+    const updatedTeamKey = `${updatedTeam.player1} e ${updatedTeam.player2}`;
+
+    // Helper function to update a team object
+    const updateTeamObject = (team: Team) => {
+        if (team.player1 === originalTeam.player1 && team.player2 === originalTeam.player2) {
+            return { ...updatedTeam };
+        }
+        return team;
+    };
+    
+    // Update teams in formValues.teams string
+    if (categoryData.formValues.teams) {
+        const teamsList = categoryData.formValues.teams.split('\n');
+        const teamIndex = teamsList.findIndex(t => t.trim() === originalTeamKey);
+        if (teamIndex !== -1) {
+            teamsList[teamIndex] = updatedTeamKey;
+            categoryData.formValues.teams = teamsList.join('\n');
+        }
+    }
+
+    // Update teams in tournamentData (groups)
+    if (categoryData.tournamentData?.groups) {
+      categoryData.tournamentData.groups.forEach(group => {
+        // Update group.teams array
+        group.teams = group.teams.map(updateTeamObject);
+
+        // Update group.matches
+        group.matches.forEach(match => {
+          if (match.team1) match.team1 = updateTeamObject(match.team1);
+          if (match.team2) match.team2 = updateTeamObject(match.team2);
+        });
+
+        // Update group.standings
+        group.standings.forEach(standing => {
+          standing.team = updateTeamObject(standing.team);
+        });
+      });
+    }
+
+    // Update teams in playoffs
+    if (categoryData.playoffs) {
+        const updatePlayoffBracket = (bracket: PlayoffBracket | undefined) => {
+            if (!bracket) return;
+            Object.values(bracket).forEach(round => {
+                round.forEach(match => {
+                    if (match.team1) match.team1 = updateTeamObject(match.team1);
+                    if (match.team2) match.team2 = updateTeamObject(match.team2);
+                });
+            });
+        };
+        
+        if ('upper' in categoryData.playoffs || 'lower' in categoryData.playoffs || 'playoffs' in categoryData.playoffs) {
+            const bracketSet = categoryData.playoffs as PlayoffBracketSet;
+            updatePlayoffBracket(bracketSet.upper);
+            updatePlayoffBracket(bracketSet.lower);
+            updatePlayoffBracket(bracketSet.playoffs);
+        } else {
+            updatePlayoffBracket(categoryData.playoffs as PlayoffBracket);
+        }
+    }
+
+    await writeDb(db);
+    return { success: true };
+
+  } catch (e: any) {
+    console.error("Error updating team:", e);
+    return { success: false, error: e.message || "Ocorreu um erro desconhecido ao atualizar a dupla." };
+  }
 }
