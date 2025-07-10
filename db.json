@@ -1301,6 +1301,16 @@
             "time": "",
             "roundOrder": 1
           }
+        ],
+        "Final da Chave Superior": [
+          {
+            "id": "WB-Final-1",
+            "name": "Final da Chave Superior",
+            "team1Placeholder": "Vencedor Upper Rodada 4 Jogo 1",
+            "team2Placeholder": "Perdedor Upper Rodada 4 Jogo 1",
+            "time": "",
+            "roundOrder": 0
+          }
         ]
       },
       "lower": {
@@ -1416,14 +1426,24 @@
             "roundOrder": -4
           }
         ],
-        "Lower Final": [
+        "Lower Rodada 5": [
           {
-            "id": "L-Final-1",
-            "name": "Final da Chave Inferior",
+            "id": "L-R5-1",
+            "name": "Lower Rodada 5 Jogo 1",
             "team1Placeholder": "Vencedor Lower Rodada 4 Jogo 1",
             "team2Placeholder": "Vencedor Lower Rodada 4 Jogo 2",
             "time": "",
             "roundOrder": -5
+          }
+        ],
+        "Final da Chave Inferior": [
+          {
+            "id": "LB-Final-1",
+            "name": "Final da Chave Inferior",
+            "team1Placeholder": "Vencedor Lower Rodada 5 Jogo 1",
+            "team2Placeholder": "Perdedor Lower Rodada 5 Jogo 1",
+            "time": "",
+            "roundOrder": -6
           }
         ]
       },
@@ -1432,7 +1452,7 @@
           {
             "id": "Final-Semifinal-1",
             "name": "Semifinal 1",
-            "team1Placeholder": "Vencedor Upper Rodada 4 Jogo 1",
+            "team1Placeholder": "Vencedor Final da Chave Superior",
             "team2Placeholder": "Perdedor Final da Chave Inferior",
             "time": "",
             "roundOrder": 2
@@ -1440,7 +1460,7 @@
           {
             "id": "Final-Semifinal-2",
             "name": "Semifinal 2",
-            "team1Placeholder": "Perdedor Upper Rodada 4 Jogo 1",
+            "team1Placeholder": "Perdedor Final da Chave Superior",
             "team2Placeholder": "Vencedor Final da Chave Inferior",
             "time": "",
             "roundOrder": 2
