@@ -72,6 +72,7 @@ export const formSchema = z
     }),
     includeThirdPlace: z.boolean().default(true),
     updatedAt: z.string().optional(),
+    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional(),
   })
   .refine(
     (data) => {
@@ -121,6 +122,8 @@ export const formSchema = z
       const numGroups = data.numberOfGroups;
       const teamsPerGroup = Math.floor(data.numberOfTeams / numGroups);
       
+      if (teamsPerGroup === 0) return false; // Not enough teams for the groups
+
       // The smallest group will have teamsPerGroup teams.
       // If teamsPerGroupToAdvance is equal or greater, it's invalid.
       return data.teamsPerGroupToAdvance < teamsPerGroup;

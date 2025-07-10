@@ -30,6 +30,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
+import { Separator } from "./ui/separator"
 
 const teamToKey = (team?: Team) => {
     if (!team || !team.player1 || !team.player2) return '';
@@ -106,6 +107,13 @@ Olavo e Dudu`,
   })
 
   const tournamentType = form.watch("tournamentType");
+  const teamsInput = form.watch("teams");
+
+  useEffect(() => {
+     const teamsArray = teamsInput.split('\n').map(t => t.trim()).filter(Boolean);
+     form.setValue('numberOfTeams', teamsArray.length, { shouldValidate: true });
+  }, [teamsInput, form]);
+
 
   useEffect(() => {
     if (tournamentType === 'doubleElimination') {
@@ -471,16 +479,24 @@ Olavo e Dudu`,
         return null;
     }, [getTeamPlaceholder, toast, initializeDoubleEliminationBracket]);
     
-
-  async function onSubmit(values: TournamentFormValues) {
+  async function processTournament(values: TournamentFormValues, isUpdate: boolean) {
     setIsLoading(true);
     const categoryName = values.category;
 
-    if (tournaments[categoryName]) {
+    if (!isUpdate && tournaments[categoryName]) {
         toast({
             variant: "destructive",
             title: "Categoria já existe",
-            description: "Uma categoria com este nome já foi gerada. Escolha um nome diferente.",
+            description: "Uma categoria com este nome já foi gerada. Escolha um nome diferente ou atualize a existente.",
+        });
+        setIsLoading(false);
+        return;
+    }
+     if (isUpdate && !tournaments[categoryName]) {
+        toast({
+            variant: "destructive",
+            title: "Categoria não encontrada",
+            description: "Não foi encontrada uma categoria com este nome para atualizar.",
         });
         setIsLoading(false);
         return;
@@ -554,19 +570,31 @@ Olavo e Dudu`,
         }
     }
     
-    // The scheduling logic is now handled by the CategoryManager, so we don't call it here.
-    // newCategoryData = scheduleMatches(newCategoryData, tournaments._globalSettings);
     newCategoryData.totalMatches = calculateTotalMatches(newCategoryData);
 
     setTournaments(prev => ({ ...prev, [categoryName]: newCategoryData }));
     await saveData(categoryName, newCategoryData);
     
     toast({
-      title: "Categoria Gerada!",
-      description: `A categoria "${categoryName}" foi criada com sucesso. Os horários podem ser gerados no gerenciador.`,
+      title: isUpdate ? "Categoria Atualizada!" : "Categoria Gerada!",
+      description: `A categoria "${categoryName}" foi ${isUpdate ? 'atualizada' : 'criada'} com sucesso.`,
     });
     
     setIsLoading(false);
+  }
+
+  const handleCreate = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+        processTournament(form.getValues(), false);
+    }
+  }
+
+  const handleUpdate = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+        processTournament(form.getValues(), true);
+    }
   }
 
   if (!isLoaded) {
@@ -587,7 +615,7 @@ Olavo e Dudu`,
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
             <FormField
               control={form.control}
               name="category"
@@ -647,7 +675,7 @@ Olavo e Dudu`,
                   <FormItem>
                     <FormLabel>Nº de Duplas</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                      <Input type="number" {...field} readOnly onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -761,10 +789,19 @@ Olavo e Dudu`,
               )}
             />
 
-            <Button type="submit" disabled={isLoading || isSaving} className="w-full">
-              {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-               {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Nova Categoria'}
-            </Button>
+            <div className="flex flex-col gap-4">
+                <Button onClick={handleCreate} disabled={isLoading || isSaving} className="w-full">
+                  {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Nova Categoria'}
+                </Button>
+                
+                <Separator />
+
+                <Button onClick={handleUpdate} variant="secondary" disabled={isLoading || isSaving} className="w-full">
+                    {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Atualizar Categoria Existente
+                </Button>
+            </div>
           </form>
         </Form>
       </CardContent>
