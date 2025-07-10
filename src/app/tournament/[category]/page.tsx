@@ -149,11 +149,15 @@ const GroupCard = ({ group, teamsPerGroupToAdvance }: { group: GroupWithScores, 
                     {group.matches.map((match, matchIndex) => (
                         <div key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                             <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
-                            <div className="flex items-center gap-1 font-bold">
-                                <span>{match.score1 ?? '0'}</span>
-                                <span className="text-muted-foreground">x</span>
-                                <span>{match.score2 ?? '0'}</span>
-                            </div>
+                            {match.score1 !== undefined && match.score2 !== undefined ? (
+                                <div className="flex items-center gap-1 font-bold">
+                                    <span>{match.score1}</span>
+                                    <span className="text-muted-foreground">x</span>
+                                    <span>{match.score2}</span>
+                                </div>
+                            ) : (
+                                <span className="text-muted-foreground font-bold text-xs">vs</span>
+                            )}
                             <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
                         </div>
                     ))}
