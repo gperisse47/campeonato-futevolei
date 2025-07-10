@@ -205,7 +205,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             const categoryStartTime = (db[matchRef.categoryName] as CategoryData)?.formValues?.startTime;
             const effectiveStartTime = parseTime(categoryStartTime || _globalSettings.startTime);
 
-            const playersInMatch = [matchRef.team1.player1, matchRef.team1.player2, matchRef.team2.player1, matchRef.team2.player2].filter(Boolean);
+            const playersInMatch = [matchRef.team1.player1, matchRef.team1.player2, matchRef.team2.player1, matchRef.team2.player2].filter(Boolean) as string[];
             const playersNextAvailableTimes = playersInMatch.map(p => playerAvailability[p] || effectiveStartTime);
             
             let earliestPossibleStart = max([effectiveStartTime, ...playersNextAvailableTimes]);
@@ -253,11 +253,11 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 if (matchRef.roundOrder === -1) { // Group match
                    originalMatch = categoryData.tournamentData?.groups
                     .flatMap(g => g.matches)
-                    .find(m => m.team1.player1 === matchRef.team1.player1 && m.team1.player2 === matchRef.team1.player2 && m.team2.player1 === matchRef.team2.player1 && m.team2.player2 === matchRef.team2.player2);
+                    .find(m => m.team1.player1 === matchRef.team1.player1 && m.team1.player2 === matchRef.team1.player2 && m.team2.player1 === matchRef.team2.player1 && m.team2.player2 === matchRef.team2.player2 && !m.time);
                 } else { // Playoff match
                     const findInBracket = (bracket: PlayoffBracket | undefined) => {
                         if (!bracket) return undefined;
-                        return Object.values(bracket).flat().find(m => m.id === matchRef.id);
+                        return Object.values(bracket).flat().find(m => m.id === matchRef.id && !m.time);
                     }
                     if ('upper' in categoryData.playoffs! || 'lower' in categoryData.playoffs! || 'playoffs' in categoryData.playoffs!) {
                         const bracketSet = categoryData.playoffs as PlayoffBracketSet;
@@ -274,7 +274,10 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 
                 const matchEndTime = addMinutes(bestTime, _globalSettings.estimatedMatchDuration);
                 assignedCourt.nextAvailableTime = matchEndTime;
-                playersInMatch.forEach(p => playerAvailability[p] = matchEndTime);
+                
+                // Add a 40-minute break for players
+                const playerAvailableAgainTime = addMinutes(matchEndTime, 40);
+                playersInMatch.forEach(p => playerAvailability[p] = playerAvailableAgainTime);
             }
         });
 

@@ -88,8 +88,8 @@
                 "player1": "Neves",
                 "player2": "Caze"
               },
-              "time": "",
-              "court": ""
+              "time": "14:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -100,8 +100,8 @@
                 "player1": "Gustavo",
                 "player2": "Marcus"
               },
-              "time": "",
-              "court": ""
+              "time": "14:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -112,8 +112,8 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
-              "time": "",
-              "court": ""
+              "time": "14:40",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -124,8 +124,8 @@
                 "player1": "Gustavo",
                 "player2": "Marcus"
               },
-              "time": "",
-              "court": ""
+              "time": "15:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -136,8 +136,8 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
-              "time": "",
-              "court": ""
+              "time": "15:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -148,8 +148,8 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
-              "time": "",
-              "court": ""
+              "time": "15:40",
+              "court": "GP1"
             }
           ],
           "standings": [
@@ -225,8 +225,8 @@
                 "player1": "Carelli",
                 "player2": "Hantaro"
               },
-              "time": "",
-              "court": ""
+              "time": "16:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -237,8 +237,8 @@
                 "player1": "Gabe",
                 "player2": "Yan"
               },
-              "time": "",
-              "court": ""
+              "time": "16:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -249,8 +249,8 @@
                 "player1": "Sartoratto",
                 "player2": "Poppe"
               },
-              "time": "",
-              "court": ""
+              "time": "16:40",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -261,8 +261,8 @@
                 "player1": "Gabe",
                 "player2": "Yan"
               },
-              "time": "",
-              "court": ""
+              "time": "17:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -273,8 +273,8 @@
                 "player1": "Sartoratto",
                 "player2": "Poppe"
               },
-              "time": "",
-              "court": ""
+              "time": "17:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -285,8 +285,8 @@
                 "player1": "Sartoratto",
                 "player2": "Poppe"
               },
-              "time": "",
-              "court": ""
+              "time": "17:40",
+              "court": "GP1"
             }
           ],
           "standings": [
@@ -362,8 +362,8 @@
                 "player1": "Rodrigo",
                 "player2": "Paulinho"
               },
-              "time": "",
-              "court": ""
+              "time": "13:40",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -374,8 +374,8 @@
                 "player1": "Brenner",
                 "player2": "Py"
               },
-              "time": "",
-              "court": ""
+              "time": "14:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -386,8 +386,8 @@
                 "player1": "James",
                 "player2": "Fabio"
               },
-              "time": "",
-              "court": ""
+              "time": "14:20",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -398,8 +398,8 @@
                 "player1": "Brenner",
                 "player2": "Py"
               },
-              "time": "",
-              "court": ""
+              "time": "14:40",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -410,8 +410,8 @@
                 "player1": "James",
                 "player2": "Fabio"
               },
-              "time": "",
-              "court": ""
+              "time": "15:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -422,8 +422,8 @@
                 "player1": "James",
                 "player2": "Fabio"
               },
-              "time": "",
-              "court": ""
+              "time": "15:20",
+              "court": "GP2"
             }
           ],
           "standings": [
@@ -499,8 +499,8 @@
                 "player1": "Felipe M.",
                 "player2": "Rapha B."
               },
-              "time": "",
-              "court": ""
+              "time": "15:40",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -511,8 +511,8 @@
                 "player1": "Carril",
                 "player2": "Leandro"
               },
-              "time": "",
-              "court": ""
+              "time": "16:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -523,8 +523,8 @@
                 "player1": "Russo",
                 "player2": "Maki"
               },
-              "time": "",
-              "court": ""
+              "time": "16:20",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -535,8 +535,8 @@
                 "player1": "Carril",
                 "player2": "Leandro"
               },
-              "time": "",
-              "court": ""
+              "time": "16:40",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -547,8 +547,8 @@
                 "player1": "Russo",
                 "player2": "Maki"
               },
-              "time": "",
-              "court": ""
+              "time": "17:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -559,8 +559,8 @@
                 "player1": "Russo",
                 "player2": "Maki"
               },
-              "time": "",
-              "court": ""
+              "time": "17:20",
+              "court": "GP2"
             }
           ],
           "standings": [
@@ -733,8 +733,8 @@
                 "player1": "Mari",
                 "player2": "Neves"
               },
-              "time": "",
-              "court": ""
+              "time": "08:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -745,8 +745,8 @@
                 "player1": "Carla",
                 "player2": "Henrique"
               },
-              "time": "",
-              "court": ""
+              "time": "08:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -757,8 +757,8 @@
                 "player1": "Carla",
                 "player2": "Henrique"
               },
-              "time": "",
-              "court": ""
+              "time": "08:40",
+              "court": "GP1"
             }
           ],
           "standings": [
@@ -820,8 +820,8 @@
                 "player1": "Sofia",
                 "player2": "Caio"
               },
-              "time": "",
-              "court": ""
+              "time": "09:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -832,8 +832,8 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
-              "time": "",
-              "court": ""
+              "time": "09:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -844,8 +844,8 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
-              "time": "",
-              "court": ""
+              "time": "09:40",
+              "court": "GP1"
             }
           ],
           "standings": [
@@ -970,8 +970,8 @@
                 "player1": "Sartoratto",
                 "player2": "Rebeca"
               },
-              "time": "",
-              "court": ""
+              "time": "10:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -982,8 +982,8 @@
                 "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
-              "time": "",
-              "court": ""
+              "time": "10:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -994,8 +994,8 @@
                 "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
-              "time": "",
-              "court": ""
+              "time": "10:40",
+              "court": "GP1"
             }
           ],
           "standings": [
@@ -1057,8 +1057,8 @@
                 "player1": "Gabe",
                 "player2": "Bia"
               },
-              "time": "",
-              "court": ""
+              "time": "11:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -1069,8 +1069,8 @@
                 "player1": "Isa L.",
                 "player2": "Carelli"
               },
-              "time": "",
-              "court": ""
+              "time": "11:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -1081,8 +1081,8 @@
                 "player1": "Isa L.",
                 "player2": "Carelli"
               },
-              "time": "",
-              "court": ""
+              "time": "11:40",
+              "court": "GP1"
             }
           ],
           "standings": [
@@ -1144,8 +1144,8 @@
                 "player1": "Clara",
                 "player2": "Peri"
               },
-              "time": "",
-              "court": ""
+              "time": "12:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -1156,8 +1156,8 @@
                 "player1": "Fabi",
                 "player2": "Alex"
               },
-              "time": "",
-              "court": ""
+              "time": "12:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -1168,8 +1168,8 @@
                 "player1": "Fabi",
                 "player2": "Alex"
               },
-              "time": "",
-              "court": ""
+              "time": "12:40",
+              "court": "GP1"
             }
           ],
           "standings": [
@@ -1231,8 +1231,8 @@
                 "player1": "Renata",
                 "player2": "João"
               },
-              "time": "",
-              "court": ""
+              "time": "13:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -1243,8 +1243,8 @@
                 "player1": "Marina",
                 "player2": "Henrique"
               },
-              "time": "",
-              "court": ""
+              "time": "13:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -1255,8 +1255,8 @@
                 "player1": "Marina",
                 "player2": "Henrique"
               },
-              "time": "",
-              "court": ""
+              "time": "13:40",
+              "court": "GP1"
             }
           ],
           "standings": [
