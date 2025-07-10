@@ -21,7 +21,9 @@
               "team2": {
                 "player1": "Maria",
                 "player2": "Nina"
-              }
+              },
+              "score1": 18,
+              "score2": 0
             },
             {
               "team1": {
@@ -99,13 +101,26 @@
                 "player1": "Ana",
                 "player2": "Bia"
               },
-              "played": 0,
-              "wins": 0,
+              "played": 1,
+              "wins": 1,
+              "points": 2,
               "losses": 0,
-              "setsWon": 0,
+              "setsWon": 18,
               "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
+              "setDifference": 18
+            },
+            {
+              "team": {
+                "player1": "Maria",
+                "player2": "Nina"
+              },
+              "played": 1,
+              "wins": 0,
+              "points": 1,
+              "losses": 1,
+              "setsWon": 0,
+              "setsLost": 18,
+              "setDifference": -18
             },
             {
               "team": {
@@ -114,24 +129,11 @@
               },
               "played": 0,
               "wins": 0,
+              "points": 0,
               "losses": 0,
               "setsWon": 0,
               "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
-            },
-            {
-              "team": {
-                "player1": "Maria",
-                "player2": "Nina"
-              },
-              "played": 0,
-              "wins": 0,
-              "losses": 0,
-              "setsWon": 0,
-              "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
+              "setDifference": 0
             },
             {
               "team": {
@@ -140,11 +142,11 @@
               },
               "played": 0,
               "wins": 0,
+              "points": 0,
               "losses": 0,
               "setsWon": 0,
               "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
+              "setDifference": 0
             }
           ]
         },
@@ -238,24 +240,11 @@
               },
               "played": 0,
               "wins": 0,
+              "points": 0,
               "losses": 0,
               "setsWon": 0,
               "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
-            },
-            {
-              "team": {
-                "player1": "Gabi",
-                "player2": "Helo"
-              },
-              "played": 0,
-              "wins": 0,
-              "losses": 0,
-              "setsWon": 0,
-              "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
+              "setDifference": 0
             },
             {
               "team": {
@@ -264,11 +253,24 @@
               },
               "played": 0,
               "wins": 0,
+              "points": 0,
               "losses": 0,
               "setsWon": 0,
               "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Gabi",
+                "player2": "Helo"
+              },
+              "played": 0,
+              "wins": 0,
+              "points": 0,
+              "losses": 0,
+              "setsWon": 0,
+              "setsLost": 0,
+              "setDifference": 0
             },
             {
               "team": {
@@ -277,11 +279,11 @@
               },
               "played": 0,
               "wins": 0,
+              "points": 0,
               "losses": 0,
               "setsWon": 0,
               "setsLost": 0,
-              "setDifference": 0,
-              "points": 0
+              "setDifference": 0
             }
           ]
         }
