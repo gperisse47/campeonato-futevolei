@@ -52,7 +52,7 @@ export function SidebarNav() {
             <div className="p-1.5 rounded-lg bg-primary text-primary-foreground">
                 <Trophy className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-semibold tracking-tight">Campeonato Amigos do Peri</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h2>
         </div>
       </SidebarHeader>
       <SidebarContent>

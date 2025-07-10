@@ -37,7 +37,7 @@ export default function Home() {
              <div className="p-2 rounded-lg bg-primary text-primary-foreground">
                 <Trophy className="h-8 w-8" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">Campeonato Amigos do Peri</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h1>
          </div>
         <p className="text-muted-foreground text-lg">
           Acompanhe os torneios, jogos e classificações em tempo real.
