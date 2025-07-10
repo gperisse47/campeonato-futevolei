@@ -348,7 +348,7 @@ Olavo e Dudu`,
         let lowerRoundCounter = 1;
         let lowerRoundOrder = (Math.log2(numTeams) -1) * 2;
     
-        for(let i = 0; i < upperRounds.length -1; i++) {
+        for(let i = 0; i < upperRounds.length - 1; i++) {
             const upperRoundName = upperRounds[i];
             const nextUpperRoundName = upperRounds[i+1];
             const upperMatches = initialUpperBracket[upperRoundName];
