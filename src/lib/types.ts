@@ -193,6 +193,7 @@ export type CategoryData = {
   tournamentData: TournamentData | null;
   playoffs: PlayoffBracketSet | null;
   formValues: TournamentFormValues;
+  totalMatches?: number;
 }
 
 export type TournamentsState = {
