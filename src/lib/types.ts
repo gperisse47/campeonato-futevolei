@@ -101,9 +101,7 @@ export const formSchema = z
   )
   .refine(
     (data) => {
-        if (data.tournamentType === 'groups') return true;
-         // This validation is removed for double elimination to allow any number of teams
-        if (data.tournamentType === 'doubleElimination') return true;
+        if (data.tournamentType === 'groups' || data.tournamentType === 'doubleElimination') return true;
         const numTeams = data.numberOfTeams;
         return numTeams > 1 && (numTeams & (numTeams - 1)) === 0;
     },
