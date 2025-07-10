@@ -173,7 +173,7 @@ export default function TournamentPage({ params }: { params: { category: string 
         
         const fetchData = async () => {
             try {
-                setIsLoading(true);
+                // Don't set loading to true on refetch
                 const tournamentData = await getTournamentByCategory(decodedCategory);
                 if (tournamentData) {
                     setData(tournamentData);
@@ -189,7 +189,7 @@ export default function TournamentPage({ params }: { params: { category: string 
 
         fetchData();
         
-        const intervalId = setInterval(fetchData, 5000); // Poll every 5 seconds
+        const intervalId = setInterval(fetchData, 60000); // Poll every 1 minute
 
         return () => clearInterval(intervalId); // Cleanup on component unmount
     }, [params.category]);
