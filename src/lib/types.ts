@@ -131,7 +131,6 @@ export type TeamStanding = {
   team: Team;
   played: number;
   wins: number;
-  points: number;
   losses: number;
   setsWon: number;
   setsLost: number;
@@ -162,5 +161,3 @@ export type CategoryData = {
 export type TournamentsState = {
   [categoryName: string]: CategoryData;
 }
-
-    

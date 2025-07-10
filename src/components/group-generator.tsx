@@ -118,10 +118,10 @@ export function GroupGenerator() {
 
   const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
     return groups.map(group => {
-      const standings: Record<string, TeamStanding> = {}
+      const standings: Record<string, Omit<TeamStanding, 'points'>> = {}
       group.teams.forEach(team => {
         const teamKey = teamToKey(team)
-        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0, points: 0 }
+        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
       })
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
       return {
@@ -399,7 +399,7 @@ export function GroupGenerator() {
 
       group.teams.forEach(team => {
         const teamKey = teamToKey(team);
-        standings[teamKey] = { team, played: 0, wins: 0, points: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
+        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
       })
 
       group.matches.forEach(match => {
@@ -415,13 +415,9 @@ export function GroupGenerator() {
         if (score1 > score2) {
           standings[team1Key].wins++
           standings[team2Key].losses++
-          standings[team1Key].points += 2
-          standings[team2Key].points += 1
         } else {
           standings[team2Key].wins++
           standings[team1Key].losses++
-          standings[team2Key].points += 2
-          standings[team1Key].points += 1
         }
 
         standings[team1Key].setsWon += score1
@@ -434,7 +430,6 @@ export function GroupGenerator() {
         ...s,
         setDifference: s.setsWon - s.setsLost
       })).sort((a, b) => {
-        if (b.points !== a.points) return b.points - a.points
         if (b.wins !== a.wins) return b.wins - a.wins
         if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference
         return b.setsWon - a.setsWon
@@ -838,19 +833,19 @@ export function GroupGenerator() {
                                             <TableHeader>
                                               <TableRow>
                                                 <TableHead className="p-2">Dupla</TableHead>
-                                                <TableHead className="p-2 text-center">Pts</TableHead>
-                                                <TableHead className="p-2 text-center">J</TableHead>
                                                 <TableHead className="p-2 text-center">V</TableHead>
-                                                <TableHead className="p-2 text-center">SS</TableHead>
+                                                <TableHead className="p-2 text-center">J</TableHead>
+                                                <TableHead className="p-2 text-center">PP</TableHead>
+                                                <TableHead className="p-2 text-center">SP</TableHead>
                                               </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                               {group.standings.map((standing, index) => (
                                                 <TableRow key={teamToKey(standing.team)} className={index < activeFormValues.teamsPerGroupToAdvance ? "bg-green-100 dark:bg-green-900/30" : ""}>
                                                   <TableCell className="p-2 font-medium">{teamToKey(standing.team)}</TableCell>
-                                                  <TableCell className="p-2 text-center">{standing.points}</TableCell>
-                                                  <TableCell className="p-2 text-center">{standing.played}</TableCell>
                                                   <TableCell className="p-2 text-center">{standing.wins}</TableCell>
+                                                  <TableCell className="p-2 text-center">{standing.played}</TableCell>
+                                                  <TableCell className="p-2 text-center">{standing.setsWon}</TableCell>
                                                   <TableCell className="p-2 text-center">{standing.setDifference > 0 ? `+${standing.setDifference}` : standing.setDifference}</TableCell>
                                                 </TableRow>
                                               ))}

@@ -33,7 +33,9 @@
               "team2": {
                 "player1": "Elena",
                 "player2": "Fernanda"
-              }
+              },
+              "score1": 18,
+              "score2": 0
             },
             {
               "team1": {
@@ -101,13 +103,13 @@
                 "player1": "Ana",
                 "player2": "Bia"
               },
-              "played": 1,
-              "wins": 1,
-              "points": 2,
+              "played": 2,
+              "wins": 2,
+              "points": 4,
               "losses": 0,
-              "setsWon": 18,
+              "setsWon": 36,
               "setsLost": 0,
-              "setDifference": 18
+              "setDifference": 36
             },
             {
               "team": {
@@ -127,13 +129,13 @@
                 "player1": "Elena",
                 "player2": "Fernanda"
               },
-              "played": 0,
+              "played": 1,
               "wins": 0,
-              "points": 0,
-              "losses": 0,
+              "points": 1,
+              "losses": 1,
               "setsWon": 0,
-              "setsLost": 0,
-              "setDifference": 0
+              "setsLost": 18,
+              "setDifference": -18
             },
             {
               "team": {

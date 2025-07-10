@@ -136,19 +136,19 @@ const GroupCard = ({ group, teamsPerGroupToAdvance }: { group: GroupWithScores, 
                     <TableHeader>
                         <TableRow>
                             <TableHead className="p-2">Dupla</TableHead>
-                            <TableHead className="p-2 text-center">Pts</TableHead>
-                            <TableHead className="p-2 text-center">J</TableHead>
                             <TableHead className="p-2 text-center">V</TableHead>
-                            <TableHead className="p-2 text-center">SS</TableHead>
+                            <TableHead className="p-2 text-center">J</TableHead>
+                            <TableHead className="p-2 text-center">PP</TableHead>
+                            <TableHead className="p-2 text-center">SP</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {group.standings.map((standing, index) => (
                             <TableRow key={teamToKey(standing.team)} className={index < teamsPerGroupToAdvance ? "bg-green-100 dark:bg-green-900/30" : ""}>
                                 <TableCell className="p-2 font-medium">{teamToKey(standing.team)}</TableCell>
-                                <TableCell className="p-2 text-center">{standing.points}</TableCell>
-                                <TableCell className="p-2 text-center">{standing.played}</TableCell>
                                 <TableCell className="p-2 text-center">{standing.wins}</TableCell>
+                                <TableCell className="p-2 text-center">{standing.played}</TableCell>
+                                <TableCell className="p-2 text-center">{standing.setsWon}</TableCell>
                                 <TableCell className="p-2 text-center">{standing.setDifference > 0 ? `+${standing.setDifference}` : standing.setDifference}</TableCell>
                             </TableRow>
                         ))}
