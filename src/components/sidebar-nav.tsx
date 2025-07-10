@@ -11,7 +11,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutGrid, Users, Trophy, Loader2 } from "lucide-react"
+import { LayoutGrid, Users, Trophy, Loader2, Swords } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { getTournaments } from "@/app/actions"
@@ -89,6 +89,14 @@ export function SidebarNav() {
                     <SidebarMenuButton isActive={pathname === '/teams'} tooltip="Duplas">
                         <Users/>
                         <span>Duplas</span>
+                    </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <Link href="/matches" passHref>
+                    <SidebarMenuButton isActive={pathname === '/matches'} tooltip="Jogos">
+                        <Swords/>
+                        <span>Jogos</span>
                     </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>

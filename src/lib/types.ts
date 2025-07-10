@@ -161,3 +161,12 @@ export type CategoryData = {
 export type TournamentsState = {
   [categoryName: string]: CategoryData;
 }
+
+export type ConsolidatedMatch = {
+    category: string;
+    stage: string;
+    team1: string;
+    team2: string;
+    score1?: number;
+    score2?: number;
+};
