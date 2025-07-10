@@ -1,3 +1,4 @@
+
 "use server"
 
 import fs from "fs/promises"
@@ -73,4 +74,13 @@ export async function generateGroupsAction(
     console.error(e)
     return { success: false, error: e.message || "Ocorreu um erro desconhecido." }
   }
+}
+
+export async function verifyPassword(password: string): Promise<{ success: boolean }> {
+  const correctPassword = process.env.ADMIN_PASSWORD;
+  if (!correctPassword) {
+    console.error("ADMIN_PASSWORD is not set in .env file");
+    return { success: false };
+  }
+  return { success: password === correctPassword };
 }
