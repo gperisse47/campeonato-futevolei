@@ -232,7 +232,7 @@ export default function TournamentPage() {
         );
     }
 
-    if (!data || !data.tournamentData) {
+    if (!data) {
         return (
             <div className="flex h-screen w-full items-center justify-center text-muted-foreground">
                 <p>Nenhum dado de torneio encontrado para esta categoria.</p>
@@ -242,6 +242,7 @@ export default function TournamentPage() {
 
     const { tournamentData, playoffs, formValues } = data;
     const categoryName = decodeURIComponent(category || '');
+    const isGroupTournament = formValues.tournamentType === 'groups';
 
     return (
         <div className="container mx-auto p-4 space-y-8">
@@ -250,23 +251,27 @@ export default function TournamentPage() {
                 <p className="text-lg text-muted-foreground">Acompanhe os resultados e a classificação em tempo real.</p>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Fase de Grupos</CardTitle>
-                    <CardDescription>Resultados e classificação dos grupos.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {tournamentData.groups.map((group) => (
-                        <GroupCard key={group.name} group={group} teamsPerGroupToAdvance={formValues.teamsPerGroupToAdvance} />
-                    ))}
-                </CardContent>
-            </Card>
+            {isGroupTournament && tournamentData && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Fase de Grupos</CardTitle>
+                        <CardDescription>Resultados e classificação dos grupos.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {tournamentData.groups.map((group) => (
+                            <GroupCard key={group.name} group={group} teamsPerGroupToAdvance={formValues.teamsPerGroupToAdvance!} />
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
 
             {playoffs && Object.keys(playoffs).length > 0 && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center"><Trophy className="mr-2 h-6 w-6 text-primary" />Playoffs - Mata-Mata</CardTitle>
-                        <CardDescription>Chaveamento com base na classificação dos grupos.</CardDescription>
+                        <CardDescription>
+                            {isGroupTournament ? 'Chaveamento com base na classificação dos grupos.' : 'Chaveamento inicial do torneio.'}
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Bracket playoffs={playoffs} />

@@ -282,7 +282,7 @@ export function GroupGenerator() {
     
         return bracket;
     }
-  }, [generatePlayoffPlaceholders, getTeamPlaceholder]);
+  }, [generatePlayoffPlaceholders, getTeamPlaceholder, teamToKey]);
 
 
   const updatePlayoffs = useCallback(() => {
@@ -969,7 +969,7 @@ export function GroupGenerator() {
                            )}
                            
                            <div className="space-y-8">
-                                {activeTournamentData && activeTournamentData.groups.length > 0 && (
+                                {activeTournamentData && activeTournamentData.groups && activeTournamentData.groups.length > 0 && (
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     {activeTournamentData.groups.map((group, groupIndex) => (
                                     <Card key={group.name} className="flex flex-col">
