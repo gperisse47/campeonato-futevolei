@@ -194,81 +194,79 @@ Olavo e Dudu`,
   }, []);
 
   const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues): PlayoffBracketSet | null => {
-    let allTeamsList = values.teams.split("\n").map(t => t.trim()).filter(Boolean).map(ts => ({ player1: ts.split(/\s+e\s+/i)[0], player2: ts.split(/\s+e\s+/i)[1] }));
+    const allTeamsList = values.teams.split("\n").map(t => t.trim()).filter(Boolean).map(ts => ({ player1: ts.split(/\s+e\s+/i)[0].trim(), player2: ts.split(/\s+e\s+/i)[1].trim() }));
     const numTeams = allTeamsList.length;
+    if (numTeams < 2) return null;
 
     const bracketSize = Math.pow(2, Math.ceil(Math.log2(numTeams)));
     const numByes = bracketSize - numTeams;
+    const numRound1Matches = (numTeams - numByes) / 2;
 
-    let teamsWithByes: Team[];
     let teamsForRound1: Team[];
-
+    let teamsWithByes: Team[];
+    
     if (values.groupFormationStrategy === 'random') {
-        const shuffledTeams = [...allTeamsList].sort(() => Math.random() - 0.5);
-        teamsWithByes = shuffledTeams.slice(0, numByes);
-        teamsForRound1 = shuffledTeams.slice(numByes);
+        const shuffled = [...allTeamsList].sort(() => Math.random() - 0.5);
+        teamsWithByes = shuffled.slice(0, numByes);
+        teamsForRound1 = shuffled.slice(numByes);
     } else { // 'order'
-        teamsWithByes = allTeamsList.slice(numTeams - numByes);
-        teamsForRound1 = allTeamsList.slice(0, numTeams - numByes);
+        teamsWithByes = allTeamsList.slice(0, numByes);
+        teamsForRound1 = allTeamsList.slice(numByes);
     }
 
     // 1. Build Upper Bracket
     const upperBracket: PlayoffBracket = {};
     const wbLosersByRound: { [round: number]: string[] } = {};
 
-    let currentUpperRoundTeams = [...teamsForRound1];
+    let currentUpperRoundTeams: any[] = [];
     let wbRoundCounter = 1;
 
     // --- WB Round 1 ---
-    let wbRound1Matches: PlayoffMatch[] = [];
-    if (teamsForRound1.length > 0) {
-        const wbRound1Name = `Upper Rodada ${wbRoundCounter}`;
-        for (let i = 0; i < teamsForRound1.length / 2; i++) {
-            const team1 = teamsForRound1[i * 2];
-            const team2 = teamsForRound1[i * 2 + 1];
-            wbRound1Matches.push({
-                id: `U-R${wbRoundCounter}-${i + 1}`,
-                name: `${wbRound1Name} Jogo ${i + 1}`,
-                team1: team1,
-                team2: team2,
-                team1Placeholder: teamToKey(team1),
-                team2Placeholder: teamToKey(team2),
-                time: '',
-                roundOrder: 99 - wbRoundCounter,
-            });
-        }
-        upperBracket[wbRound1Name] = wbRound1Matches;
-        wbLosersByRound[wbRoundCounter] = wbRound1Matches.map(m => `Perdedor ${m.name}`);
-        currentUpperRoundTeams = wbRound1Matches.map(m => `Vencedor ${m.name}`);
-    } else {
-        currentUpperRoundTeams = [];
+    const wbRound1Name = `Upper Rodada ${wbRoundCounter}`;
+    const wbRound1Matches: PlayoffMatch[] = [];
+    if (numRound1Matches > 0) {
+      for (let i = 0; i < numRound1Matches; i++) {
+        const team1 = teamsForRound1[i * 2];
+        const team2 = teamsForRound1[i * 2 + 1];
+        wbRound1Matches.push({
+          id: `U-R${wbRoundCounter}-${i + 1}`,
+          name: `${wbRound1Name} Jogo ${i + 1}`,
+          team1: team1,
+          team2: team2,
+          team1Placeholder: teamToKey(team1),
+          team2Placeholder: teamToKey(team2),
+          time: '',
+          roundOrder: 99 - wbRoundCounter,
+        });
+      }
+      upperBracket[wbRound1Name] = wbRound1Matches;
+      currentUpperRoundTeams = wbRound1Matches.map(m => `Vencedor ${m.name}`);
     }
 
-    let teamsForNextUpperRound: any[] = [...teamsWithByes, ...currentUpperRoundTeams];
+    let teamsForNextUpperRound = [...teamsWithByes, ...currentUpperRoundTeams];
     
     // --- Subsequent WB Rounds ---
     while (teamsForNextUpperRound.length > 2) {
-        wbRoundCounter++;
-        const roundName = `Upper Rodada ${wbRoundCounter}`;
-        const nextRoundMatches: PlayoffMatch[] = [];
-        // Snake seeding for subsequent rounds
-        for (let i = 0; i < teamsForNextUpperRound.length / 2; i++) {
-            const team1 = teamsForNextUpperRound[i];
-            const team2 = teamsForNextUpperRound[teamsForNextUpperRound.length - 1 - i];
-            nextRoundMatches.push({
-                id: `U-R${wbRoundCounter}-${i + 1}`,
-                name: `${roundName} Jogo ${i + 1}`,
-                team1: typeof team1 === 'object' ? team1 : undefined,
-                team2: typeof team2 === 'object' ? team2 : undefined,
-                team1Placeholder: typeof team1 === 'string' ? team1 : teamToKey(team1),
-                team2Placeholder: typeof team2 === 'string' ? team2 : teamToKey(team2),
-                time: '',
-                roundOrder: 99 - wbRoundCounter,
-            });
-        }
-        upperBracket[roundName] = nextRoundMatches;
-        wbLosersByRound[wbRoundCounter] = nextRoundMatches.map(m => `Vencedor ${m.name}`.replace('Vencedor', 'Perdedor'));
-        teamsForNextUpperRound = nextRoundMatches.map(m => `Vencedor ${m.name}`);
+      wbRoundCounter++;
+      const roundName = `Upper Rodada ${wbRoundCounter}`;
+      const nextRoundMatches: PlayoffMatch[] = [];
+      // Snake seeding for subsequent rounds
+      for (let i = 0; i < teamsForNextUpperRound.length / 2; i++) {
+        const team1 = teamsForNextUpperRound[i];
+        const team2 = teamsForNextUpperRound[teamsForNextUpperRound.length - 1 - i];
+        nextRoundMatches.push({
+          id: `U-R${wbRoundCounter}-${i + 1}`,
+          name: `${roundName} Jogo ${i + 1}`,
+          team1: typeof team1 === 'object' ? team1 : undefined,
+          team2: typeof team2 === 'object' ? team2 : undefined,
+          team1Placeholder: typeof team1 === 'string' ? team1 : teamToKey(team1),
+          team2Placeholder: typeof team2 === 'string' ? team2 : teamToKey(team2),
+          time: '',
+          roundOrder: 99 - wbRoundCounter,
+        });
+      }
+      upperBracket[roundName] = nextRoundMatches;
+      teamsForNextUpperRound = nextRoundMatches.map(m => `Vencedor ${m.name}`);
     }
     
     const [wbFinalist1, wbFinalist2] = teamsForNextUpperRound;
@@ -278,67 +276,74 @@ Olavo e Dudu`,
     let lbRoundCounter = 1;
     let lbSurvivors: string[] = [];
 
-    // --- LB Round 1 (if needed) ---
-    if (wbLosersByRound[1] && wbLosersByRound[1].length > 0) {
+    // --- LB Round 1: Handles losers from WB Round 1 ---
+    const wbR1Losers = upperBracket[wbRound1Name] ? upperBracket[wbRound1Name].map(m => `Perdedor ${m.name}`) : [];
+    if (wbR1Losers.length > 0) {
         const lbRound1Name = `Lower Rodada ${lbRoundCounter}`;
         const roundMatches: PlayoffMatch[] = [];
-        for (let i = 0; i < wbLosersByRound[1].length / 2; i++) {
+        for (let i = 0; i < Math.floor(wbR1Losers.length / 2); i++) {
             roundMatches.push({
                 id: `L-R${lbRoundCounter}-${i + 1}`,
                 name: `${lbRound1Name} Jogo ${i+1}`,
-                team1Placeholder: wbLosersByRound[1][i*2],
-                team2Placeholder: wbLosersByRound[1][i*2+1],
+                team1Placeholder: wbR1Losers[i*2],
+                team2Placeholder: wbR1Losers[i*2+1],
                 time: '', roundOrder: -(lbRoundCounter),
             });
         }
         lowerBracket[lbRound1Name] = roundMatches;
         lbSurvivors = roundMatches.map(m => `Vencedor ${m.name}`);
-        lbRoundCounter++;
+        
+        // If there was an odd number of losers, one gets a bye
+        if (wbR1Losers.length % 2 !== 0) {
+            lbSurvivors.push(wbR1Losers[wbR1Losers.length - 1]);
+        }
     }
-
+    
     // --- Subsequent LB Rounds ---
     let wbLoserRoundIdx = 2;
-    while(lbSurvivors.length > 2 || (wbLosersByRound[wbLoserRoundIdx] && wbLosersByRound[wbLoserRoundIdx].length > 0)) {
+    while(lbSurvivors.length > 2 || upperBracket[`Upper Rodada ${wbLoserRoundIdx}`]) {
+        lbRoundCounter++;
+        const lbRoundName = `Lower Rodada ${lbRoundCounter}`;
+        const roundMatches: PlayoffMatch[] = [];
         
         // Integration Round
-        if (wbLosersByRound[wbLoserRoundIdx] && wbLosersByRound[wbLoserRoundIdx].length > 0) {
-            const lbRoundName = `Lower Rodada ${lbRoundCounter}`;
-            const roundMatches: PlayoffMatch[] = [];
-            const newLosers = wbLosersByRound[wbLoserRoundIdx].reverse(); // Invert to match correctly
-            for (let i = 0; i < lbSurvivors.length; i++) {
+        const wbLosers = upperBracket[`Upper Rodada ${wbLoserRoundIdx}`] 
+            ? upperBracket[`Upper Rodada ${wbLoserRoundIdx}`].map(m => `Perdedor ${m.name}`) 
+            : [];
+            
+        if (wbLosers.length > 0) {
+            const newContenders = [...lbSurvivors, ...wbLosers.reverse()];
+             for (let i = 0; i < newContenders.length / 2; i++) {
                  roundMatches.push({
                     id: `L-R${lbRoundCounter}-${i + 1}`,
                     name: `${lbRoundName} Jogo ${i+1}`,
-                    team1Placeholder: lbSurvivors[i],
-                    team2Placeholder: newLosers[i],
+                    team1Placeholder: newContenders[i],
+                    team2Placeholder: newContenders[newContenders.length - 1 - i],
                     time: '', roundOrder: -(lbRoundCounter),
                 });
             }
-            lowerBracket[lbRoundName] = roundMatches;
             lbSurvivors = roundMatches.map(m => `Vencedor ${m.name}`);
-            lbRoundCounter++;
             wbLoserRoundIdx++;
+        } else { // Elimination Round
+            for (let i = 0; i < lbSurvivors.length / 2; i++) {
+                roundMatches.push({
+                    id: `L-R${lbRoundCounter}-${i + 1}`,
+                    name: `${lbRoundName} Jogo ${i+1}`,
+                    team1Placeholder: lbSurvivors[i],
+                    team2Placeholder: lbSurvivors[lbSurvivors.length - 1 - i],
+                    time: '', roundOrder: -(lbRoundCounter),
+                });
+            }
+             lbSurvivors = roundMatches.map(m => `Vencedor ${m.name}`);
+        }
+
+        if(roundMatches.length > 0) {
+            lowerBracket[lbRoundName] = roundMatches;
         }
 
         if (lbSurvivors.length <= 2) break;
-
-        // Elimination Round
-        const lbRoundName = `Lower Rodada ${lbRoundCounter}`;
-        const roundMatches: PlayoffMatch[] = [];
-        for (let i = 0; i < lbSurvivors.length / 2; i++) {
-             roundMatches.push({
-                id: `L-R${lbRoundCounter}-${i + 1}`,
-                name: `${lbRoundName} Jogo ${i+1}`,
-                team1Placeholder: lbSurvivors[i*2],
-                team2Placeholder: lbSurvivors[i*2+1],
-                time: '', roundOrder: -(lbRoundCounter),
-            });
-        }
-        lowerBracket[lbRoundName] = roundMatches;
-        lbSurvivors = roundMatches.map(m => `Vencedor ${m.name}`);
-        lbRoundCounter++;
     }
-    
+
     const [lbFinalist1, lbFinalist2] = lbSurvivors;
 
     // 3. Build Final Playoffs

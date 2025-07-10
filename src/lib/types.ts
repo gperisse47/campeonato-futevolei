@@ -113,11 +113,11 @@ export const formSchema = z
    .refine(
     (data) => {
       if (data.tournamentType !== 'doubleElimination') return true;
-      if (data.numberOfTeams < 4) return false;
+      if (data.numberOfTeams < 2) return false;
       return true;
     },
     {
-      message: "Dupla eliminação requer no mínimo 4 duplas.",
+      message: "Dupla eliminação requer no mínimo 2 duplas.",
       path: ["numberOfTeams"],
     }
   )
