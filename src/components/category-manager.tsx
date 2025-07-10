@@ -6,7 +6,7 @@ import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid, Pencil } from "lucide-react"
+import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid, Pencil, MapPin } from "lucide-react"
 
 import { getTournaments, saveTournament, deleteTournament, renameTournament, rescheduleCategory } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings, MatchWithScore } from "@/lib/types"
@@ -505,46 +505,40 @@ export function CategoryManager() {
     const showMatchName = roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar';
 
     return (
-      <div className="flex items-center">
-        {/* Timeline */}
-        <div className="relative w-24 flex-shrink-0 h-full flex justify-center">
-            <div className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 text-center">
-                <span className="font-semibold text-sm">{match.time ?? ''}</span>
-                <span className="text-xs text-muted-foreground">{match.court ?? ''}</span>
+        <div className="flex flex-col gap-2 w-full px-4 py-4">
+            <div className="flex flex-col items-center justify-center text-center gap-2">
+              {showMatchName && <h4 className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{match.name}</h4>}
+               {(match.time || match.court) && (
+                  <div className="flex items-center gap-4 text-xs font-bold text-primary">
+                      {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
+                      {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
+                  </div>
+              )}
             </div>
-             <div className="w-px bg-border h-full" />
+            <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
+                <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                    <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
+                    <Input
+                        type="number"
+                        className="h-8 w-14 shrink-0 text-center"
+                        value={match.score1 ?? ''}
+                        onChange={(e) => handlePlayoffMatchChange(bracketKey, roundName, matchIndex, 'score1', e.target.value)}
+                        disabled={!match.team1 || !match.team2}
+                    />
+                </div>
+                <div className="text-muted-foreground text-xs text-center py-1">vs</div>
+                <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                    <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
+                    <Input
+                        type="number"
+                        className="h-8 w-14 shrink-0 text-center"
+                        value={match.score2 ?? ''}
+                        onChange={(e) => handlePlayoffMatchChange(bracketKey, roundName, matchIndex, 'score2', e.target.value)}
+                        disabled={!match.team1 || !match.team2}
+                    />
+                </div>
+            </div>
         </div>
-  
-        {/* Match Details */}
-        <div className="flex-grow pl-4 py-4">
-          <div className="flex flex-col gap-2 w-full">
-              {showMatchName && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
-              <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
-                  <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                      <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
-                      <Input
-                          type="number"
-                          className="h-8 w-14 shrink-0 text-center"
-                          value={match.score1 ?? ''}
-                          onChange={(e) => handlePlayoffMatchChange(bracketKey, roundName, matchIndex, 'score1', e.target.value)}
-                          disabled={!match.team1 || !match.team2}
-                      />
-                  </div>
-                  <div className="text-muted-foreground text-xs text-center py-1">vs</div>
-                  <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                      <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
-                      <Input
-                          type="number"
-                          className="h-8 w-14 shrink-0 text-center"
-                          value={match.score2 ?? ''}
-                          onChange={(e) => handlePlayoffMatchChange(bracketKey, roundName, matchIndex, 'score2', e.target.value)}
-                          disabled={!match.team1 || !match.team2}
-                      />
-                  </div>
-              </div>
-          </div>
-        </div>
-      </div>
   )};
   
 
@@ -561,17 +555,15 @@ export function CategoryManager() {
                 <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                <div className="flex flex-col">
+                <div className="flex flex-col divide-y">
                     {playoffs[roundName].map((match, matchIndex) => (
-                        <React.Fragment key={match.id}>
                         <PlayoffMatchCard
+                            key={match.id}
                             match={match} 
                             roundName={roundName} 
                             matchIndex={matchIndex}
                             bracketKey={bracketKey || null}
                         />
-                        {matchIndex < playoffs[roundName].length - 1 && <Separator />}
-                        </React.Fragment>
                     ))}
                 </div>
                 </CardContent>
@@ -819,12 +811,14 @@ export function CategoryManager() {
                                         <h4 className="mb-2 font-semibold">Jogos</h4>
                                         <div className="space-y-2">
                                         {group.matches.map((match, matchIndex) => (
-                                            <div key={matchIndex} className="relative flex items-center gap-4">
-                                                <div className="flex flex-col items-center gap-1 text-center w-20">
-                                                    <span className="font-semibold text-sm">{match.time ?? ''}</span>
-                                                    <span className="text-xs text-muted-foreground">{match.court ?? ''}</span>
-                                                </div>
-                                                <div className="flex-1 flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                            <div key={matchIndex} className="flex flex-col gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                                {(match.time || match.court) && (
+                                                    <div className="flex items-center justify-center gap-4 text-xs font-bold text-primary">
+                                                        {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
+                                                        {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center justify-between gap-2">
                                                     <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
                                                     <div className="flex items-center gap-1">
                                                         <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
