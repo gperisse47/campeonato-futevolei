@@ -205,7 +205,9 @@ Olavo e Dudu`,
             if (!aiResult?.playoffMatches) return null;
 
             const totalQualifiers = values.numberOfTeams;
-            if (totalQualifiers < 2 || (totalQualifiers & (totalQualifiers - 1)) !== 0) return null;
+            if (totalQualifiers < 2) return null; // Cannot create bracket with less than 2 teams
+            // For non-power-of-2, we'd need byes, which is complex. For now, require power-of-2.
+            if ((totalQualifiers & (totalQualifiers - 1)) !== 0) return null;
 
             let bracket: PlayoffBracket = {};
             let currentRoundMatches = aiResult.playoffMatches.map((match, i) => ({
@@ -338,24 +340,22 @@ Olavo e Dudu`,
         const grandFinal: PlayoffBracket = {};
     
         const upperRounds = Object.keys(initialUpperBracket)
-            .sort((a, b) => (initialUpperBracket[b][0]?.roundOrder || 0) - (initialUpperBracket[a][0]?.roundOrder || 0));
+            .sort((a, b) => (initialUpperBracket[b]?.[0]?.roundOrder || 0) - (initialUpperBracket[a]?.[0]?.roundOrder || 0));
     
         if (upperRounds.length === 0) return { upper: initialUpperBracket, lower: {}, grandFinal: {} };
     
         let lowerRoundPlaceholders: string[] = [];
         let lowerRoundCounter = 1;
-        let lowerRoundOrder = (upperRounds.length * 2) + 1; // Start with a high number
+        let lowerRoundOrder = (upperRounds.length * 2) + 1;
     
         for (let i = 0; i < upperRounds.length; i++) {
             const upperRoundName = upperRounds[i];
             const upperRoundMatches = initialUpperBracket[upperRoundName];
-    
-            if (!Array.isArray(upperRoundMatches) || upperRoundMatches.length === 0) continue;
-    
+            if (!upperRoundMatches || upperRoundMatches.length === 0) continue;
+            
             const losersFromUpper = upperRoundMatches.map(m => `Perdedor ${m.name}`);
-    
+
             if (i > 0) {
-                // Round for winners of previous lower round
                 const round1Name = `Lower Rodada ${lowerRoundCounter}`;
                 lowerBracket[round1Name] = [];
                 for (let j = 0; j < lowerRoundPlaceholders.length; j += 2) {
@@ -373,35 +373,30 @@ Olavo e Dudu`,
                 lowerRoundCounter++;
             }
             
-            // Round to combine with losers from upper bracket
             const round2Name = `Lower Rodada ${lowerRoundCounter}`;
-            const teamsForThisRound = [...lowerRoundPlaceholders, ...losersFromUpper];
             lowerBracket[round2Name] = [];
             
-            // The logic here depends on how many teams are in each group.
-            // A common pattern is to pair the new losers with the existing lower bracket winners.
-            let placeholderIdx = 0;
-            let loserIdx = 0;
-            while(placeholderIdx < lowerRoundPlaceholders.length || loserIdx < losersFromUpper.length) {
+            const teamsForThisRound = [...lowerRoundPlaceholders, ...losersFromUpper].reverse();
+
+            for (let j = 0; j < teamsForThisRound.length / 2; j++) {
                 const matchIndex = lowerBracket[round2Name].length + 1;
-                const team1 = lowerRoundPlaceholders[placeholderIdx++];
-                const team2 = losersFromUpper[loserIdx++];
-                 const match = {
-                    id: `L${lowerRoundCounter}-${matchIndex}`,
-                    name: `${round2Name} Jogo ${matchIndex}`,
-                    team1Placeholder: team1,
-                    team2Placeholder: team2,
-                    time: '',
-                    roundOrder: lowerRoundOrder--,
-                };
-                lowerBracket[round2Name].push(match);
+                const team1 = teamsForThisRound[j];
+                const team2 = teamsForThisRound[teamsForThisRound.length - 1 - j];
+                const match = {
+                   id: `L${lowerRoundCounter}-${matchIndex}`,
+                   name: `${round2Name} Jogo ${matchIndex}`,
+                   team1Placeholder: team1,
+                   team2Placeholder: team2,
+                   time: '',
+                   roundOrder: lowerRoundOrder--,
+               };
+               lowerBracket[round2Name].push(match);
             }
 
             lowerRoundPlaceholders = lowerBracket[round2Name].map(m => `Vencedor ${m.name}`);
             lowerRoundCounter++;
         }
     
-        // Final Lower Bracket round
         if (lowerRoundPlaceholders.length > 1) {
             const finalLowerRoundName = `Final da Chave Inferior`;
             lowerBracket[finalLowerRoundName] = [];
@@ -418,7 +413,10 @@ Olavo e Dudu`,
         }
     
         // Grand Final
-        const upperFinalWinner = `Vencedor ${initialUpperBracket[upperRounds[upperRounds.length - 1]][0].name}`;
+        const finalRoundName = upperRounds[upperRounds.length - 1];
+        const finalMatch = finalRoundName && initialUpperBracket[finalRoundName]?.[0];
+        const upperFinalWinner = finalMatch ? `Vencedor ${finalMatch.name}` : 'Vencedor Chave Superior';
+
         const lowerFinalWinner = lowerRoundPlaceholders[0];
         
         grandFinal['Grande Final'] = [{
@@ -444,7 +442,7 @@ Olavo e Dudu`,
     const winners: { [matchName: string]: Team | undefined } = {};
     const losers: { [matchName: string]: Team | undefined } = {};
 
-    const processBracket = (bracket: PlayoffBracket | undefined) => {
+    const processBracket = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
         if (!bracket) return;
 
         // If this is the root of a double elimination bracket, recurse
@@ -455,10 +453,10 @@ Olavo e Dudu`,
             return;
         }
 
-        const roundOrder = Object.keys(bracket).sort((a, b) => (bracket[b][0]?.roundOrder || 0) - (bracket[a][0]?.roundOrder || 0));
+        const roundOrder = Object.keys(bracket).sort((a, b) => ((bracket as PlayoffBracket)[b]?.[0]?.roundOrder || 0) - ((bracket as PlayoffBracket)[a]?.[0]?.roundOrder || 0));
         
         roundOrder.forEach(roundName => {
-            const currentRound = bracket[roundName];
+            const currentRound = (bracket as PlayoffBracket)[roundName];
             if (Array.isArray(currentRound)) {
                 currentRound.forEach(match => {
                      if (match.team1 && match.team2 && typeof match.score1 === 'number' && typeof match.score2 === 'number') {
@@ -475,7 +473,7 @@ Olavo e Dudu`,
         });
     };
     
-    const resolvePlaceholders = (bracket: PlayoffBracket | undefined) => {
+    const resolvePlaceholders = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
         if (!bracket) return;
         
          if (formValues.tournamentType === 'doubleElimination' && ('upper' in bracket || 'lower' in bracket)) {
@@ -485,10 +483,10 @@ Olavo e Dudu`,
             return;
         }
 
-        const roundOrder = Object.keys(bracket).sort((a,b) => (bracket[b][0]?.roundOrder || 0) - (bracket[a][0]?.roundOrder || 0));
+        const roundOrder = Object.keys(bracket).sort((a,b) => (((bracket as PlayoffBracket)[b]?.[0]?.roundOrder || 0) - ((bracket as PlayoffBracket)[a]?.[0]?.roundOrder || 0)));
 
         roundOrder.forEach(roundName => {
-            const currentRound = bracket[roundName];
+            const currentRound = (bracket as PlayoffBracket)[roundName];
              if (Array.isArray(currentRound)) {
                 currentRound.forEach(match => {
                     // Resolve team 1
@@ -499,7 +497,7 @@ Olavo e Dudu`,
                         } else if (placeholder.startsWith('Perdedor ')) {
                             match.team1 = losers[placeholder.replace('Perdedor ', '')];
                         } else if (formValues.tournamentType === 'groups' && tournamentData) {
-                            const groupsAreFinished = tournamentData.groups.every(g => 
+                             const groupsAreFinished = tournamentData.groups.every(g => 
                                 g.standings.every(s => s.played === (g.teams.length - 1))
                             );
                             if(groupsAreFinished) {
@@ -744,9 +742,9 @@ Olavo e Dudu`,
 
     let matchToUpdate;
     if (activeFormValues?.tournamentType === 'doubleElimination' && bracketKey) {
-        matchToUpdate = newPlayoffs[bracketKey][roundName][matchIndex];
+        matchToUpdate = (newPlayoffs as PlayoffBracketSet)[bracketKey][roundName][matchIndex];
     } else {
-        matchToUpdate = newPlayoffs[roundName][matchIndex];
+        matchToUpdate = (newPlayoffs as PlayoffBracket)[roundName][matchIndex];
     }
 
     if (field === 'time') {
@@ -842,7 +840,7 @@ Olavo e Dudu`,
   const Bracket = ({ playoffs, bracketKey }: { playoffs: PlayoffBracket, bracketKey?: keyof PlayoffBracketSet | null }) => {
     if (!playoffs || Object.keys(playoffs).length === 0) return null;
 
-    const roundOrder = Object.keys(playoffs).sort((a,b) => (playoffs[b][0]?.roundOrder || 0) - (playoffs[a][0]?.roundOrder || 0));
+    const roundOrder = Object.keys(playoffs).sort((a,b) => (playoffs[b]?.[0]?.roundOrder || 0) - (playoffs[a]?.[0]?.roundOrder || 0));
 
     return (
         <div className="flex flex-col items-stretch w-full overflow-x-auto p-4 gap-8">
@@ -1109,14 +1107,14 @@ Olavo e Dudu`,
                   const getBracketRounds = (bracket: PlayoffBracket | undefined) => {
                       if (!bracket) return {};
                       return Object.keys(bracket).reduce((acc, key) => {
-                          if(bracket[key].length > 0) acc[key] = bracket[key];
+                          if((bracket as PlayoffBracket)[key].length > 0) acc[key] = (bracket as PlayoffBracket)[key];
                           return acc;
                       }, {} as PlayoffBracket);
                   }
 
-                  const upperBracket = getBracketRounds(playoffs?.upper);
-                  const lowerBracket = getBracketRounds(playoffs?.lower);
-                  const grandFinal = getBracketRounds(playoffs?.grandFinal);
+                  const upperBracket = getBracketRounds((playoffs as PlayoffBracketSet)?.upper);
+                  const lowerBracket = getBracketRounds((playoffs as PlayoffBracketSet)?.lower);
+                  const grandFinal = getBracketRounds((playoffs as PlayoffBracketSet)?.grandFinal);
 
 
                   return (
