@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
 import { Separator } from "./ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 const teamToKey = (team?: Team) => {
     if (!team || !team.player1 || !team.player2) return '';
@@ -81,7 +82,6 @@ export function TournamentCreator() {
     fetchInitialData();
   }, [toast]);
   
-  const watchedCategoryName = form.watch("category");
   const tournamentType = form.watch("tournamentType");
   const teamsList = form.watch("teams");
 
@@ -91,14 +91,20 @@ export function TournamentCreator() {
   }, [teamsList, form]);
 
 
-  useEffect(() => {
-    if (isLoaded && watchedCategoryName) {
-      const existingCategoryData = tournaments[watchedCategoryName];
-      if (existingCategoryData && watchedCategoryName === existingCategoryData.formValues.category) {
-        form.reset(existingCategoryData.formValues);
-      }
+  const handleLoadCategory = (categoryName: string) => {
+    if (categoryName) {
+        const existingCategoryData = tournaments[categoryName];
+        if (existingCategoryData) {
+            form.reset(existingCategoryData.formValues);
+             toast({
+                title: "Categoria Carregada",
+                description: `Os dados de "${categoryName}" foram carregados no formulário.`,
+            });
+        }
+    } else {
+        form.reset(defaultFormValues);
     }
-  }, [watchedCategoryName, tournaments, isLoaded, form]);
+  };
 
 
   useEffect(() => {
@@ -573,6 +579,7 @@ export function TournamentCreator() {
     });
     
     setIsLoading(false);
+    form.reset(defaultFormValues);
   }
 
   if (!isLoaded) {
@@ -582,6 +589,8 @@ export function TournamentCreator() {
       </div>
     );
   }
+  
+  const existingCategories = Object.keys(tournaments).filter(k => k !== '_globalSettings');
 
   return (
     <Card>
@@ -594,6 +603,21 @@ export function TournamentCreator() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-2">
+                <Label>Carregar Categoria Existente (Opcional)</Label>
+                <div className="flex gap-2">
+                <Select onValueChange={handleLoadCategory}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione para editar..."/>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {existingCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" onClick={() => form.reset(defaultFormValues)}>Limpar</Button>
+                </div>
+            </div>
+
             <FormField
               control={form.control}
               name="category"

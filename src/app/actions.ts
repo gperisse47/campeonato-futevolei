@@ -196,7 +196,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
         const unscheduledMatches = new Set<MatchReference>(allMatches);
 
-        let currentTime = parseTime(_globalSettings.startTime);
         let scheduledInPass = true;
         
         // Category rotation
@@ -210,20 +209,23 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             scheduledInPass = false;
 
             const nextCourtTimes = Object.values(courtAvailability);
-            if(nextCourtTimes.length > 0) {
-                 currentTime = new Date(Math.min(...nextCourtTimes.map(t => t.getTime())));
-            }
+            if(nextCourtTimes.length === 0) break; // No courts available
+            
+            let currentTime = new Date(Math.min(...nextCourtTimes.map(t => t.getTime())));
+
 
             // Find next available slot for any court
             let potentialNextTime = new Date(8640000000000000); // Max date
             let foundSlot = false;
 
             for (const court of _globalSettings.courts) {
+                const courtAvailableAt = courtAvailability[court.name];
                 for (const slot of court.slots) {
                     const slotStart = parseTime(slot.startTime);
-                    const effectiveStartTime = max([slotStart, courtAvailability[court.name]]);
+                    const slotEnd = parseTime(slot.endTime);
+                    const effectiveStartTime = max([slotStart, courtAvailableAt]);
                     
-                    if (isBefore(effectiveStartTime, parseTime(slot.endTime))) {
+                    if (isBefore(effectiveStartTime, slotEnd)) {
                          if (isBefore(effectiveStartTime, potentialNextTime)) {
                             potentialNextTime = effectiveStartTime;
                             foundSlot = true;
@@ -235,7 +237,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             if(foundSlot) {
                 currentTime = potentialNextTime;
             } else {
-                break; // No available slots left
+                break; // No available slots left in the tournament day
             }
 
             // Category Rotation Logic
@@ -247,16 +249,19 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 ];
                 categoriesToTry = reordered;
             }
+            
+            let sortedCourts = [..._globalSettings.courts];
 
-            for (const court of _globalSettings.courts) {
+            for (const court of sortedCourts) {
                 if (courtAvailability[court.name].getTime() > currentTime.getTime()) {
                     continue;
                 }
-                 // Check if current time is within any slot for this court
+
                 let isInSlot = false;
                 for (const slot of court.slots) {
+                     const slotStart = parseTime(slot.startTime);
                      const slotEnd = addMinutes(parseTime(slot.endTime), -_globalSettings.estimatedMatchDuration);
-                     if (currentTime >= parseTime(slot.startTime) && currentTime <= slotEnd) {
+                     if (currentTime >= slotStart && currentTime <= slotEnd) {
                         isInSlot = true;
                         break;
                     }
@@ -269,7 +274,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 for (let i = 0; i < categoriesToTry.length; i++) {
                     const categoryName = categoriesToTry[i];
                     
-                    // Filter for matches in the current category that can be scheduled
                     const candidateMatches = Array.from(unscheduledMatches).filter(match => {
                          if (match.categoryName !== categoryName) return false;
                          if (!match.team1 || !match.team2) return false;
@@ -282,17 +286,16 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
                          return playersReady;
                     });
+                    
+                    if (candidateMatches.length === 0) continue;
 
-                    // Sort candidate matches: playoffs first
-                    candidateMatches.sort((a, b) => b.roundOrder - a.roundOrder);
-
+                    // Simple sort to try playoffs first, then groups
+                    candidateMatches.sort((a, b) => (b.isPlayoff ? 1 : 0) - (a.isPlayoff ? 1 : 0));
 
                     for (const match of candidateMatches) {
-                        // Found a match to schedule
                         const timeStr = format(currentTime, 'HH:mm');
                         const matchEndTime = addMinutes(currentTime, _globalSettings.estimatedMatchDuration);
 
-                        // Find the original match object and update it
                          let originalMatch: (MatchWithScore | PlayoffMatch | undefined);
                          const categoryData = db[match.categoryName] as CategoryData;
                          
@@ -328,10 +331,10 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                             scheduledInPass = true;
                             scheduledMatchOnCourt = true;
                             lastScheduledCategoryIndex = categoriesByStartTime.findIndex(c => c.name === categoryName);
-                            break; // Move to the next court
+                            break; 
                          }
                     }
-                    if (scheduledMatchOnCourt) break; // Break from category loop
+                    if (scheduledMatchOnCourt) break;
                 }
             }
         }
