@@ -523,6 +523,7 @@ export function GroupGenerator() {
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
                       value={match.score1 ?? ''}
+                      placeholder="0"
                       onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team1', e.target.value)}
                       disabled={!match.team1 || !match.team2}
                   />
@@ -534,6 +535,7 @@ export function GroupGenerator() {
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
                       value={match.score2 ?? ''}
+                      placeholder="0"
                       onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team2', e.target.value)}
                       disabled={!match.team1 || !match.team2}
                   />
@@ -868,9 +870,9 @@ export function GroupGenerator() {
                                             <div key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                                               <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
                                               <div className="flex items-center gap-1">
-                                                <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
+                                                <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} placeholder="0" onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
                                                 <span className="text-muted-foreground">x</span>
-                                                <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
+                                                <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} placeholder="0" onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
                                               </div>
                                               <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
                                             </div>
