@@ -278,7 +278,7 @@ export function GroupGenerator() {
                               <RadioGroupItem value="balanced" />
                             </FormControl>
                             <FormLabel className="font-normal">
-                              Balanceado
+                              Ordem
                             </FormLabel>
                           </FormItem>
                           <FormItem className="flex items-center space-x-3 space-y-0">
