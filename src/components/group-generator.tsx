@@ -458,13 +458,13 @@ export function GroupGenerator() {
 
         <div className="flex flex-col items-center justify-center w-full gap-8">
            {finalMatch && (
-               <div className="flex flex-col items-center gap-4">
+               <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full max-w-lg">
                   <h3 className="text-xl font-bold text-primary">Final</h3>
                   <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinalRound={true} />
                </div>
            )}
            {thirdPlaceMatch && (
-              <div className="flex flex-col items-center gap-4 mt-4">
+              <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full max-w-lg mt-4">
                   <h3 className="text-lg font-bold text-primary">Disputa de 3º Lugar</h3>
                    <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isFinalRound={true} />
               </div>
