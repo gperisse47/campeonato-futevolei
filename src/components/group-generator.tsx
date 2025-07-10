@@ -189,10 +189,12 @@ export function GroupGenerator() {
           const nextRoundName = Object.keys(newPlayoffs)[roundIndex + 1];
           if (nextRoundName && nextRoundName !== 'Disputa de 3º Lugar') {
             const nextMatchIndex = Math.floor(matchIndex / 2);
-            if (matchIndex % 2 === 0) {
-              newPlayoffs[nextRoundName][nextMatchIndex].team1 = winner;
-            } else {
-              newPlayoffs[nextRoundName][nextMatchIndex].team2 = winner;
+            if (newPlayoffs[nextRoundName] && newPlayoffs[nextRoundName][nextMatchIndex]) {
+              if (matchIndex % 2 === 0) {
+                newPlayoffs[nextRoundName][nextMatchIndex].team1 = winner;
+              } else {
+                newPlayoffs[nextRoundName][nextMatchIndex].team2 = winner;
+              }
             }
           }
         }
@@ -469,17 +471,13 @@ export function GroupGenerator() {
                           className="flex flex-col space-y-1"
                         >
                           <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
                               <RadioGroupItem value="balanced" />
-                            </FormControl>
                             <FormLabel className="font-normal">
                               Ordem
                             </FormLabel>
                           </FormItem>
                           <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
                               <RadioGroupItem value="random" />
-                            </FormControl>
                             <FormLabel className="font-normal">
                               Aleatório (Sorteio)
                             </FormLabel>
