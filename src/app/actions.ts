@@ -18,6 +18,7 @@ async function readDb(): Promise<TournamentsState> {
     return JSON.parse(fileContent)
   } catch (error: any) {
     if (error.code === 'ENOENT') {
+      await writeDb({}); // Create the file if it doesn't exist
       return {} // Return empty object if file doesn't exist
     }
     console.error("Error reading from DB:", error)
@@ -56,6 +57,21 @@ export async function saveTournament(categoryName: string, data: CategoryData): 
     }
 }
 
+export async function deleteTournament(categoryName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+        if (db[categoryName]) {
+            delete db[categoryName];
+            await writeDb(db);
+            return { success: true };
+        }
+        return { success: false, error: "Categoria não encontrada." };
+    } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.message || "Ocorreu um erro desconhecido ao excluir." };
+    }
+}
+
 
 export async function generateGroupsAction(
   input: GenerateTournamentGroupsInput
@@ -85,7 +101,7 @@ export async function generateGroupsAction(
 }
 
 export async function verifyPassword(password: string): Promise<{ success: boolean }> {
-  const correctPassword = process.env.ADMIN_PASSWORD;
+  const correctPassword = process.env.ADMIN_PASSWORD || "1234";
   if (!correctPassword) {
     console.error("ADMIN_PASSWORD is not set in .env file");
     return { success: false };

@@ -5,13 +5,24 @@ import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy, ExternalLink, Clock } from "lucide-react"
+import { Loader2, Trophy, Clock, Trash2 } from "lucide-react"
 
-import { generateGroupsAction, getTournaments, saveTournament } from "@/app/actions"
+import { generateGroupsAction, getTournaments, saveTournament, deleteTournament } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -33,7 +44,6 @@ import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
 
 
 type PlayoffBracket = {
@@ -94,16 +104,45 @@ export function GroupGenerator() {
     setIsSaving(false);
   };
 
+  const handleDeleteCategory = async (categoryName: string) => {
+    setIsLoading(true);
+    const result = await deleteTournament(categoryName);
+    if (result.success) {
+      toast({
+        title: "Categoria Excluída!",
+        description: `A categoria "${categoryName}" foi excluída com sucesso.`,
+      });
+      // Update state
+      const newTournaments = { ...tournaments };
+      delete newTournaments[categoryName];
+      setTournaments(newTournaments);
+
+      const remainingCategories = Object.keys(newTournaments);
+      if (remainingCategories.length > 0) {
+        setActiveTab(remainingCategories[0]);
+      } else {
+        setActiveTab(null);
+      }
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Excluir",
+        description: result.error || "Não foi possível excluir a categoria.",
+      });
+    }
+    setIsLoading(false);
+  };
+
 
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      category: "Masculino",
+      category: "",
       tournamentType: "groups",
       numberOfTeams: 8,
       numberOfGroups: 2,
       teamsPerGroupToAdvance: 2,
-      teams: "Ana e Bia\nCarla e Dani\nElena e Fernanda\nGabi e Helo\nIsis e Julia\nKarla e Laura\nMaria e Nina\nOlivia e Paula",
+      teams: "",
       groupFormationStrategy: "balanced",
       includeThirdPlace: true,
     },
@@ -932,11 +971,38 @@ export function GroupGenerator() {
                   return (
                   <TabsContent key={categoryName} value={categoryName}>
                       <Card className="min-h-full mt-4">
-                        <CardHeader>
-                          <CardTitle>Gerenciador - {categoryName}</CardTitle>
-                          <CardDescription>
-                            {categoryData.formValues.tournamentType === 'groups' ? 'Visualize os grupos, preencha os resultados e acompanhe os playoffs.' : 'Acompanhe e preencha os resultados do mata-mata.'}
-                          </CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                          <div>
+                            <CardTitle>Gerenciador - {categoryName}</CardTitle>
+                            <CardDescription>
+                              {categoryData.formValues.tournamentType === 'groups' ? 'Visualize os grupos, preencha os resultados e acompanhe os playoffs.' : 'Acompanhe e preencha os resultados do mata-mata.'}
+                            </CardDescription>
+                          </div>
+                           <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" disabled={isLoading}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente a categoria
+                                    "{categoryName}" e todos os seus dados.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteCategory(categoryName)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                         </CardHeader>
                         <CardContent>
                            {isLoading && activeTab === categoryName && !categoryData.tournamentData && !categoryData.playoffs && (
