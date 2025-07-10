@@ -84,7 +84,7 @@ export const formSchema = z
     },
     {
       message: "O número de duplas na lista não corresponde ao número total de duplas informado.",
-      path: ["teams"],
+      path: ["numberOfTeams"],
     }
   )
    .refine(

@@ -4,10 +4,9 @@
 
 import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { useForm, useFieldArray, useForm as useFormGlobal } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
-import { format, addMinutes, parse } from 'date-fns';
 
 import { getTournaments, saveTournament, generateGroupsAction } from "@/app/actions"
 import type { TournamentData, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
@@ -108,12 +107,6 @@ Olavo e Dudu`,
 
   const tournamentType = form.watch("tournamentType");
   const teamsInput = form.watch("teams");
-
-  useEffect(() => {
-     const teamsArray = teamsInput.split('\n').map(t => t.trim()).filter(Boolean);
-     form.setValue('numberOfTeams', teamsArray.length, { shouldValidate: true });
-  }, [teamsInput, form]);
-
 
   useEffect(() => {
     if (tournamentType === 'doubleElimination') {
@@ -583,19 +576,14 @@ Olavo e Dudu`,
     setIsLoading(false);
   }
 
-  const handleCreate = async () => {
-    const isValid = await form.trigger();
-    if (isValid) {
-        processTournament(form.getValues(), false);
-    }
+  const handleCreate = async (values: TournamentFormValues) => {
+    processTournament(values, false);
   }
 
-  const handleUpdate = async () => {
-    const isValid = await form.trigger();
-    if (isValid) {
-        processTournament(form.getValues(), true);
-    }
+  const handleUpdate = async (values: TournamentFormValues) => {
+    processTournament(values, true);
   }
+
 
   if (!isLoaded) {
     return (
@@ -615,7 +603,7 @@ Olavo e Dudu`,
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+          <form className="space-y-6">
             <FormField
               control={form.control}
               name="category"
@@ -675,7 +663,7 @@ Olavo e Dudu`,
                   <FormItem>
                     <FormLabel>Nº de Duplas</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} readOnly onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -790,14 +778,14 @@ Olavo e Dudu`,
             />
 
             <div className="flex flex-col gap-4">
-                <Button onClick={handleCreate} disabled={isLoading || isSaving} className="w-full">
+                <Button onClick={form.handleSubmit(handleCreate)} disabled={isLoading || isSaving} className="w-full">
                   {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Nova Categoria'}
                 </Button>
                 
                 <Separator />
 
-                <Button onClick={handleUpdate} variant="secondary" disabled={isLoading || isSaving} className="w-full">
+                <Button onClick={form.handleSubmit(handleUpdate)} variant="secondary" disabled={isLoading || isSaving} className="w-full">
                     {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Atualizar Categoria Existente
                 </Button>
