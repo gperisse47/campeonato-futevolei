@@ -1,4 +1,3 @@
-
 "use client"
 
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/sidebar"
 import { LayoutGrid, Users } from "lucide-react"
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 
 export function SidebarNav() {
   const pathname = usePathname();
@@ -45,21 +45,23 @@ export function SidebarNav() {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/" isActive={pathname === '/'} tooltip="Gerador de Grupos">
-              <LayoutGrid />
-              <span>Gerador de Grupos</span>
-            </SidebarMenuButton>
+            <Link href="/" passHref>
+                <SidebarMenuButton isActive={pathname === '/'} tooltip="Gerador de Grupos">
+                  <LayoutGrid />
+                  <span>Gerador de Grupos</span>
+                </SidebarMenuButton>
+            </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/teams" isActive={pathname === '/teams'} tooltip="Duplas">
-                <Users/>
-                <span>Duplas</span>
-            </SidebarMenuButton>
+            <Link href="/teams" passHref>
+                <SidebarMenuButton isActive={pathname === '/teams'} tooltip="Duplas">
+                    <Users/>
+                    <span>Duplas</span>
+                </SidebarMenuButton>
+            </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
     </>
   )
 }
-
-    
