@@ -91,7 +91,7 @@ export function CategoryManager() {
       }
     };
     fetchInitialData();
-  }, []);
+  }, [toast, activeTab]);
 
   useEffect(() => {
     if (activeTab) {
@@ -182,9 +182,10 @@ export function CategoryManager() {
     const { startTime: categoryStartTime } = formValues;
     const { estimatedMatchDuration, courts, startTime: globalStartTime } = globalSettings;
 
-    const effectiveStartTime = categoryStartTime || globalStartTime;
+    const effectiveStartTime = categoryStartTime || globalStartTime || '08:00';
 
-    if (!effectiveStartTime || !estimatedMatchDuration || !courts || courts.length === 0) {
+    if (!estimatedMatchDuration || !courts || courts.length === 0) {
+        console.warn("Scheduling prerequisites not met. Returning original data.", {estimatedMatchDuration, courts});
         return categoryData;
     }
 
@@ -212,6 +213,10 @@ export function CategoryManager() {
 
     const baseDate = new Date();
     const parseTime = (timeStr: string) => {
+        if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) {
+          console.error("Invalid time string for parsing:", timeStr);
+          return baseDate; // return a default value
+        }
         const [h, m] = timeStr.split(':').map(Number);
         return parse(`${h}:${m}`, 'HH:mm', baseDate);
     };
@@ -275,7 +280,29 @@ export function CategoryManager() {
     });
 
     return categoryData;
-}, []);
+  }, []);
+
+  const handleReschedule = async () => {
+    if (!activeTab || !activeCategoryData) return;
+
+    setIsSaving(true);
+    const updatedCategoryData = scheduleMatches(activeCategoryData, tournaments._globalSettings);
+    
+    // Save the rescheduled data
+    await saveData(activeTab, updatedCategoryData);
+
+    // Update the state to reflect the changes immediately
+    setTournaments(prev => ({
+      ...prev,
+      [activeTab!]: updatedCategoryData
+    }));
+
+    toast({
+      title: "Horários Atualizados!",
+      description: `Os horários para "${activeTab}" foram recalculados com sucesso.`,
+    });
+    setIsSaving(false);
+  };
   
   const getTeamPlaceholder = useCallback((groupIndex: number, position: number) => {
     const groupLetter = String.fromCharCode(65 + groupIndex);
@@ -429,7 +456,7 @@ export function CategoryManager() {
       saveData(activeTab!, updatedCategoryData);
     }
   
-}, [activeTab, activeCategoryData, getTeamPlaceholder, tournaments]);
+  }, [activeTab, activeCategoryData, getTeamPlaceholder, tournaments]);
 
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
@@ -731,9 +758,12 @@ export function CategoryManager() {
                         </CardDescription>
                       </div>
                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" onClick={handleReschedule} disabled={isLoading || isSaving} title="Recalcular horários">
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                            </Button>
                             <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" size="icon" disabled={isLoading}>
+                                    <Button variant="outline" size="icon" disabled={isLoading} title="Renomear Categoria">
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                 </DialogTrigger>
@@ -772,7 +802,7 @@ export function CategoryManager() {
                             </Dialog>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" disabled={isLoading}>
+                                    <Button variant="destructive" size="icon" disabled={isLoading} title="Excluir Categoria">
                                     <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>

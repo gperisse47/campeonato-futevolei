@@ -139,98 +139,6 @@ Olavo e Dudu`,
     return Object.values(bracket).reduce((total, round) => total + round.length, 0);
   }, []);
 
-  const scheduleMatches = useCallback((categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData => {
-    const { formValues, tournamentData, playoffs } = categoryData;
-    const { startTime } = globalSettings;
-    const { estimatedMatchDuration, courts } = globalSettings;
-
-    if (!startTime || !estimatedMatchDuration || !courts || courts.length === 0) {
-        return categoryData;
-    }
-
-    const allMatchesToSchedule: ({ source: string; match: any })[] = [];
-
-    if (formValues.tournamentType === 'groups' && tournamentData?.groups) {
-        tournamentData.groups.forEach(group => {
-            group.matches.forEach(match => allMatchesToSchedule.push({ source: 'group', match }));
-        });
-    }
-    if (playoffs) {
-        const collectPlayoffMatches = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
-            if (!bracket) return;
-            if ('upper' in bracket || 'lower' in bracket || 'playoffs' in bracket) {
-                const bracketSet = bracket as PlayoffBracketSet;
-                collectPlayoffMatches(bracketSet.upper);
-                collectPlayoffMatches(bracketSet.lower);
-                collectPlayoffMatches(bracketSet.playoffs);
-                return;
-            }
-            Object.values(bracket as PlayoffBracket).flat().sort((a, b) => (a.roundOrder || 0) - (b.roundOrder || 0)).forEach(match => allMatchesToSchedule.push({ source: 'playoff', match }));
-        }
-        collectPlayoffMatches(playoffs);
-    }
-
-    const baseDate = new Date();
-    const parseTime = (timeStr: string) => {
-        const [h, m] = timeStr.split(':').map(Number);
-        return parse(`${h}:${m}`, 'HH:mm', baseDate);
-    };
-
-    const courtAvailability = courts.map((court, index) => ({
-        index,
-        name: court.name,
-        slots: court.slots.map(slot => ({
-            start: parseTime(slot.startTime),
-            end: parseTime(slot.endTime)
-        })).sort((a, b) => a.start.getTime() - b.start.getTime()),
-        nextAvailableTime: parseTime(startTime)
-    }));
-
-    allMatchesToSchedule.forEach(({ match }) => {
-        let bestCourtIndex = -1;
-        let bestTime: Date | null = null;
-
-        for (let i = 0; i < courtAvailability.length; i++) {
-            const court = courtAvailability[i];
-            let potentialStartTime = court.nextAvailableTime;
-
-            let slotFound = false;
-            for (const slot of court.slots) {
-                if (potentialStartTime < slot.start) {
-                    potentialStartTime = slot.start;
-                }
-
-                const potentialEndTime = addMinutes(potentialStartTime, estimatedMatchDuration);
-
-                if (potentialEndTime <= slot.end) {
-                    slotFound = true;
-                    break; 
-                }
-            }
-            
-            if (slotFound) {
-                 if (bestTime === null || potentialStartTime < bestTime) {
-                    bestTime = potentialStartTime;
-                    bestCourtIndex = i;
-                }
-            }
-        }
-        
-        if (bestCourtIndex !== -1 && bestTime) {
-            const assignedCourt = courtAvailability[bestCourtIndex];
-            match.time = format(bestTime, 'HH:mm');
-            match.court = assignedCourt.name;
-            assignedCourt.nextAvailableTime = addMinutes(bestTime, estimatedMatchDuration);
-        } else {
-            match.time = 'N/A';
-            match.court = 'N/A';
-        }
-    });
-
-    return categoryData;
-}, []);
-
-
   const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues): PlayoffBracketSet | null => {
     const allTeamsList = values.teams
         .split("\n")
@@ -646,7 +554,8 @@ Olavo e Dudu`,
         }
     }
     
-    newCategoryData = scheduleMatches(newCategoryData, tournaments._globalSettings);
+    // The scheduling logic is now handled by the CategoryManager, so we don't call it here.
+    // newCategoryData = scheduleMatches(newCategoryData, tournaments._globalSettings);
     newCategoryData.totalMatches = calculateTotalMatches(newCategoryData);
 
     setTournaments(prev => ({ ...prev, [categoryName]: newCategoryData }));
@@ -654,7 +563,7 @@ Olavo e Dudu`,
     
     toast({
       title: "Categoria Gerada!",
-      description: `A categoria "${categoryName}" foi criada com sucesso.`,
+      description: `A categoria "${categoryName}" foi criada com sucesso. Os horários podem ser gerados no gerenciador.`,
     });
     
     setIsLoading(false);
