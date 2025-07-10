@@ -1104,7 +1104,7 @@
       "numberOfGroups": 4,
       "teamsPerGroupToAdvance": 2,
       "teams": "Peri e Gularte\nFabinho e Bergallo\nCaslu e Leo\nAlex e Lage\nFelipe M. e Rapha B.\nRodrigo e Paulinho\nCarelli e Hantaro\nNeves e Caze\nGustavo M. e Marcus\nGabe e Yan\nBrenner e Py\nCarril  e Leandro \nRusso e Maki\nJames e Fabio\nSartoratto e Poppe\nOlavo e Dudu",
-      "groupFormationStrategy": "balanced",
+      "groupFormationStrategy": "order",
       "includeThirdPlace": true
     },
     "tournamentData": null,
@@ -1119,11 +1119,11 @@
               "player2": "Gularte"
             },
             "team2": {
-              "player1": "Fabinho",
-              "player2": "Bergallo"
+              "player1": "Olavo",
+              "player2": "Dudu"
             },
             "team1Placeholder": "Peri e Gularte",
-            "team2Placeholder": "Fabinho e Bergallo",
+            "team2Placeholder": "Olavo e Dudu",
             "time": "",
             "roundOrder": 4
           },
@@ -1131,15 +1131,15 @@
             "id": "U-R1-Jogo2",
             "name": "Upper Rodada 1 Jogo 2",
             "team1": {
-              "player1": "Caslu",
-              "player2": "Leo"
+              "player1": "Fabinho",
+              "player2": "Bergallo"
             },
             "team2": {
-              "player1": "Alex",
-              "player2": "Lage"
+              "player1": "Sartoratto",
+              "player2": "Poppe"
             },
-            "team1Placeholder": "Caslu e Leo",
-            "team2Placeholder": "Alex e Lage",
+            "team1Placeholder": "Fabinho e Bergallo",
+            "team2Placeholder": "Sartoratto e Poppe",
             "time": "",
             "roundOrder": 4
           },
@@ -1147,15 +1147,15 @@
             "id": "U-R1-Jogo3",
             "name": "Upper Rodada 1 Jogo 3",
             "team1": {
-              "player1": "Felipe M.",
-              "player2": "Rapha B."
+              "player1": "Caslu",
+              "player2": "Leo"
             },
             "team2": {
-              "player1": "Rodrigo",
-              "player2": "Paulinho"
+              "player1": "James",
+              "player2": "Fabio"
             },
-            "team1Placeholder": "Felipe M. e Rapha B.",
-            "team2Placeholder": "Rodrigo e Paulinho",
+            "team1Placeholder": "Caslu e Leo",
+            "team2Placeholder": "James e Fabio",
             "time": "",
             "roundOrder": 4
           },
@@ -1163,15 +1163,15 @@
             "id": "U-R1-Jogo4",
             "name": "Upper Rodada 1 Jogo 4",
             "team1": {
-              "player1": "Carelli",
-              "player2": "Hantaro"
+              "player1": "Alex",
+              "player2": "Lage"
             },
             "team2": {
-              "player1": "Neves",
-              "player2": "Caze"
+              "player1": "Russo",
+              "player2": "Maki"
             },
-            "team1Placeholder": "Carelli e Hantaro",
-            "team2Placeholder": "Neves e Caze",
+            "team1Placeholder": "Alex e Lage",
+            "team2Placeholder": "Russo e Maki",
             "time": "",
             "roundOrder": 4
           },
@@ -1179,15 +1179,15 @@
             "id": "U-R1-Jogo5",
             "name": "Upper Rodada 1 Jogo 5",
             "team1": {
-              "player1": "Gustavo M.",
-              "player2": "Marcus"
+              "player1": "Felipe M.",
+              "player2": "Rapha B."
             },
             "team2": {
-              "player1": "Gabe",
-              "player2": "Yan"
+              "player1": "Carril",
+              "player2": "Leandro"
             },
-            "team1Placeholder": "Gustavo M. e Marcus",
-            "team2Placeholder": "Gabe e Yan",
+            "team1Placeholder": "Felipe M. e Rapha B.",
+            "team2Placeholder": "Carril e Leandro",
             "time": "",
             "roundOrder": 4
           },
@@ -1195,15 +1195,15 @@
             "id": "U-R1-Jogo6",
             "name": "Upper Rodada 1 Jogo 6",
             "team1": {
+              "player1": "Rodrigo",
+              "player2": "Paulinho"
+            },
+            "team2": {
               "player1": "Brenner",
               "player2": "Py"
             },
-            "team2": {
-              "player1": "Carril",
-              "player2": "Leandro"
-            },
-            "team1Placeholder": "Brenner e Py",
-            "team2Placeholder": "Carril e Leandro",
+            "team1Placeholder": "Rodrigo e Paulinho",
+            "team2Placeholder": "Brenner e Py",
             "time": "",
             "roundOrder": 4
           },
@@ -1211,15 +1211,15 @@
             "id": "U-R1-Jogo7",
             "name": "Upper Rodada 1 Jogo 7",
             "team1": {
-              "player1": "Russo",
-              "player2": "Maki"
+              "player1": "Carelli",
+              "player2": "Hantaro"
             },
             "team2": {
-              "player1": "James",
-              "player2": "Fabio"
+              "player1": "Gabe",
+              "player2": "Yan"
             },
-            "team1Placeholder": "Russo e Maki",
-            "team2Placeholder": "James e Fabio",
+            "team1Placeholder": "Carelli e Hantaro",
+            "team2Placeholder": "Gabe e Yan",
             "time": "",
             "roundOrder": 4
           },
@@ -1227,15 +1227,15 @@
             "id": "U-R1-Jogo8",
             "name": "Upper Rodada 1 Jogo 8",
             "team1": {
-              "player1": "Sartoratto",
-              "player2": "Poppe"
+              "player1": "Neves",
+              "player2": "Caze"
             },
             "team2": {
-              "player1": "Olavo",
-              "player2": "Dudu"
+              "player1": "Gustavo M.",
+              "player2": "Marcus"
             },
-            "team1Placeholder": "Sartoratto e Poppe",
-            "team2Placeholder": "Olavo e Dudu",
+            "team1Placeholder": "Neves e Caze",
+            "team2Placeholder": "Gustavo M. e Marcus",
             "time": "",
             "roundOrder": 4
           }
@@ -1245,22 +1245,22 @@
             "id": "U-R2-Jogo1",
             "name": "Upper Rodada 2 Jogo 1",
             "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 1",
-            "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 2",
+            "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 8",
             "time": "",
             "roundOrder": 3
           },
           {
             "id": "U-R2-Jogo2",
             "name": "Upper Rodada 2 Jogo 2",
-            "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 3",
-            "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 4",
+            "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 2",
+            "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 7",
             "time": "",
             "roundOrder": 3
           },
           {
             "id": "U-R2-Jogo3",
             "name": "Upper Rodada 2 Jogo 3",
-            "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 5",
+            "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 3",
             "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 6",
             "time": "",
             "roundOrder": 3
@@ -1268,8 +1268,8 @@
           {
             "id": "U-R2-Jogo4",
             "name": "Upper Rodada 2 Jogo 4",
-            "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 7",
-            "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 8",
+            "team1Placeholder": "Vencedor Upper Rodada 1 Jogo 4",
+            "team2Placeholder": "Vencedor Upper Rodada 1 Jogo 5",
             "time": "",
             "roundOrder": 3
           }
@@ -1279,15 +1279,15 @@
             "id": "U-R3-Jogo1",
             "name": "Upper Rodada 3 Jogo 1",
             "team1Placeholder": "Vencedor Upper Rodada 2 Jogo 1",
-            "team2Placeholder": "Vencedor Upper Rodada 2 Jogo 2",
+            "team2Placeholder": "Vencedor Upper Rodada 2 Jogo 4",
             "time": "",
             "roundOrder": 2
           },
           {
             "id": "U-R3-Jogo2",
             "name": "Upper Rodada 3 Jogo 2",
-            "team1Placeholder": "Vencedor Upper Rodada 2 Jogo 3",
-            "team2Placeholder": "Vencedor Upper Rodada 2 Jogo 4",
+            "team1Placeholder": "Vencedor Upper Rodada 2 Jogo 2",
+            "team2Placeholder": "Vencedor Upper Rodada 2 Jogo 3",
             "time": "",
             "roundOrder": 2
           }
