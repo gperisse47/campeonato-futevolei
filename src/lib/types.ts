@@ -46,6 +46,17 @@ export const formSchema = z
       required_error: "A estratégia de formação é obrigatória.",
     }),
     includeThirdPlace: z.boolean().default(true),
+    // Scheduling
+    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
+    estimatedMatchDuration: z.coerce
+      .number({ invalid_type_error: "Deve ser um número." })
+      .int("Deve ser um número inteiro.")
+      .positive("A duração deve ser positiva."),
+    numberOfCourts: z.coerce
+      .number({ invalid_type_error: "Deve ser um número." })
+      .int("Deve ser um número inteiro.")
+      .min(1, "Deve haver pelo menos uma quadra."),
+
   })
   .refine(
     (data) => {

@@ -7,6 +7,8 @@ import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy, Clock, Trash2, Swords } from "lucide-react"
+import { format, addMinutes, parse } from 'date-fns';
+
 
 import { generateGroupsAction, getTournaments, saveTournament, deleteTournament } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket } from "@/lib/types"
@@ -59,7 +61,6 @@ export function GroupGenerator() {
   const [tournaments, setTournaments] = useState<TournamentsState>({})
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-
   const { toast } = useToast()
   
   const activeCategoryData = activeTab ? tournaments[activeTab] : null;
@@ -162,6 +163,9 @@ Sartoratto e Poppe
 Olavo e Dudu`,
       groupFormationStrategy: "order",
       includeThirdPlace: true,
+      startTime: "09:00",
+      estimatedMatchDuration: 40,
+      numberOfCourts: 2,
     },
   })
   
@@ -201,6 +205,63 @@ Olavo e Dudu`,
     return Object.values(bracket).reduce((total, round) => total + round.length, 0);
   }, []);
 
+  const scheduleMatches = useCallback((categoryData: CategoryData): CategoryData => {
+    const { formValues, tournamentData, playoffs } = categoryData;
+    const { startTime, estimatedMatchDuration, numberOfCourts } = formValues;
+
+    if (!startTime || !estimatedMatchDuration || !numberOfCourts) return categoryData;
+
+    const allMatchesToSchedule: ({ source: string; match: any })[] = [];
+
+    // 1. Collect all matches
+    if (formValues.tournamentType === 'groups' && tournamentData?.groups) {
+      tournamentData.groups.forEach(group => {
+        group.matches.forEach(match => allMatchesToSchedule.push({ source: 'group', match }));
+      });
+    }
+
+    if (playoffs) {
+      const collectPlayoffMatches = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
+          if (!bracket) return;
+          if ('upper' in bracket || 'lower' in bracket || 'playoffs' in bracket) {
+            const bracketSet = bracket as PlayoffBracketSet;
+            collectPlayoffMatches(bracketSet.upper);
+            collectPlayoffMatches(bracketSet.lower);
+            collectPlayoffMatches(bracketSet.playoffs);
+            return;
+          }
+           Object.values(bracket as PlayoffBracket).flat().sort((a,b) => (a.roundOrder || 0) - (b.roundOrder || 0)).forEach(match => allMatchesToSchedule.push({ source: 'playoff', match }));
+      }
+      collectPlayoffMatches(playoffs);
+    }
+    
+    // 2. Schedule them
+    const courtNextAvailableTime: Date[] = [];
+    const baseDate = new Date();
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    
+    for (let i = 0; i < numberOfCourts; i++) {
+        const initialDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), startHour, startMinute);
+        courtNextAvailableTime.push(initialDate);
+    }
+
+    allMatchesToSchedule.forEach(({ match }) => {
+        // Find the court that will be free earliest
+        const earliestCourtIndex = courtNextAvailableTime.reduce((earliestIndex, currentTime, index, array) => {
+            return currentTime < array[earliestIndex] ? index : earliestIndex;
+        }, 0);
+
+        const scheduledTime = courtNextAvailableTime[earliestCourtIndex];
+        match.time = format(scheduledTime, 'HH:mm');
+
+        // Update the next available time for that court
+        courtNextAvailableTime[earliestCourtIndex] = addMinutes(scheduledTime, estimatedMatchDuration);
+    });
+
+    return categoryData; // Return the mutated data
+}, []);
+
+
   const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues): PlayoffBracketSet | null => {
     const allTeamsList = values.teams
         .split("\n")
@@ -219,24 +280,25 @@ Olavo e Dudu`,
     const bracketSize = Math.pow(2, Math.ceil(Math.log2(numTeams)));
     const byes = bracketSize - numTeams;
 
-    const round1MatchCount = (numTeams - byes);
-    const round1Teams = teams.slice(0, round1MatchCount);
-    const teamsWithBye = teams.slice(round1MatchCount);
+    // Separate teams that play from teams that get a bye
+    const teamsWithBye = teams.slice(0, byes);
+    const teamsInFirstRound = teams.slice(byes);
+
 
     const upperBracket: PlayoffBracket = {};
     let wbRoundCounter = 1;
 
     // --- WB Round 1 ---
     let round1Matches: PlayoffMatch[] = [];
-    if (round1MatchCount > 0) {
+    if (teamsInFirstRound.length > 0) {
         const round1Name = `Upper Rodada ${wbRoundCounter}`;
-        for (let i = 0; i < round1MatchCount / 2; i++) {
+        for (let i = 0; i < teamsInFirstRound.length / 2; i++) {
             round1Matches.push({
                 id: `U-R${wbRoundCounter}-${i + 1}`, name: `${round1Name} Jogo ${i + 1}`,
-                team1: round1Teams[i],
-                team2: round1Teams[round1Teams.length - 1 - i],
-                team1Placeholder: teamToKey(round1Teams[i]),
-                team2Placeholder: teamToKey(round1Teams[round1Teams.length - 1 - i]),
+                team1: teamsInFirstRound[i],
+                team2: teamsInFirstRound[teamsInFirstRound.length - 1 - i],
+                team1Placeholder: teamToKey(teamsInFirstRound[i]),
+                team2Placeholder: teamToKey(teamsInFirstRound[teamsInFirstRound.length - 1 - i]),
                 time: '', roundOrder: 100 - wbRoundCounter,
             });
         }
@@ -244,33 +306,30 @@ Olavo e Dudu`,
     }
 
     // --- WB Round 2 and onwards ---
-    let currentUpperRoundTeams: (Team | string)[] = [];
-    currentUpperRoundTeams.push(...teamsWithBye);
+    let currentUpperRoundTeamsPlaceholders: string[] = teamsWithBye.map(teamToKey);
     if(round1Matches.length > 0) {
-      currentUpperRoundTeams.push(...round1Matches.map(m => `Vencedor ${m.name}`));
+      currentUpperRoundTeamsPlaceholders.push(...round1Matches.map(m => `Vencedor ${m.id}`));
     }
     
     wbRoundCounter++;
 
-    while (currentUpperRoundTeams.length > 1) {
+    while (currentUpperRoundTeamsPlaceholders.length > 1) {
         const roundName = `Upper Rodada ${wbRoundCounter}`;
         const nextRoundMatches: PlayoffMatch[] = [];
         
-        for (let i = 0; i < currentUpperRoundTeams.length / 2; i++) {
-            const team1Info = currentUpperRoundTeams[i];
-            const team2Info = currentUpperRoundTeams[currentUpperRoundTeams.length - 1 - i];
+        for (let i = 0; i < currentUpperRoundTeamsPlaceholders.length / 2; i++) {
+            const team1Placeholder = currentUpperRoundTeamsPlaceholders[i];
+            const team2Placeholder = currentUpperRoundTeamsPlaceholders[currentUpperRoundTeamsPlaceholders.length - 1 - i];
             
             nextRoundMatches.push({
                 id: `U-R${wbRoundCounter}-${i + 1}`, name: `${roundName} Jogo ${i + 1}`,
-                team1: typeof team1Info === 'object' ? team1Info : undefined,
-                team2: typeof team2Info === 'object' ? team2Info : undefined,
-                team1Placeholder: typeof team1Info === 'string' ? team1Info : teamToKey(team1Info!),
-                team2Placeholder: typeof team2Info === 'string' ? team2Info : teamToKey(team2Info!),
+                team1Placeholder: team1Placeholder,
+                team2Placeholder: team2Placeholder,
                 time: '', roundOrder: 100 - wbRoundCounter,
             });
         }
         upperBracket[roundName] = nextRoundMatches;
-        currentUpperRoundTeams = nextRoundMatches.map(m => `Vencedor ${m.name}`);
+        currentUpperRoundTeamsPlaceholders = nextRoundMatches.map(m => `Vencedor ${m.id}`);
         wbRoundCounter++;
     }
 
@@ -278,69 +337,85 @@ Olavo e Dudu`,
     const lowerBracket: PlayoffBracket = {};
     const wbLosersByRound: { [key: number]: (string | null)[] } = {};
     
-    // Populate losers, including null for byes
     for (let r = 1; r < wbRoundCounter; r++) {
         const roundName = `Upper Rodada ${r}`;
         const wbMatches = upperBracket[roundName] || [];
-        wbLosersByRound[r] = wbMatches.map(m => `Perdedor ${m.name}`);
+        wbLosersByRound[r] = wbMatches.map(m => `Perdedor ${m.id}`);
     }
 
-    // Add null losers for teams that got a bye in round 1
+    // Handle byes propagating to losers
     const round2Matches = upperBracket[`Upper Rodada 2`] || [];
-    const byeLoserPlaceholders = teamsWithBye.map(team => {
+    const byeLoserPlaceholders: (string | null)[] = teamsWithBye.map(team => {
         const matchWithByeTeam = round2Matches.find(m => m.team1Placeholder === teamToKey(team) || m.team2Placeholder === teamToKey(team));
-        return matchWithByeTeam ? `Perdedor ${matchWithByeTeam.name}` : null;
-    }).filter(p => p !== null);
-    
+        // Find the placeholder for the match the bye team played in round 2
+        return matchWithByeTeam ? `Perdedor ${matchWithByeTeam.id}` : null;
+    });
+
     let lbRoundCounter = 1;
     let lbSurvivors: (string | null)[] = [];
 
-    // --- LB Round 1 ---
+    // LB Round 1: Only has losers from WB Round 1
     const lbRound1Name = `Lower Rodada ${lbRoundCounter}`;
     const lbRound1Matches: PlayoffMatch[] = [];
     const r1Losers = wbLosersByRound[1] || [];
-    let r1LosersQueue = [...r1Losers];
     
-    if (r1LosersQueue.length > 0) {
-      for (let i = 0; i < r1LosersQueue.length / 2; i++) {
+    if (r1Losers.length > 0) {
+      for (let i = 0; i < r1Losers.length / 2; i++) {
         lbRound1Matches.push({
             id: `L-R${lbRoundCounter}-${i+1}`, name: `${lbRound1Name} Jogo ${i+1}`,
-            team1Placeholder: r1LosersQueue[i]!,
-            team2Placeholder: r1LosersQueue[r1LosersQueue.length - 1 - i]!,
-            time: '', roundOrder: -lbRoundCounter,
+            team1Placeholder: r1Losers[i]!,
+            team2Placeholder: r1Losers[r1Losers.length - 1 - i]!,
+            time: '', roundOrder: -(lbRoundCounter * 2),
         });
       }
       lowerBracket[lbRound1Name] = lbRound1Matches;
-      lbSurvivors = lbRound1Matches.map(m => `Vencedor ${m.name}`);
+      lbSurvivors = lbRound1Matches.map(m => `Vencedor ${m.id}`);
       lbRoundCounter++;
     }
 
-    // --- LB Subsequent Rounds ---
+    // LB Subsequent Rounds
     for (let wbR = 2; wbR < wbRoundCounter; wbR++) {
+        // Round where losers drop down
         const losersFromWb = wbLosersByRound[wbR] || [];
-        const contenders = [...lbSurvivors, ...losersFromWb];
+        const contenders = [...lbSurvivors, ...losersFromWb].reverse();
 
-        const roundName = `Lower Rodada ${lbRoundCounter}`;
-        const roundMatches: PlayoffMatch[] = [];
-
+        const dropDownRoundName = `Lower Rodada ${lbRoundCounter}`;
+        const dropDownRoundMatches: PlayoffMatch[] = [];
         for (let i = 0; i < contenders.length / 2; i++) {
-            roundMatches.push({
-                id: `L-R${lbRoundCounter}-${i + 1}`, name: `${roundName} Jogo ${i + 1}`,
+            dropDownRoundMatches.push({
+                id: `L-R${lbRoundCounter}-${i + 1}`, name: `${dropDownRoundName} Jogo ${i + 1}`,
                 team1Placeholder: contenders[i]!,
                 team2Placeholder: contenders[contenders.length - 1 - i]!,
-                time: '', roundOrder: -lbRoundCounter,
+                time: '', roundOrder: -(lbRoundCounter * 2),
             });
         }
-
-        if (roundMatches.length > 0) {
-            lowerBracket[roundName] = roundMatches;
+        if (dropDownRoundMatches.length > 0) {
+            lowerBracket[dropDownRoundName] = dropDownRoundMatches;
         }
-        lbSurvivors = roundMatches.map(m => `Vencedor ${m.name}`);
+        const currentSurvivors = dropDownRoundMatches.map(m => `Vencedor ${m.id}`);
+        lbRoundCounter++;
+
+        // Round where only survivors play each other
+        const internalRoundName = `Lower Rodada ${lbRoundCounter}`;
+        const internalRoundMatches: PlayoffMatch[] = [];
+        if (currentSurvivors.length > 1) {
+            for (let i = 0; i < currentSurvivors.length / 2; i++) {
+                internalRoundMatches.push({
+                    id: `L-R${lbRoundCounter}-${i + 1}`, name: `${internalRoundName} Jogo ${i + 1}`,
+                    team1Placeholder: currentSurvivors[i]!,
+                    team2Placeholder: currentSurvivors[currentSurvivors.length - 1 - i]!,
+                    time: '', roundOrder: -(lbRoundCounter * 2 - 1),
+                });
+            }
+             if (internalRoundMatches.length > 0) {
+                lowerBracket[internalRoundName] = internalRoundMatches;
+            }
+        }
+        lbSurvivors = internalRoundMatches.length > 0 ? internalRoundMatches.map(m => `Vencedor ${m.id}`) : currentSurvivors;
         lbRoundCounter++;
     }
-
     
-    const wbFinalist = `Vencedor ${upperBracket[`Upper Rodada ${wbRoundCounter-1}`]?.[0]?.name}`;
+    const wbFinalist = `Vencedor ${upperBracket[`Upper Rodada ${wbRoundCounter-1}`]?.[0]?.id}`;
     const lbFinalist = lbSurvivors[0];
 
     const finalPlayoffs: PlayoffBracket = {};
@@ -350,15 +425,15 @@ Olavo e Dudu`,
     ];
 
     if (values.includeThirdPlace) {
-       const wbFinal = upperBracket[`Upper Rodada ${wbRoundCounter-1}`]?.[0];
-       const lbFinalMatchName = lowerBracket[`Lower Rodada ${lbRoundCounter-1}`]?.[0]?.name;
-
-       if (wbFinal && lbFinalMatchName) {
-          const thirdPlaceName = "Disputa de 3º Lugar";
-          finalPlayoffs[thirdPlaceName] = [
-            { id: '3P-1', name: thirdPlaceName, team1Placeholder: `Perdedor ${wbFinal.name}`, team2Placeholder: `Perdedor ${lbFinalMatchName}`, time: '', roundOrder: 0 }
-          ];
-       }
+       const wbFinalLoserPlaceholder = `Perdedor ${upperBracket[`Upper Rodada ${wbRoundCounter-1}`]?.[0]?.id}`;
+       const lbFinalLoserPlaceholder = `Perdedor ${lowerBracket[`Lower Rodada ${lbRoundCounter-2}`]?.[0]?.id}`;
+       
+        if (wbFinalLoserPlaceholder && lbFinalLoserPlaceholder) {
+            const thirdPlaceName = "Disputa de 3º Lugar";
+            finalPlayoffs[thirdPlaceName] = [
+                { id: '3P-1', name: thirdPlaceName, team1Placeholder: wbFinalLoserPlaceholder, team2Placeholder: lbFinalLoserPlaceholder, time: '', roundOrder: 0 }
+            ];
+        }
     }
 
     return { upper: upperBracket, lower: lowerBracket, playoffs: finalPlayoffs };
@@ -409,17 +484,17 @@ Olavo e Dudu`,
 
             while (teamsInRound >= 2) { 
                 const roundNameKey = teamsInRound === 4 ? 'Semifinal' : (teamsInRound === 2 ? 'Final' : `Quartas de Final`);
-                const roundName = teamsInRound === 4 ? 'Semifinal' : (teamsInRound === 2 ? 'Final' : `Quartas de Final Jogo`);
+                const roundName = teamsInRound === 4 ? 'Semifinal' : (teamsInRound === 2 ? 'Final' : `Quartas de Final`);
                 const nextRoundPlaceholders = [];
                 for (let i = 0; i < currentRoundMatches.length; i++) {
-                     nextRoundPlaceholders.push(`Vencedor ${currentRoundMatches[i].name}`);
+                     nextRoundPlaceholders.push(`Vencedor ${currentRoundMatches[i].id}`);
                 }
                 
                 const nextRoundMatches: PlayoffMatch[] = [];
                 for (let i = 0; i < nextRoundPlaceholders.length / 2; i++) {
                     const matchName = `${roundName} ${i + 1}`;
                     nextRoundMatches.push({
-                        id: `R${upperRound}-Jogo${i + 1}`,
+                        id: `${roundNameKey.replace(/\s/g, '')}-R${upperRound}-Jogo${i + 1}`,
                         name: matchName,
                         team1Placeholder: nextRoundPlaceholders[i*2],
                         team2Placeholder: nextRoundPlaceholders[i*2 + 1],
@@ -439,7 +514,7 @@ Olavo e Dudu`,
             }
             
             if (values.includeThirdPlace && bracket['Semifinal']) {
-                const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.name}`);
+                const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
                 bracket['Disputa de 3º Lugar'] = [
                     { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', roundOrder: 0 }
                 ];
@@ -708,7 +783,7 @@ Olavo e Dudu`,
         return count;
     };
 
-    const newCategoryData: CategoryData = {
+    let newCategoryData: CategoryData = {
         tournamentData: null,
         playoffs: null,
         formValues: values,
@@ -721,87 +796,68 @@ Olavo e Dudu`,
     if (values.tournamentType === 'doubleElimination') {
         const finalPlayoffs = initializeDoubleEliminationBracket(values);
         
-        const finalCategoryData: CategoryData = {
-            formValues: values,
-            tournamentData: null,
-            playoffs: finalPlayoffs,
-        };
-        finalCategoryData.totalMatches = calculateTotalMatches(finalCategoryData);
-
-        setTournaments(prev => ({ ...prev, [categoryName]: finalCategoryData }));
-        await saveData(categoryName, finalCategoryData);
-        
-        toast({
-            title: "Categoria Gerada!",
-            description: `A categoria "${categoryName}" foi criada com sucesso.`,
-        });
-        setIsLoading(false);
-        return;
-    }
-
-
-    const teamsArray: Team[] = values.teams
-      .split("\n")
-      .map((t) => t.trim())
-      .filter(Boolean)
-      .map((teamString) => {
-        const players = teamString.split(/\s+e\s+/i).map((p) => p.trim())
-        return { player1: players[0] || "", player2: players[1] || "" }
-      })
-
-    const result = await generateGroupsAction({
-      numberOfTeams: values.numberOfTeams,
-      numberOfGroups: values.numberOfGroups,
-      groupFormationStrategy: values.groupFormationStrategy,
-      teams: teamsArray,
-      category: values.category,
-      tournamentType: values.tournamentType,
-    })
-
-    if (result.success && result.data) {
-      let finalPlayoffs: PlayoffBracketSet | null = null;
-      let finalTournamentData: TournamentData | null = null;
-      
-      if (values.tournamentType === 'groups') {
-          finalTournamentData = { groups: initializeStandings(result.data.groups) };
-          finalPlayoffs = initializePlayoffs(values, result.data);
-      } else if (values.tournamentType === 'singleElimination') {
-          finalPlayoffs = initializePlayoffs(values, result.data);
-      }
-
-      const finalCategoryData: CategoryData = {
-          formValues: values,
-          tournamentData: finalTournamentData,
-          playoffs: finalPlayoffs,
-      };
-      finalCategoryData.totalMatches = calculateTotalMatches(finalCategoryData);
-
-      setTournaments(prev => ({ ...prev, [categoryName]: finalCategoryData }));
-      await saveData(categoryName, finalCategoryData);
-      
-      toast({
-        title: "Categoria Gerada!",
-        description: `A categoria "${categoryName}" foi criada com sucesso.`,
-      })
+        newCategoryData.playoffs = finalPlayoffs;
     } else {
-      setTournaments(prev => {
-        const newTournaments = {...prev};
-        delete newTournaments[categoryName];
-        return newTournaments;
-      });
-      const remainingKeys = Object.keys(tournaments).filter(k => k !== categoryName);
-      if (remainingKeys.length > 0) {
-        setActiveTab(remainingKeys[0]);
-      } else {
-        setActiveTab(null);
-      }
-      toast({
-        variant: "destructive",
-        title: "Erro ao Gerar",
-        description: result.error || "Ocorreu um erro inesperado.",
-      })
+        const teamsArray: Team[] = values.teams
+          .split("\n")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .map((teamString) => {
+            const players = teamString.split(/\s+e\s+/i).map((p) => p.trim())
+            return { player1: players[0] || "", player2: players[1] || "" }
+          })
+
+        const result = await generateGroupsAction({
+          numberOfTeams: values.numberOfTeams,
+          numberOfGroups: values.numberOfGroups,
+          groupFormationStrategy: values.groupFormationStrategy,
+          teams: teamsArray,
+          category: values.category,
+          tournamentType: values.tournamentType,
+        })
+
+        if (!result.success || !result.data) {
+          setTournaments(prev => {
+            const newTournaments = {...prev};
+            delete newTournaments[categoryName];
+            return newTournaments;
+          });
+          const remainingKeys = Object.keys(tournaments).filter(k => k !== categoryName);
+          if (remainingKeys.length > 0) {
+            setActiveTab(remainingKeys[0]);
+          } else {
+            setActiveTab(null);
+          }
+          toast({
+            variant: "destructive",
+            title: "Erro ao Gerar",
+            description: result.error || "Ocorreu um erro inesperado.",
+          })
+          setIsLoading(false);
+          return;
+        }
+
+        if (values.tournamentType === 'groups') {
+            newCategoryData.tournamentData = { groups: initializeStandings(result.data.groups) };
+            newCategoryData.playoffs = initializePlayoffs(values, result.data);
+        } else if (values.tournamentType === 'singleElimination') {
+            newCategoryData.playoffs = initializePlayoffs(values, result.data);
+        }
     }
-    setIsLoading(false)
+    
+    // Schedule matches for the newly created data
+    newCategoryData = scheduleMatches(newCategoryData);
+    newCategoryData.totalMatches = calculateTotalMatches(newCategoryData);
+
+    setTournaments(prev => ({ ...prev, [categoryName]: newCategoryData }));
+    await saveData(categoryName, newCategoryData);
+    
+    toast({
+      title: "Categoria Gerada!",
+      description: `A categoria "${categoryName}" foi criada com sucesso.`,
+    });
+    
+    setIsLoading(false);
   }
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
@@ -1145,6 +1201,55 @@ Olavo e Dudu`,
                             />
                     </div>
                 )}
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Configurações de Horários</h3>
+                    <FormField
+                      control={form.control}
+                      name="startTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Horário de Início</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                        control={form.control}
+                        name="estimatedMatchDuration"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Duração da Partida (min)</FormLabel>
+                            <FormControl>
+                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                         <FormField
+                        control={form.control}
+                        name="numberOfCourts"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Nº de Quadras</FormLabel>
+                            <FormControl>
+                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+                </div>
+
+                <Separator />
                
                 <FormField
                   control={form.control}
