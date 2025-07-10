@@ -6,12 +6,15 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Swords } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Swords, Search } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
 
 export default function MatchesPage() {
-  const [matches, setMatches] = useState<ConsolidatedMatch[]>([]);
+  const [allMatches, setAllMatches] = useState<ConsolidatedMatch[]>([]);
+  const [filteredMatches, setFilteredMatches] = useState<ConsolidatedMatch[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const teamToKey = (team: any) => {
@@ -24,14 +27,14 @@ export default function MatchesPage() {
       try {
         const savedTournaments = await getTournaments();
         if (savedTournaments) {
-          const allMatches: ConsolidatedMatch[] = [];
+          const allMatchesData: ConsolidatedMatch[] = [];
 
           const processBracket = (bracket: PlayoffBracket, categoryName: string) => {
             for (const roundName in bracket) {
               const roundMatches = bracket[roundName];
               if (Array.isArray(roundMatches)) {
                 roundMatches.forEach(match => {
-                  allMatches.push({
+                  allMatchesData.push({
                     category: categoryName,
                     stage: match.name,
                     team1: match.team1 ? teamToKey(match.team1) : match.team1Placeholder,
@@ -55,7 +58,7 @@ export default function MatchesPage() {
             if (categoryData.tournamentData?.groups) {
               categoryData.tournamentData.groups.forEach(group => {
                 group.matches.forEach(match => {
-                  allMatches.push({
+                  allMatchesData.push({
                     category: categoryName,
                     stage: group.name,
                     team1: teamToKey(match.team1),
@@ -81,7 +84,8 @@ export default function MatchesPage() {
               }
             }
           }
-          setMatches(allMatches);
+          setAllMatches(allMatchesData);
+          setFilteredMatches(allMatchesData); // Initialize filtered list
         }
       } catch (error) {
         console.error("Failed to load matches from DB", error);
@@ -96,6 +100,14 @@ export default function MatchesPage() {
     return () => clearInterval(intervalId);
 
   }, []);
+
+  useEffect(() => {
+    const results = allMatches.filter(match => {
+      const matchString = `${match.category} ${match.stage} ${match.team1} ${match.team2} ${match.court}`.toLowerCase();
+      return matchString.includes(searchTerm.toLowerCase());
+    });
+    setFilteredMatches(results);
+  }, [searchTerm, allMatches]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -114,13 +126,23 @@ export default function MatchesPage() {
           <CardDescription>
             Visualize todos os jogos, de todas as categorias e fases.
           </CardDescription>
+           <div className="relative mt-4">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Buscar por dupla, categoria, fase..."
+                    className="pl-8 w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
              <div className="flex items-center justify-center h-48">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : matches.length > 0 ? (
+          ) : filteredMatches.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -134,7 +156,7 @@ export default function MatchesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {matches.map((match, index) => (
+                {filteredMatches.map((match, index) => (
                   <TableRow key={`${match.category}-${match.stage}-${index}`}>
                     <TableCell className="font-medium">{match.category}</TableCell>
                     <TableCell>{match.time || ''}</TableCell>
@@ -155,7 +177,7 @@ export default function MatchesPage() {
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full min-h-[200px]">
-                <p className="text-muted-foreground">Nenhum jogo encontrado. Gere uma categoria para ver os jogos aqui.</p>
+                <p className="text-muted-foreground">{allMatches.length > 0 ? 'Nenhum jogo encontrado para a busca atual.' : 'Nenhum jogo encontrado. Gere uma categoria para ver os jogos aqui.'}</p>
             </div>
           )}
         </CardContent>
