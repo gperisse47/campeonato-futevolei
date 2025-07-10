@@ -57,7 +57,7 @@
       "numberOfTeams": 16,
       "numberOfGroups": 4,
       "teamsPerGroupToAdvance": 2,
-      "teams": "Peri e Gularte\nFabinho e Bergallo\nCaslu e Leo\nAlex e Lage\nFelipe M. e Rapha B.\nRodrigo e Paulinho\nCarelli e Hantaro\nNeves e Caze\nGustavo M. e Marcus\nGabe e Yan\nBrenner e Py\nCarril  e Leandro \nRusso e Maki\nJames e Fabio\nSartoratto e Poppe\nOlavo e Dudu",
+      "teams": "Peri e Gularte\nFabinho e Bergallo\nCaslu e Leo\nAlex e Lage\nFelipe M. e Rapha B.\nRodrigo e Paulinho\nCarelli e Hantaro\nNeves e Caze\nGustavo e Marcus\nGabe e Yan\nBrenner e Py\nCarril  e Leandro \nRusso e Maki\nJames e Fabio\nSartoratto e Poppe\nOlavo e Dudu",
       "groupFormationStrategy": "balanced",
       "includeThirdPlace": true,
       "startTime": "09:00"
@@ -476,7 +476,7 @@
                 "player2": "Lage"
               },
               "team2": {
-                "player1": "Gustavo M.",
+                "player1": "Gustavo",
                 "player2": "Marcus"
               },
               "time": ""
@@ -498,7 +498,7 @@
                 "player2": "Maki"
               },
               "team2": {
-                "player1": "Gustavo M.",
+                "player1": "Gustavo",
                 "player2": "Marcus"
               },
               "time": ""
@@ -516,7 +516,7 @@
             },
             {
               "team1": {
-                "player1": "Gustavo M.",
+                "player1": "Gustavo",
                 "player2": "Marcus"
               },
               "team2": {
@@ -537,7 +537,7 @@
               "player2": "Maki"
             },
             {
-              "player1": "Gustavo M.",
+              "player1": "Gustavo",
               "player2": "Marcus"
             },
             {
@@ -568,7 +568,7 @@
             },
             {
               "team": {
-                "player1": "Gustavo M.",
+                "player1": "Gustavo",
                 "player2": "Marcus"
               },
               "played": 0,
