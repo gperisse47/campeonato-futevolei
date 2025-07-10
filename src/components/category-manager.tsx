@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -6,7 +7,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid } from "lucide-react"
-import { format, addMinutes } from 'date-fns';
+import { format, addMinutes, parse } from 'date-fns';
 
 import { getTournaments, saveTournament, deleteTournament } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
@@ -44,8 +45,7 @@ const teamToKey = (team?: Team) => {
 export function CategoryManager() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, numberOfCourts: 2 }})
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, courts: [{name: "Quadra 1"}] }})
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
@@ -122,28 +122,12 @@ export function CategoryManager() {
     setIsLoading(false);
   };
 
-
-  const form = useForm<TournamentFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      category: "Masculino",
-      tournamentType: "groups",
-      numberOfTeams: 16,
-      numberOfGroups: 4,
-      teamsPerGroupToAdvance: 2,
-      teams: "",
-      groupFormationStrategy: "order",
-      includeThirdPlace: true,
-      startTime: "09:00",
-    },
-  });
-
   const scheduleMatches = useCallback((categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData => {
     const { formValues, tournamentData, playoffs } = categoryData;
     const { startTime } = formValues;
-    const { estimatedMatchDuration, numberOfCourts } = globalSettings;
+    const { estimatedMatchDuration, courts } = globalSettings;
 
-    if (!startTime || !estimatedMatchDuration || !numberOfCourts) return categoryData;
+    if (!startTime || !estimatedMatchDuration || !courts || courts.length === 0) return categoryData;
 
     const allMatchesToSchedule: ({ source: string; match: any })[] = [];
 
@@ -170,14 +154,11 @@ export function CategoryManager() {
     }
     
     // 2. Schedule them
-    const courtNextAvailableTime: Date[] = [];
     const baseDate = new Date();
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    
-    for (let i = 0; i < numberOfCourts; i++) {
-        const initialDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), startHour, startMinute);
-        courtNextAvailableTime.push(initialDate);
-    }
+    const courtNextAvailableTime = courts.map(() => {
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        return parse(`${startHour}:${startMinute}`, 'HH:mm', baseDate);
+    });
 
     allMatchesToSchedule.forEach(({ match }) => {
         // Find the court that will be free earliest
@@ -187,6 +168,7 @@ export function CategoryManager() {
 
         const scheduledTime = courtNextAvailableTime[earliestCourtIndex];
         match.time = format(scheduledTime, 'HH:mm');
+        match.court = courts[earliestCourtIndex].name;
 
         // Update the next available time for that court
         courtNextAvailableTime[earliestCourtIndex] = addMinutes(scheduledTime, estimatedMatchDuration);
@@ -349,36 +331,6 @@ export function CategoryManager() {
   
 }, [activeTab, activeCategoryData, getTeamPlaceholder, tournaments]);
 
-  const handleUpdateCategory = async (values: TournamentFormValues) => {
-    if (!activeTab || !activeCategoryData) return;
-
-    setIsUpdating(true);
-    
-    // Create a deep copy to avoid direct state mutation
-    let updatedCategoryData = JSON.parse(JSON.stringify(activeCategoryData));
-
-    // Update form values, but keep the original category name
-    updatedCategoryData.formValues = {
-        ...values,
-        category: activeCategoryData.formValues.category
-    };
-    
-    // Re-schedule matches with new settings
-    updatedCategoryData = scheduleMatches(updatedCategoryData, tournaments._globalSettings);
-
-    // Update the state
-    setTournaments(prev => ({ ...prev, [activeTab!]: updatedCategoryData }));
-
-    // Save the changes
-    await saveData(activeTab!, updatedCategoryData);
-
-    toast({
-        title: "Categoria Atualizada!",
-        description: `As configurações de horário para "${activeTab}" foram atualizadas.`,
-    });
-
-    setIsUpdating(false);
-  };
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
     const newGroups = currentTournamentData.groups.map(group => {
@@ -439,17 +391,13 @@ export function CategoryManager() {
     return { groups: newGroups }
   }
 
-  const handleGroupMatchChange = (groupIndex: number, matchIndex: number, field: 'score1' | 'score2' | 'time', value: string) => {
+  const handleGroupMatchChange = (groupIndex: number, matchIndex: number, field: 'score1' | 'score2', value: string) => {
     if (!activeTab || !activeTournamentData) return;
     let newTournamentData = JSON.parse(JSON.stringify(activeTournamentData));
     
-    if (field === 'time') {
-      newTournamentData.groups[groupIndex].matches[matchIndex].time = value;
-    } else {
-      const score = value === '' ? undefined : parseInt(value, 10);
-      newTournamentData.groups[groupIndex].matches[matchIndex][field] = isNaN(score!) ? undefined : score;
-    }
-
+    const score = value === '' ? undefined : parseInt(value, 10);
+    newTournamentData.groups[groupIndex].matches[matchIndex][field] = isNaN(score!) ? undefined : score;
+    
     const updatedDataWithStandings = calculateStandings(newTournamentData);
     const updatedCategoryData = {
       ...activeCategoryData!,
@@ -464,7 +412,7 @@ export function CategoryManager() {
     saveData(activeTab!, updatedCategoryData);
   }
 
-  const handlePlayoffMatchChange = (bracketKey: keyof PlayoffBracketSet | null, roundName: string, matchIndex: number, field: 'score1' | 'score2' | 'time', value: string) => {
+  const handlePlayoffMatchChange = (bracketKey: keyof PlayoffBracketSet | null, roundName: string, matchIndex: number, field: 'score1' | 'score2', value: string) => {
     if (!activeTab || !activePlayoffs) return;
     let newPlayoffs = JSON.parse(JSON.stringify(activePlayoffs));
 
@@ -475,13 +423,8 @@ export function CategoryManager() {
         matchToUpdate = (newPlayoffs as PlayoffBracket)[roundName][matchIndex];
     }
     
-
-    if (field === 'time') {
-      matchToUpdate.time = value;
-    } else {
-      const score = value === '' ? undefined : parseInt(value, 10);
-      matchToUpdate[field] = isNaN(score!) ? undefined : score;
-    }
+    const score = value === '' ? undefined : parseInt(value, 10);
+    matchToUpdate[field] = isNaN(score!) ? undefined : score;
     
     const updatedCategoryData = {
         ...activeCategoryData!,
@@ -520,15 +463,9 @@ export function CategoryManager() {
       <div className="flex items-center">
         {/* Timeline */}
         <div className="relative w-24 flex-shrink-0 h-full flex justify-center">
-            <div className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
-                <Input 
-                    type="text" 
-                    className="h-8 w-20 text-center bg-background" 
-                    placeholder="00:00"
-                    value={match.time ?? ''}
-                    onChange={(e) => handlePlayoffMatchChange(bracketKey, roundName, matchIndex, 'time', e.target.value)}
-                />
-                <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 text-center">
+                <span className="font-semibold text-sm">{match.time ?? ''}</span>
+                <span className="text-xs text-muted-foreground">{match.court ?? ''}</span>
             </div>
              <div className="w-px bg-border h-full" />
         </div>
@@ -603,12 +540,6 @@ export function CategoryManager() {
     setActiveTab(value);
   };
 
-  // When activeTab changes, update the form with its data
-  useEffect(() => {
-    if (activeCategoryData) {
-        form.reset(activeCategoryData.formValues);
-    }
-  }, [activeCategoryData, form]);
 
   if (!isLoaded) {
     return (
@@ -789,24 +720,19 @@ export function CategoryManager() {
                                         <div className="space-y-2">
                                         {group.matches.map((match, matchIndex) => (
                                             <div key={matchIndex} className="relative flex items-center gap-4">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <Input
-                                                type="text"
-                                                className="h-8 w-20 text-center z-10 relative bg-background"
-                                                placeholder="00:00"
-                                                value={match.time ?? ''}
-                                                onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'time', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="flex-1 flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
-                                                <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
-                                                <div className="flex items-center gap-1">
-                                                    <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
-                                                    <span className="text-muted-foreground">x</span>
-                                                    <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score2', e.target.value)} />
+                                                <div className="flex flex-col items-center gap-1 text-center w-20">
+                                                    <span className="font-semibold text-sm">{match.time ?? ''}</span>
+                                                    <span className="text-xs text-muted-foreground">{match.court ?? ''}</span>
                                                 </div>
-                                                <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
-                                            </div>
+                                                <div className="flex-1 flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                                    <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
+                                                        <span className="text-muted-foreground">x</span>
+                                                        <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score2', e.target.value)} />
+                                                    </div>
+                                                    <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
+                                                </div>
                                             </div>
                                         ))}
                                         </div>

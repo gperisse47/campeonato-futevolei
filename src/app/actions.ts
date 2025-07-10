@@ -1,4 +1,5 @@
 
+
 "use server"
 require('dotenv').config()
 
@@ -21,7 +22,7 @@ async function readDb(): Promise<TournamentsState> {
     if (!data._globalSettings) {
       data._globalSettings = {
         estimatedMatchDuration: 40,
-        numberOfCourts: 2
+        courts: [{ name: "Quadra 1" }]
       };
     }
     return data;
@@ -30,7 +31,7 @@ async function readDb(): Promise<TournamentsState> {
       const defaultData = {
         _globalSettings: {
           estimatedMatchDuration: 40,
-          numberOfCourts: 2
+          courts: [{ name: "Quadra 1" }]
         }
       };
       await writeDb(defaultData);

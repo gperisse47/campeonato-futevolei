@@ -25,15 +25,17 @@ export const teamSchema = z.object({
 });
 export type Team = z.infer<typeof teamSchema>;
 
+export const courtSchema = z.object({
+    name: z.string().min(1, "O nome da quadra é obrigatório."),
+});
+export type Court = z.infer<typeof courtSchema>;
+
 export const globalSettingsSchema = z.object({
   estimatedMatchDuration: z.coerce
       .number({ invalid_type_error: "Deve ser um número." })
       .int("Deve ser um número inteiro.")
       .positive("A duração deve ser positiva."),
-  numberOfCourts: z.coerce
-      .number({ invalid_type_error: "Deve ser um número." })
-      .int("Deve ser um número inteiro.")
-      .min(1, "Deve haver pelo menos uma quadra."),
+  courts: z.array(courtSchema).min(1, "Deve haver pelo menos uma quadra."),
 });
 export type GlobalSettings = z.infer<typeof globalSettingsSchema>;
 
@@ -166,6 +168,7 @@ export type MatchWithScore = AIGenerateTournamentGroupsOutput['groups'][0]['matc
   score1?: number;
   score2?: number;
   time?: string;
+  court?: string;
 };
 
 export type GroupWithScores = Omit<AIGenerateTournamentGroupsOutput['groups'][0], 'matches'> & {
@@ -195,6 +198,7 @@ export type PlayoffMatch = {
   score1?: number;
   score2?: number;
   time?: string;
+  court?: string;
   roundOrder: number; // Used for sorting rounds
 };
 
@@ -230,4 +234,5 @@ export type ConsolidatedMatch = {
     score1?: number;
     score2?: number;
     time?: string;
+    court?: string;
 };

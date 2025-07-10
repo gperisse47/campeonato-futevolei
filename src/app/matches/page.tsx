@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -38,6 +39,7 @@ export default function MatchesPage() {
                     score1: match.score1,
                     score2: match.score2,
                     time: match.time,
+                    court: match.court,
                   });
                 });
               }
@@ -61,6 +63,7 @@ export default function MatchesPage() {
                     score1: match.score1,
                     score2: match.score2,
                     time: match.time,
+                    court: match.court,
                   });
                 });
               });
@@ -123,6 +126,7 @@ export default function MatchesPage() {
                 <TableRow>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Horário</TableHead>
+                  <TableHead>Quadra</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead className="text-right">Dupla 1</TableHead>
                   <TableHead className="text-center">Placar</TableHead>
@@ -134,6 +138,7 @@ export default function MatchesPage() {
                   <TableRow key={`${match.category}-${match.stage}-${index}`}>
                     <TableCell className="font-medium">{match.category}</TableCell>
                     <TableCell>{match.time || ''}</TableCell>
+                    <TableCell>{match.court || ''}</TableCell>
                     <TableCell>{match.stage}</TableCell>
                     <TableCell className="text-right">{match.team1}</TableCell>
                     <TableCell className="text-center font-bold">

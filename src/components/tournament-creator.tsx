@@ -1,12 +1,13 @@
 
+
 "use client"
 
 import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { useForm, useForm as useFormGlobal } from "react-hook-form"
+import { useForm, useFieldArray, useForm as useFormGlobal } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, RefreshCcw, Settings } from "lucide-react"
-import { format, addMinutes } from 'date-fns';
+import { Loader2, RefreshCcw, Settings, Trash2 } from "lucide-react"
+import { format, addMinutes, parse } from 'date-fns';
 
 import { getTournaments, saveTournament, generateGroupsAction, saveGlobalSettings } from "@/app/actions"
 import type { TournamentData, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
@@ -40,7 +41,7 @@ export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingGlobal, setIsSavingGlobal] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, numberOfCourts: 2 }})
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, courts: [{ name: 'Quadra 1' }] }})
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -112,8 +113,13 @@ Olavo e Dudu`,
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: {
         estimatedMatchDuration: 40,
-        numberOfCourts: 2,
+        courts: [],
     }
+  });
+
+   const { fields, append, remove } = useFieldArray({
+    control: globalSettingsForm.control,
+    name: "courts",
   });
   
   const tournamentType = form.watch("tournamentType");
@@ -134,7 +140,7 @@ Olavo e Dudu`,
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
       return {
         ...group,
-        matches: group.matches.map(match => ({ ...match, score1: undefined, score2: undefined, time: '' })),
+        matches: group.matches.map(match => ({ ...match, score1: undefined, score2: undefined, time: '', court: '' })),
         standings: sortedStandings
       }
     })
@@ -153,9 +159,9 @@ Olavo e Dudu`,
   const scheduleMatches = useCallback((categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData => {
     const { formValues, tournamentData, playoffs } = categoryData;
     const { startTime } = formValues;
-    const { estimatedMatchDuration, numberOfCourts } = globalSettings;
+    const { estimatedMatchDuration, courts } = globalSettings;
 
-    if (!startTime || !estimatedMatchDuration || !numberOfCourts) return categoryData;
+    if (!startTime || !estimatedMatchDuration || !courts || courts.length === 0) return categoryData;
 
     const allMatchesToSchedule: ({ source: string; match: any })[] = [];
 
@@ -182,14 +188,11 @@ Olavo e Dudu`,
     }
     
     // 2. Schedule them
-    const courtNextAvailableTime: Date[] = [];
     const baseDate = new Date();
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    
-    for (let i = 0; i < numberOfCourts; i++) {
-        const initialDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), startHour, startMinute);
-        courtNextAvailableTime.push(initialDate);
-    }
+    const courtNextAvailableTime = courts.map(() => {
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        return parse(`${startHour}:${startMinute}`, 'HH:mm', baseDate);
+    });
 
     allMatchesToSchedule.forEach(({ match }) => {
         // Find the court that will be free earliest
@@ -199,6 +202,7 @@ Olavo e Dudu`,
 
         const scheduledTime = courtNextAvailableTime[earliestCourtIndex];
         match.time = format(scheduledTime, 'HH:mm');
+        match.court = courts[earliestCourtIndex].name;
 
         // Update the next available time for that court
         courtNextAvailableTime[earliestCourtIndex] = addMinutes(scheduledTime, estimatedMatchDuration);
@@ -730,19 +734,36 @@ Olavo e Dudu`,
                                   </FormItem>
                               )}
                           />
-                          <FormField
-                              control={globalSettingsForm.control}
-                              name="numberOfCourts"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>Nº de Quadras</FormLabel>
-                                      <FormControl>
-                                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
-                                      </FormControl>
-                                      <FormMessage />
+                      </div>
+                      <div className="space-y-4">
+                        <Label>Quadras</Label>
+                        {fields.map((field, index) => (
+                           <div key={field.id} className="flex items-center gap-2">
+                             <FormField
+                                control={globalSettingsForm.control}
+                                name={`courts.${index}.name`}
+                                render={({ field }) => (
+                                  <FormItem className="flex-1">
+                                    <FormControl>
+                                      <Input placeholder={`Nome da Quadra ${index + 1}`} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
                                   </FormItem>
-                              )}
-                          />
+                                )}
+                              />
+                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                             </Button>
+                           </div>
+                        ))}
+                         <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => append({ name: `Quadra ${fields.length + 1}` })}>
+                            Adicionar Quadra
+                        </Button>
                       </div>
                       <Button type="submit" disabled={isSavingGlobal} className="w-full">
                           {isSavingGlobal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

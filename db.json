@@ -2,7 +2,14 @@
 {
   "_globalSettings": {
     "estimatedMatchDuration": 40,
-    "numberOfCourts": 2
+    "courts": [
+      {
+        "name": "Quadra 1"
+      },
+      {
+        "name": "Quadra 2"
+      }
+    ]
   },
   "Masculino": {
     "formValues": {
