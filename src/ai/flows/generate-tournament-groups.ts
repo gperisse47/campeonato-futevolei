@@ -79,9 +79,10 @@ Teams:
 {{/each}}
 
 {{#if isGroups}}
-First, generate the groups by distributing the teams as evenly as possible among the {{{numberOfGroups}}} groups. Adhere to the '{{{groupFormationStrategy}}}' when assigning teams. For 'order', the top seeds should be in different groups. For 'random', the distribution is arbitrary. The output for each team must include both player names.
-After forming the groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
-The final output should contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
+Your first step is to ensure the groups are balanced. Divide the total number of teams ({{{numberOfTeams}}}) by the number of groups ({{{numberOfGroups}}}) to determine the size of each group. Distribute the teams to create groups of equal size, or as close to equal as possible (e.g., for 10 teams and 3 groups, create two groups of 3 and one of 4).
+Once the group sizes are determined, populate them with the teams using the '{{{groupFormationStrategy}}}' strategy. For 'order', the top seeds should be in different groups. For 'random', the distribution is arbitrary.
+After forming the balanced groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
+The final output must contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
 {{else}}
 {{#if isSingleElimination}}
 You need to create the first round of a single elimination (mata-mata) tournament.
