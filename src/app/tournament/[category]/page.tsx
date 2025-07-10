@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -167,13 +168,13 @@ export default function TournamentPage({ params }: { params: { category: string 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const categoryName = decodeURIComponent(params.category);
-
     useEffect(() => {
+        const decodedCategory = decodeURIComponent(params.category);
+        
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                const tournamentData = await getTournamentByCategory(categoryName);
+                const tournamentData = await getTournamentByCategory(decodedCategory);
                 if (tournamentData) {
                     setData(tournamentData);
                 } else {
@@ -191,7 +192,7 @@ export default function TournamentPage({ params }: { params: { category: string 
         const intervalId = setInterval(fetchData, 5000); // Poll every 5 seconds
 
         return () => clearInterval(intervalId); // Cleanup on component unmount
-    }, [categoryName]);
+    }, [params.category]);
 
     if (isLoading) {
         return (
@@ -218,11 +219,12 @@ export default function TournamentPage({ params }: { params: { category: string 
     }
 
     const { tournamentData, playoffs, formValues } = data;
+    const categoryName = decodeURIComponent(params.category);
 
     return (
         <div className="container mx-auto p-4 space-y-8">
             <div className="text-center">
-                <h1 className="text-4xl font-bold tracking-tight text-primary">{formValues.category}</h1>
+                <h1 className="text-4xl font-bold tracking-tight text-primary">{categoryName}</h1>
                 <p className="text-lg text-muted-foreground">Acompanhe os resultados e a classificação em tempo real.</p>
             </div>
 
