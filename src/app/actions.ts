@@ -1,5 +1,4 @@
 
-
 "use server"
 import 'dotenv/config';
 
@@ -106,7 +105,7 @@ export async function saveTournament(categoryName: string, data: CategoryData): 
     }
 }
 
-const baseDate = new Date();
+const baseDate = new Date('1970-01-01T00:00:00');
 const parseTime = (timeStr: string) => {
     if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) {
       console.error("Invalid time string for parsing:", timeStr);
@@ -124,26 +123,27 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
     try {
         const db = await readDb();
         const { _globalSettings } = db;
+        if (!_globalSettings?.courts || _globalSettings.courts.length === 0) {
+            return { success: false, error: "Nenhuma quadra configurada nas configurações globais." };
+        }
+
         const categoryNames = Object.keys(db).filter(k => k !== '_globalSettings');
         const matchDuration = _globalSettings.estimatedMatchDuration;
 
-        // Reset all schedules
+        // 1. Reset all schedules
         categoryNames.forEach(catName => {
             const catData = db[catName] as CategoryData;
-            catData.tournamentData?.groups.forEach(group => {
-                group.matches.forEach(match => {
-                    match.time = '';
-                    match.court = '';
-                });
-            });
-            const processBracket = (bracket: PlayoffBracket | undefined) => {
-                if (!bracket) return;
-                Object.values(bracket).flat().forEach(match => {
-                    match.time = '';
-                    match.court = '';
-                });
+             const resetMatchTime = (match: MatchWithScore | PlayoffMatch) => {
+                match.time = '';
+                match.court = '';
             };
-             if (catData.playoffs) {
+            catData.tournamentData?.groups.forEach(group => group.matches.forEach(resetMatchTime));
+            
+            if (catData.playoffs) {
+                const processBracket = (bracket: PlayoffBracket | undefined) => {
+                    if (!bracket) return;
+                    Object.values(bracket).flat().forEach(resetMatchTime);
+                };
                 const bracketSet = catData.playoffs as PlayoffBracketSet;
                 processBracket(bracketSet.upper);
                 processBracket(bracketSet.lower);
@@ -151,55 +151,58 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             }
         });
         
-        type MatchReference = (MatchWithScore | PlayoffMatch) & { categoryName: string, isPlayoff: boolean, players: string[] };
+        // Helper to get all players from a match
+        const getPlayers = (team1?: Team, team2?: Team): string[] => {
+            const players: string[] = [];
+            if (team1?.player1) players.push(team1.player1);
+            if (team1?.player2) players.push(team1.player2);
+            if (team2?.player1) players.push(team2.player1);
+            if (team2?.player2) players.push(team2.player2);
+            return players;
+        };
 
-        let unscheduledMatches: MatchReference[] = [];
+        // 2. Gather all matches
+        let unscheduledMatches: (MatchWithScore | PlayoffMatch)[] = [];
         categoryNames.forEach(catName => {
             const catData = db[catName] as CategoryData;
-            const getPlayers = (team1?: Team, team2?: Team): string[] => {
-                const players: string[] = [];
-                if (team1?.player1) players.push(team1.player1);
-                if (team1?.player2) players.push(team1.player2);
-                if (team2?.player1) players.push(team2.player1);
-                if (team2?.player2) players.push(team2.player2);
-                return players;
-            };
-
-            const groupMatches = catData.tournamentData?.groups.flatMap(group =>
-                group.matches.map(match => ({ ...match, categoryName: catName, isPlayoff: false, players: getPlayers(match.team1, match.team2) }))
-            ) || [];
-
-            let playoffMatches: MatchReference[] = [];
-            const collectPlayoffMatches = (bracket: PlayoffBracket | undefined) => {
-                if (!bracket) return;
-                Object.values(bracket).flat().forEach(match => {
-                    playoffMatches.push({ ...match, categoryName: catName, isPlayoff: true, players: getPlayers(match.team1, match.team2) });
-                });
+            const groupMatches = catData.tournamentData?.groups.flatMap(g => g.matches) || [];
+            
+            let playoffMatches: PlayoffMatch[] = [];
+            if (catData.playoffs) {
+                 const collectPlayoffMatches = (bracket: PlayoffBracket | undefined) => {
+                    if (!bracket) return;
+                    Object.values(bracket).flat().forEach(match => playoffMatches.push(match));
+                }
+                const bracketSet = catData.playoffs as PlayoffBracketSet;
+                collectPlayoffMatches(bracketSet.upper);
+                collectPlayoffMatches(bracketSet.lower);
+                collectPlayoffMatches(bracketSet.playoffs);
             }
-             if (catData.playoffs) {
-                 const bracketSet = catData.playoffs as PlayoffBracketSet;
-                 collectPlayoffMatches(bracketSet.upper);
-                 collectPlayoffMatches(bracketSet.lower);
-                 collectPlayoffMatches(bracketSet.playoffs);
-            }
-
             unscheduledMatches.push(...groupMatches, ...playoffMatches);
         });
 
+        // 3. Scheduling loop
         let currentTime = parseTime(_globalSettings.startTime);
         const playerAvailability: { [playerName: string]: Date } = {};
+        const restDuration = matchDuration; // Player must rest for one match duration
 
         let matchesScheduledInLoop;
         do {
             matchesScheduledInLoop = 0;
-            const scheduledMatchesForThisTime: MatchReference[] = [];
+            const scheduledMatchesThisTime: (MatchWithScore | PlayoffMatch)[] = [];
+            const occupiedCourtsThisTime: string[] = [];
+
 
             for (const court of _globalSettings.courts) {
+                 if (occupiedCourtsThisTime.includes(court.name)) {
+                    continue; // Skip if court is already booked for this time slot
+                }
+                
                 let isCourtInSlot = false;
                 for (const slot of court.slots) {
                     const slotStart = parseTime(slot.startTime);
                     const slotEnd = parseTime(slot.endTime);
-                    if (isBefore(addMinutes(currentTime, matchDuration), addMinutes(slotEnd, 1)) && !isBefore(currentTime, slotStart)) {
+                     if (isBefore(addMinutes(currentTime, matchDuration), addMinutes(slotEnd, 1)) && !isBefore(currentTime, slotStart)) {
                          isCourtInSlot = true;
                          break;
                     }
@@ -207,25 +210,44 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 if (!isCourtInSlot) continue;
 
                 const candidateMatch = unscheduledMatches.find(match => {
-                    if (scheduledMatchesForThisTime.some(scheduled => scheduled.id === match.id)) {
-                        return false; 
-                    }
-                    if (match.players.length === 0) return false;
+                    if (match.time) return false; // Already scheduled
 
-                    const categoryStartTime = parseTime((db[match.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime);
+                    const players = getPlayers(match.team1, match.team2);
+                    if (players.length < 4 && !(match.team1Placeholder && match.team2Placeholder)) {
+                         return false; // Not ready to be scheduled
+                    }
+
+                    // Find category start time
+                    let categoryStartTimeStr = "00:00";
+                    for(const catName of categoryNames){
+                        const catData = db[catName] as CategoryData;
+                        const findMatchInCategory = (m: MatchWithScore | PlayoffMatch) => {
+                             if ('id' in m && 'id' in match && m.id === match.id) return true;
+                             if (teamIsEqual(m.team1, match.team1) && teamIsEqual(m.team2, match.team2)) return true;
+                             return false;
+                        }
+
+                        if(catData.tournamentData?.groups.some(g => g.matches.some(findMatchInCategory)) ||
+                           (catData.playoffs && Object.values(catData.playoffs as PlayoffBracket).flat().some(findMatchInCategory))) {
+                            categoryStartTimeStr = catData.formValues.startTime || _globalSettings.startTime;
+                            break;
+                        }
+                    }
+
+                    const categoryStartTime = parseTime(categoryStartTimeStr);
                     if (isBefore(currentTime, categoryStartTime)) {
                         return false;
                     }
                     
-                    const playersAreAvailable = match.players.every(p => {
+                    const playersAreAvailable = players.every(p => {
                          const availableTime = playerAvailability[p] || new Date(0);
                          return !isBefore(currentTime, availableTime);
                     });
                     
                     if (!playersAreAvailable) return false;
 
-                    const playersAreNotInAnotherMatchThisTime = match.players.every(p => 
-                        !scheduledMatchesForThisTime.some(scheduled => scheduled.players.includes(p))
+                    const playersAreNotInAnotherMatchThisTime = players.every(p => 
+                        !scheduledMatchesThisTime.some(scheduled => getPlayers(scheduled.team1, scheduled.team2).includes(p))
                     );
 
                     return playersAreNotInAnotherMatchThisTime;
@@ -233,57 +255,35 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
                 if (candidateMatch) {
                     const timeStr = format(currentTime, 'HH:mm');
-                    const matchEndTime = addMinutes(currentTime, matchDuration);
-                    const playerRestEndTime = addMinutes(matchEndTime, matchDuration); 
-
-                    // Find and update the original match object in the db structure
-                     let originalMatch: (MatchWithScore | PlayoffMatch | undefined);
-                     const categoryData = db[candidateMatch.categoryName] as CategoryData;
-                     
-                     if(!candidateMatch.isPlayoff){ 
-                        for (const group of categoryData.tournamentData?.groups || []) {
-                           originalMatch = group.matches.find(m => 
-                               teamIsEqual(m.team1, candidateMatch.team1) && 
-                               teamIsEqual(m.team2, candidateMatch.team2) &&
-                               !m.time);
-                           if (originalMatch) break;
-                        }
-                     } else {
-                        const findInBracket = (bracket: PlayoffBracket | undefined) => {
-                            if (!bracket) return undefined;
-                            return Object.values(bracket).flat().find(m => m.id === candidateMatch.id && !m.time);
-                        }
-                        const bracketSet = categoryData.playoffs as PlayoffBracketSet;
-                        originalMatch = findInBracket(bracketSet.upper) || findInBracket(bracketSet.lower) || findInBracket(bracketSet.playoffs);
-                     }
+                    candidateMatch.time = timeStr;
+                    candidateMatch.court = court.name;
                     
-                     if (originalMatch) {
-                        originalMatch.time = timeStr;
-                        originalMatch.court = court.name;
-                        
-                        // Update player availability
-                        candidateMatch.players.forEach(p => {
-                            playerAvailability[p] = playerRestEndTime;
-                        });
-
-                        scheduledMatchesForThisTime.push(candidateMatch);
-                        unscheduledMatches = unscheduledMatches.filter(m => m !== candidateMatch);
-                        matchesScheduledInLoop++;
-                     }
+                    const matchEndTime = addMinutes(currentTime, matchDuration);
+                    const playerRestEndTime = addMinutes(matchEndTime, restDuration);
+                    
+                    const players = getPlayers(candidateMatch.team1, candidateMatch.team2);
+                    players.forEach(p => {
+                        playerAvailability[p] = playerRestEndTime;
+                    });
+                    
+                    scheduledMatchesThisTime.push(candidateMatch);
+                    occupiedCourtsThisTime.push(court.name);
+                    matchesScheduledInLoop++;
                 }
             }
 
             if (matchesScheduledInLoop === 0) {
                  currentTime = addMinutes(currentTime, matchDuration);
             }
+            // Safety break to prevent infinite loops
              if (isBefore(parseTime("23:59"), currentTime)) {
                 break;
             }
 
-        } while (unscheduledMatches.length > 0);
+        } while (unscheduledMatches.some(m => !m.time));
         
-        if (unscheduledMatches.length > 0) {
-            console.warn(`${unscheduledMatches.length} matches could not be scheduled.`);
+        if (unscheduledMatches.some(m => !m.time)) {
+             console.warn(`${unscheduledMatches.filter(m=>!m.time).length} matches could not be scheduled.`);
         }
 
         await writeDb(db);
@@ -368,7 +368,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
@@ -528,3 +528,5 @@ export async function updateTeamInTournament(
     return { success: false, error: e.message || "Ocorreu um erro desconhecido ao atualizar a dupla." };
   }
 }
+
+    
