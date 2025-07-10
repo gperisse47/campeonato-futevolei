@@ -1,5 +1,6 @@
 
 "use server"
+require('dotenv').config()
 
 import fs from "fs/promises"
 import path from "path"
@@ -103,6 +104,7 @@ export async function generateGroupsAction(
 export async function verifyPassword(password: string): Promise<{ success: boolean }> {
   const correctPassword = process.env.ADMIN_PASSWORD || "1234";
   if (!correctPassword) {
+    // This case should be less likely now with dotenv
     console.error("ADMIN_PASSWORD is not set in .env file");
     return { success: false };
   }
