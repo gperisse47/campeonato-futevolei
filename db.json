@@ -4,10 +4,22 @@
     "estimatedMatchDuration": 40,
     "courts": [
       {
-        "name": "Quadra 1"
+        "name": "Quadra 1",
+        "slots": [
+          {
+            "startTime": "09:00",
+            "endTime": "18:00"
+          }
+        ]
       },
       {
-        "name": "Quadra 2"
+        "name": "Quadra 2",
+        "slots": [
+          {
+            "startTime": "09:00",
+            "endTime": "18:00"
+          }
+        ]
       }
     ]
   },

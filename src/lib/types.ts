@@ -25,8 +25,18 @@ export const teamSchema = z.object({
 });
 export type Team = z.infer<typeof teamSchema>;
 
+export const timeSlotSchema = z.object({
+    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
+    endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
+}).refine(data => data.startTime < data.endTime, {
+    message: "O horário final deve ser após o horário inicial.",
+    path: ["endTime"],
+});
+export type TimeSlot = z.infer<typeof timeSlotSchema>;
+
 export const courtSchema = z.object({
     name: z.string().min(1, "O nome da quadra é obrigatório."),
+    slots: z.array(timeSlotSchema).min(1, "Deve haver pelo menos um horário disponível para a quadra."),
 });
 export type Court = z.infer<typeof courtSchema>;
 

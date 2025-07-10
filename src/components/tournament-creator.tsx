@@ -41,7 +41,7 @@ export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingGlobal, setIsSavingGlobal] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, courts: [{ name: 'Quadra 1' }] }})
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -121,6 +121,8 @@ Olavo e Dudu`,
     control: globalSettingsForm.control,
     name: "courts",
   });
+
+  
   
   const tournamentType = form.watch("tournamentType");
 
@@ -158,57 +160,94 @@ Olavo e Dudu`,
 
   const scheduleMatches = useCallback((categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData => {
     const { formValues, tournamentData, playoffs } = categoryData;
-    const { startTime } = formValues;
+    const { startTime: categoryStartTime } = formValues;
     const { estimatedMatchDuration, courts } = globalSettings;
 
-    if (!startTime || !estimatedMatchDuration || !courts || courts.length === 0) return categoryData;
+    if (!categoryStartTime || !estimatedMatchDuration || !courts || courts.length === 0) {
+        return categoryData;
+    }
 
     const allMatchesToSchedule: ({ source: string; match: any })[] = [];
 
-    // 1. Collect all matches
     if (formValues.tournamentType === 'groups' && tournamentData?.groups) {
-      tournamentData.groups.forEach(group => {
-        group.matches.forEach(match => allMatchesToSchedule.push({ source: 'group', match }));
-      });
+        tournamentData.groups.forEach(group => {
+            group.matches.forEach(match => allMatchesToSchedule.push({ source: 'group', match }));
+        });
+    }
+    if (playoffs) {
+        const collectPlayoffMatches = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
+            if (!bracket) return;
+            if ('upper' in bracket || 'lower' in bracket || 'playoffs' in bracket) {
+                const bracketSet = bracket as PlayoffBracketSet;
+                collectPlayoffMatches(bracketSet.upper);
+                collectPlayoffMatches(bracketSet.lower);
+                collectPlayoffMatches(bracketSet.playoffs);
+                return;
+            }
+            Object.values(bracket as PlayoffBracket).flat().sort((a, b) => (a.roundOrder || 0) - (b.roundOrder || 0)).forEach(match => allMatchesToSchedule.push({ source: 'playoff', match }));
+        }
+        collectPlayoffMatches(playoffs);
     }
 
-    if (playoffs) {
-      const collectPlayoffMatches = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
-          if (!bracket) return;
-          if ('upper' in bracket || 'lower' in bracket || 'playoffs' in bracket) {
-            const bracketSet = bracket as PlayoffBracketSet;
-            collectPlayoffMatches(bracketSet.upper);
-            collectPlayoffMatches(bracketSet.lower);
-            collectPlayoffMatches(bracketSet.playoffs);
-            return;
-          }
-           Object.values(bracket as PlayoffBracket).flat().sort((a,b) => (a.roundOrder || 0) - (b.roundOrder || 0)).forEach(match => allMatchesToSchedule.push({ source: 'playoff', match }));
-      }
-      collectPlayoffMatches(playoffs);
-    }
-    
-    // 2. Schedule them
     const baseDate = new Date();
-    const courtNextAvailableTime = courts.map(() => {
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        return parse(`${startHour}:${startMinute}`, 'HH:mm', baseDate);
-    });
+    const parseTime = (timeStr: string) => {
+        const [h, m] = timeStr.split(':').map(Number);
+        return parse(`${h}:${m}`, 'HH:mm', baseDate);
+    };
+
+    const courtAvailability = courts.map((court, index) => ({
+        index,
+        name: court.name,
+        slots: court.slots.map(slot => ({
+            start: parseTime(slot.startTime),
+            end: parseTime(slot.endTime)
+        })).sort((a, b) => a.start.getTime() - b.start.getTime()),
+        nextAvailableTime: parseTime(categoryStartTime)
+    }));
 
     allMatchesToSchedule.forEach(({ match }) => {
-        // Find the court that will be free earliest
-        const earliestCourtIndex = courtNextAvailableTime.reduce((earliestIndex, currentTime, index, array) => {
-            return currentTime < array[earliestIndex] ? index : earliestIndex;
-        }, 0);
+        let bestCourtIndex = -1;
+        let bestTime: Date | null = null;
 
-        const scheduledTime = courtNextAvailableTime[earliestCourtIndex];
-        match.time = format(scheduledTime, 'HH:mm');
-        match.court = courts[earliestCourtIndex].name;
+        for (let i = 0; i < courtAvailability.length; i++) {
+            const court = courtAvailability[i];
+            let potentialStartTime = court.nextAvailableTime;
 
-        // Update the next available time for that court
-        courtNextAvailableTime[earliestCourtIndex] = addMinutes(scheduledTime, estimatedMatchDuration);
+            let slotFound = false;
+            for (const slot of court.slots) {
+                if (potentialStartTime < slot.start) {
+                    potentialStartTime = slot.start;
+                }
+
+                const potentialEndTime = addMinutes(potentialStartTime, estimatedMatchDuration);
+
+                if (potentialEndTime <= slot.end) {
+                    slotFound = true;
+                    break; 
+                }
+            }
+            
+            if (slotFound) {
+                 if (bestTime === null || potentialStartTime < bestTime) {
+                    bestTime = potentialStartTime;
+                    bestCourtIndex = i;
+                }
+            }
+        }
+        
+        if (bestCourtIndex !== -1 && bestTime) {
+            const assignedCourt = courtAvailability[bestCourtIndex];
+            match.time = format(bestTime, 'HH:mm');
+            match.court = assignedCourt.name;
+            assignedCourt.nextAvailableTime = addMinutes(bestTime, estimatedMatchDuration);
+        } else {
+            // Fallback or error handling if no slot can be found
+            match.time = 'N/A';
+            match.court = 'N/A';
+        }
     });
 
-    return categoryData; // Return the mutated data
+    return categoryData;
 }, []);
 
 
@@ -226,18 +265,22 @@ Olavo e Dudu`,
     if (values.groupFormationStrategy === 'random') {
         teams.sort(() => Math.random() - 0.5);
     }
+    
+    // For "order" strategy, we reverse to match traditional seeding (1 vs N, 2 vs N-1)
+    if (values.groupFormationStrategy === 'order') {
+        // No need to reverse, the logic will pit first against last
+    }
 
     const bracketSize = Math.pow(2, Math.ceil(Math.log2(numTeams)));
     const byes = bracketSize - numTeams;
 
     // Separate teams that play from teams that get a bye
     const teamsWithBye = values.groupFormationStrategy === 'order'
-        ? teams.slice(numTeams - byes) // Last teams get the bye
-        : teams.slice(0, byes);        // First teams get the bye (random)
-    
+        ? teams.slice(0, byes) // Top teams get the bye
+        : teams.slice(numTeams - byes); // Last teams (in random order) get the bye
+
     const teamsInFirstRound = teams.filter(team => !teamsWithBye.some(byeTeam => teamToKey(byeTeam) === teamToKey(team)));
-
-
+    
     const upperBracket: PlayoffBracket = {};
     let wbRoundCounter = 1;
 
@@ -264,6 +307,9 @@ Olavo e Dudu`,
       currentUpperRoundTeamsPlaceholders.push(...round1Matches.map(m => `Vencedor ${m.id}`));
     }
     
+    // Ensure the placeholders are ordered correctly for seeding
+    currentUpperRoundTeamsPlaceholders.sort();
+
     wbRoundCounter++;
 
     while (currentUpperRoundTeamsPlaceholders.length > 1) {
@@ -296,23 +342,15 @@ Olavo e Dudu`,
         wbLosersByRound[r] = wbMatches.map(m => `Perdedor ${m.id}`);
     }
 
-    // Handle byes propagating to losers
-    const round2Matches = upperBracket[`Upper Rodada 2`] || [];
-    const byeLoserPlaceholders: (string | null)[] = teamsWithBye.map(team => {
-        const matchWithByeTeam = round2Matches.find(m => m.team1Placeholder === teamToKey(team) || m.team2Placeholder === teamToKey(team));
-        // Find the placeholder for the match the bye team played in round 2
-        return matchWithByeTeam ? `Perdedor ${matchWithByeTeam.id}` : null;
-    });
-
     let lbRoundCounter = 1;
     let lbSurvivors: (string | null)[] = [];
 
     // LB Round 1: Only has losers from WB Round 1
-    const lbRound1Name = `Lower Rodada ${lbRoundCounter}`;
-    const lbRound1Matches: PlayoffMatch[] = [];
     const r1Losers = wbLosersByRound[1] || [];
     
     if (r1Losers.length > 0) {
+      const lbRound1Name = `Lower Rodada ${lbRoundCounter}`;
+      const lbRound1Matches: PlayoffMatch[] = [];
       for (let i = 0; i < r1Losers.length / 2; i++) {
         lbRound1Matches.push({
             id: `L-R${lbRoundCounter}-${i+1}`, name: `${lbRound1Name} Jogo ${i+1}`,
@@ -321,59 +359,40 @@ Olavo e Dudu`,
             time: '', roundOrder: -(lbRoundCounter * 2),
         });
       }
-      lowerBracket[lbRound1Name] = lbRound1Matches;
+      if(lbRound1Matches.length > 0) lowerBracket[lbRound1Name] = lbRound1Matches;
       lbSurvivors = lbRound1Matches.map(m => `Vencedor ${m.id}`);
       lbRoundCounter++;
     }
 
     // LB Subsequent Rounds
     for (let wbR = 2; wbR < wbRoundCounter; wbR++) {
-        // Round where losers drop down
-        let losersFromWb = (wbLosersByRound[wbR] || []).filter(p => p !== null) as string[];
-
-        // Check if a bye from WB Round 1 needs to propagate to a bye in LB
-        const matchForByeTeamInR2 = round2Matches.find(m => teamsWithBye.some(bt => m.team1Placeholder === teamToKey(bt) || m.team2Placeholder === teamToKey(bt)));
-        if (matchForByeTeamInR2) {
-            const byePlaceholder = `Perdedor ${matchForByeTeamInR2.id}`;
-            const index = losersFromWb.indexOf(byePlaceholder);
-            if(index > -1) {
-                losersFromWb.splice(index, 1); // remove it from dropdowns
-            }
-        }
+        // Drop-down round
+        let contenders = [...lbSurvivors, ...(wbLosersByRound[wbR] || [])].filter(Boolean) as string[];
         
-        let contenders = [...lbSurvivors, ...losersFromWb].reverse();
-
-        // If we have an odd number of contenders, one must get a bye
-        let byeTeamPlaceholder: string | null = null;
-        if(contenders.length % 2 !== 0){
-            byeTeamPlaceholder = contenders.pop()!;
-        }
-
         const dropDownRoundName = `Lower Rodada ${lbRoundCounter}`;
         const dropDownRoundMatches: PlayoffMatch[] = [];
-        for (let i = 0; i < contenders.length / 2; i++) {
-            dropDownRoundMatches.push({
-                id: `L-R${lbRoundCounter}-${i + 1}`, name: `${dropDownRoundName} Jogo ${i + 1}`,
-                team1Placeholder: contenders[i]!,
-                team2Placeholder: contenders[contenders.length - 1 - i]!,
-                time: '', roundOrder: -(lbRoundCounter * 2),
-            });
+        if (contenders.length > 0) {
+            for (let i = 0; i < contenders.length / 2; i++) {
+                dropDownRoundMatches.push({
+                    id: `L-R${lbRoundCounter}-${i + 1}`, name: `${dropDownRoundName} Jogo ${i + 1}`,
+                    team1Placeholder: contenders[i]!,
+                    team2Placeholder: contenders[contenders.length - 1 - i]!,
+                    time: '', roundOrder: -(lbRoundCounter * 2),
+                });
+            }
         }
         if (dropDownRoundMatches.length > 0) {
             lowerBracket[dropDownRoundName] = dropDownRoundMatches;
         }
 
         let currentSurvivors = dropDownRoundMatches.map(m => `Vencedor ${m.id}`);
-        if(byeTeamPlaceholder) {
-            currentSurvivors.push(byeTeamPlaceholder);
-        }
         lbRoundCounter++;
 
-        // Round where only survivors play each other
-        const internalRoundName = `Lower Rodada ${lbRoundCounter}`;
-        const internalRoundMatches: PlayoffMatch[] = [];
+        // Internal survivor round
         if (currentSurvivors.length > 1) {
-            for (let i = 0; i < currentSurvivors.length / 2; i++) {
+            const internalRoundName = `Lower Rodada ${lbRoundCounter}`;
+            const internalRoundMatches: PlayoffMatch[] = [];
+             for (let i = 0; i < currentSurvivors.length / 2; i++) {
                 internalRoundMatches.push({
                     id: `L-R${lbRoundCounter}-${i + 1}`, name: `${internalRoundName} Jogo ${i + 1}`,
                     team1Placeholder: currentSurvivors[i]!,
@@ -384,8 +403,11 @@ Olavo e Dudu`,
              if (internalRoundMatches.length > 0) {
                 lowerBracket[internalRoundName] = internalRoundMatches;
             }
+            lbSurvivors = internalRoundMatches.map(m => `Vencedor ${m.id}`);
+        } else {
+           lbSurvivors = currentSurvivors;
         }
-        lbSurvivors = internalRoundMatches.length > 0 ? internalRoundMatches.map(m => `Vencedor ${m.id}`) : currentSurvivors;
+
         lbRoundCounter++;
     }
     
@@ -399,13 +421,17 @@ Olavo e Dudu`,
     ];
 
     if (values.includeThirdPlace) {
-       const wbFinalLoserPlaceholder = `Perdedor ${upperBracket[`Upper Rodada ${wbRoundCounter-1}`]?.[0]?.id}`;
-       const lbFinalLoserPlaceholder = `Perdedor ${lowerBracket[`Lower Rodada ${lbRoundCounter-2}`]?.[0]?.id}`;
+       // Find the semi-finals of both brackets to determine 3rd/4th place candidates
+       const wbFinalRoundName = `Upper Rodada ${wbRoundCounter - 1}`;
+       const lbFinalRoundName = `Lower Rodada ${lbRoundCounter - 2}`; // The last round with matches before the final survivor
        
-        if (wbFinalLoserPlaceholder && lbFinalLoserPlaceholder) {
+       const wbSemiFinalistLoser = `Perdedor ${upperBracket[wbFinalRoundName]?.[0]?.id}`;
+       const lbSemiFinalistLoser = `Perdedor ${lowerBracket[lbFinalRoundName]?.[0]?.id}`;
+
+        if (wbSemiFinalistLoser && lbSemiFinalistLoser) {
             const thirdPlaceName = "Disputa de 3º Lugar";
             finalPlayoffs[thirdPlaceName] = [
-                { id: '3P-1', name: thirdPlaceName, team1Placeholder: wbFinalLoserPlaceholder, team2Placeholder: lbFinalLoserPlaceholder, time: '', roundOrder: 0 }
+                { id: '3P-1', name: thirdPlaceName, team1Placeholder: wbSemiFinalistLoser, team2Placeholder: lbSemiFinalistLoser, time: '', roundOrder: 0 }
             ];
         }
     }
@@ -707,6 +733,57 @@ Olavo e Dudu`,
     );
   }
 
+  const CourtSlots = ({ courtIndex }: { courtIndex: number }) => {
+    const { fields: slotFields, append: appendSlot, remove: removeSlot } = useFieldArray({
+        control: globalSettingsForm.control,
+        name: `courts.${courtIndex}.slots`,
+    });
+
+    return (
+        <div className="pl-4 border-l-2 border-muted ml-4 mt-2 space-y-2">
+            {slotFields.map((slot, slotIndex) => (
+                <div key={slot.id} className="flex items-center gap-2">
+                    <FormField
+                        control={globalSettingsForm.control}
+                        name={`courts.${courtIndex}.slots.${slotIndex}.startTime`}
+                        render={({ field }) => (
+                            <FormItem className="flex-1">
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <span className="text-muted-foreground">-</span>
+                     <FormField
+                        control={globalSettingsForm.control}
+                        name={`courts.${courtIndex}.slots.${slotIndex}.endTime`}
+                        render={({ field }) => (
+                            <FormItem className="flex-1">
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSlot(slotIndex)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+            ))}
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendSlot({ startTime: '09:00', endTime: '18:00' })}>
+                Adicionar Horário
+            </Button>
+        </div>
+    );
+};
+
 
   return (
     <div className="flex flex-col gap-8">
@@ -720,40 +797,42 @@ Olavo e Dudu`,
           <CardContent>
               <Form {...globalSettingsForm}>
                   <form onSubmit={globalSettingsForm.handleSubmit(handleSaveGlobalSettings)} className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                              control={globalSettingsForm.control}
-                              name="estimatedMatchDuration"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>Duração (min)</FormLabel>
-                                      <FormControl>
-                                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
-                                      </FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                      </div>
-                      <div className="space-y-4">
-                        <Label>Quadras</Label>
-                        {fields.map((field, index) => (
-                           <div key={field.id} className="flex items-center gap-2">
-                             <FormField
-                                control={globalSettingsForm.control}
-                                name={`courts.${index}.name`}
-                                render={({ field }) => (
-                                  <FormItem className="flex-1">
+                       <FormField
+                            control={globalSettingsForm.control}
+                            name="estimatedMatchDuration"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Duração Estimada da Partida (min)</FormLabel>
                                     <FormControl>
-                                      <Input placeholder={`Nome da Quadra ${index + 1}`} {...field} />
+                                        <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                                     </FormControl>
                                     <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                             </Button>
+                                </FormItem>
+                            )}
+                        />
+                      <div className="space-y-4">
+                        <Label>Quadras e Horários Disponíveis</Label>
+                        {fields.map((field, index) => (
+                           <div key={field.id} className="p-4 border rounded-md space-y-2">
+                             <div className="flex items-center gap-2">
+                                <FormField
+                                  control={globalSettingsForm.control}
+                                  name={`courts.${index}.name`}
+                                  render={({ field }) => (
+                                    <FormItem className="flex-1">
+                                      <FormLabel>Nome da Quadra {index + 1}</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder={`Ex: Quadra Principal`} {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                               <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                               </Button>
+                             </div>
+                             <CourtSlots courtIndex={index} />
                            </div>
                         ))}
                          <Button
@@ -761,7 +840,7 @@ Olavo e Dudu`,
                             variant="outline"
                             size="sm"
                             className="mt-2"
-                            onClick={() => append({ name: `Quadra ${fields.length + 1}` })}>
+                            onClick={() => append({ name: `Quadra ${fields.length + 1}`, slots: [{startTime: "09:00", endTime: "18:00"}] })}>
                             Adicionar Quadra
                         </Button>
                       </div>
