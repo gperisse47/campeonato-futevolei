@@ -84,6 +84,14 @@ export default function MatchesPage() {
               }
             }
           }
+
+          // Sort matches by time
+          allMatchesData.sort((a, b) => {
+            if (!a.time || a.time === 'N/A') return 1;
+            if (!b.time || b.time === 'N/A') return -1;
+            return a.time.localeCompare(b.time);
+          });
+
           setAllMatches(allMatchesData);
           setFilteredMatches(allMatchesData); // Initialize filtered list
         }
@@ -146,9 +154,9 @@ export default function MatchesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Categoria</TableHead>
                   <TableHead>Horário</TableHead>
                   <TableHead>Quadra</TableHead>
+                  <TableHead>Categoria</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead className="text-right">Dupla 1</TableHead>
                   <TableHead className="text-center">Placar</TableHead>
@@ -158,9 +166,9 @@ export default function MatchesPage() {
               <TableBody>
                 {filteredMatches.map((match, index) => (
                   <TableRow key={`${match.category}-${match.stage}-${index}`}>
-                    <TableCell className="font-medium">{match.category}</TableCell>
                     <TableCell>{match.time || ''}</TableCell>
                     <TableCell>{match.court || ''}</TableCell>
+                    <TableCell className="font-medium">{match.category}</TableCell>
                     <TableCell>{match.stage}</TableCell>
                     <TableCell className="text-right">{match.team1}</TableCell>
                     <TableCell className="text-center font-bold">
