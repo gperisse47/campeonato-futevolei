@@ -167,7 +167,7 @@ export default function MatchesPage() {
                         {match.score1 !== undefined && match.score2 !== undefined ? (
                            `${match.score1} x ${match.score2}`
                         ) : (
-                            'vs'
+                            'x'
                         )}
                     </TableCell>
                     <TableCell>{match.team2}</TableCell>

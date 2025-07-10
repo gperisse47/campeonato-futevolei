@@ -45,9 +45,9 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
             <div className="flex flex-col items-center justify-center text-center gap-2">
               {showMatchName && <h4 className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{match.name}</h4>}
                {(match.time || match.court) && (
-                  <div className="flex items-center gap-4 text-xs font-bold text-primary">
-                      {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
-                      {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
+                  <div className="flex items-center gap-4 text-sm font-bold text-primary">
+                      {match.time && <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {match.time}</span>}
+                      {match.court && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {match.court}</span>}
                   </div>
               )}
             </div>
@@ -58,7 +58,7 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
                         <span className={`text-left pr-2 text-sm flex-1`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
                         <span className="h-8 w-14 shrink-0 text-center font-bold flex items-center justify-center">{match.score1}</span>
                     </div>
-                    <div className="text-muted-foreground text-xs text-center py-1">vs</div>
+                    <div className="text-muted-foreground text-xs text-center py-1">x</div>
                     <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
                         <span className={`text-left pr-2 text-sm flex-1`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
                         <span className="h-8 w-14 shrink-0 text-center font-bold flex items-center justify-center">{match.score2}</span>
@@ -67,7 +67,7 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
                ) : (
                 <div className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                     <span className="flex-1 text-right">{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
-                    <span className="text-muted-foreground font-bold text-xs px-2">vs</span>
+                    <span className="text-muted-foreground font-bold text-xs px-2">x</span>
                     <span className="flex-1 text-left">{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
                 </div>
                )}
@@ -162,9 +162,9 @@ const GroupCard = ({ group, teamsPerGroupToAdvance }: { group: GroupWithScores, 
                     {group.matches.map((match, matchIndex) => (
                         <div key={matchIndex} className="flex flex-col gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                             {(match.time || match.court) && (
-                                <div className="flex items-center justify-center gap-4 text-xs font-bold text-primary">
-                                    {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
-                                    {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
+                                <div className="flex items-center justify-center gap-4 text-sm font-bold text-primary">
+                                    {match.time && <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {match.time}</span>}
+                                    {match.court && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {match.court}</span>}
                                 </div>
                             )}
                             <div className="flex items-center justify-between gap-2">
@@ -176,7 +176,7 @@ const GroupCard = ({ group, teamsPerGroupToAdvance }: { group: GroupWithScores, 
                                         <span>{match.score2}</span>
                                     </div>
                                 ) : (
-                                    <span className="text-muted-foreground font-bold text-xs">vs</span>
+                                    <span className="text-muted-foreground font-bold text-xs">x</span>
                                 )}
                                 <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
                             </div>
