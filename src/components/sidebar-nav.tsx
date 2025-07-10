@@ -98,7 +98,7 @@ export function SidebarNav() {
                 </SidebarMenuItem>
                  <SidebarMenuItem>
                     <Link href="/admin/gerenciador" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/gerenciador'} tooltip="Gerenciador de Torneios">
+                        <SidebarMenuButton isActive={pathname === '/admin/gerenciador'} tooltip="Gerenciador de Categorias">
                             <LayoutGrid />
                             <span>Gerenciador</span>
                         </SidebarMenuButton>

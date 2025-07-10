@@ -2,10 +2,12 @@
 "use client"
 
 import * as React from 'react';
-import { GroupGenerator } from "@/components/group-generator";
+import { CategoryManager } from "@/components/category-manager";
 import { LoginPage } from "@/components/login-page";
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function TournamentManagerPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,12 +27,15 @@ export default function TournamentManagerPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Gerador de Torneios</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Gerenciador de Categorias</h1>
         <p className="text-muted-foreground">
-          Preencha os detalhes do torneio para gerar os torneios automaticamente.
+          Gerencie os jogos, resultados e horários das categorias existentes. Para criar uma nova, vá para o {' '}
+          <Button variant="link" asChild className="p-0 h-auto">
+             <Link href="/admin">Painel do Administrador</Link>
+          </Button>.
         </p>
       </div>
-      <GroupGenerator />
+      <CategoryManager />
     </div>
   );
 }
