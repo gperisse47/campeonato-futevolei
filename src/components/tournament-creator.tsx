@@ -39,7 +39,7 @@ const teamToKey = (team?: Team) => {
 export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "09:00", estimatedMatchDuration: 40, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 

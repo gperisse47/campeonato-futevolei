@@ -34,7 +34,7 @@ export function GlobalSettings() {
   const globalSettingsForm = useFormGlobal<GlobalSettingsType>({
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: {
-        startTime: "09:00",
+        startTime: "08:00",
         estimatedMatchDuration: 20,
         courts: [],
     }
