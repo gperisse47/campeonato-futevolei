@@ -1156,89 +1156,11 @@
     "tournamentData": {
       "groups": [
         {
-          "matches": [
-            {
-              "team1": {
-                "player1": "Jordana",
-                "player2": "Fabinho"
-              },
-              "team2": {
-                "player1": "Sofia",
-                "player2": "Caio"
-              },
-              "time": "",
-              "court": ""
-            },
-            {
-              "team1": {
-                "player1": "Jordana",
-                "player2": "Fabinho"
-              },
-              "team2": {
-                "player1": "Mari",
-                "player2": "Neves"
-              },
-              "time": "",
-              "court": ""
-            },
-            {
-              "team1": {
-                "player1": "Jordana",
-                "player2": "Fabinho"
-              },
-              "team2": {
-                "player1": "Carla",
-                "player2": "Henrique"
-              },
-              "time": "",
-              "court": ""
-            },
-            {
-              "team1": {
-                "player1": "Sofia",
-                "player2": "Caio"
-              },
-              "team2": {
-                "player1": "Mari",
-                "player2": "Neves"
-              },
-              "time": "",
-              "court": ""
-            },
-            {
-              "team1": {
-                "player1": "Sofia",
-                "player2": "Caio"
-              },
-              "team2": {
-                "player1": "Carla",
-                "player2": "Henrique"
-              },
-              "time": "",
-              "court": ""
-            },
-            {
-              "team1": {
-                "player1": "Mari",
-                "player2": "Neves"
-              },
-              "team2": {
-                "player1": "Carla",
-                "player2": "Henrique"
-              },
-              "time": "",
-              "court": ""
-            }
-          ],
-          "name": "Grupo A",
+          "name": "Group A",
           "teams": [
             {
               "player1": "Jordana",
               "player2": "Fabinho"
-            },
-            {
-              "player1": "Sofia",
-              "player2": "Caio"
             },
             {
               "player1": "Mari",
@@ -1249,6 +1171,44 @@
               "player2": "Henrique"
             }
           ],
+          "matches": [
+            {
+              "team1": {
+                "player1": "Jordana",
+                "player2": "Fabinho"
+              },
+              "team2": {
+                "player1": "Mari",
+                "player2": "Neves"
+              },
+              "time": "",
+              "court": ""
+            },
+            {
+              "team1": {
+                "player1": "Jordana",
+                "player2": "Fabinho"
+              },
+              "team2": {
+                "player1": "Carla",
+                "player2": "Henrique"
+              },
+              "time": "",
+              "court": ""
+            },
+            {
+              "team1": {
+                "player1": "Mari",
+                "player2": "Neves"
+              },
+              "team2": {
+                "player1": "Carla",
+                "player2": "Henrique"
+              },
+              "time": "",
+              "court": ""
+            }
+          ],
           "standings": [
             {
               "team": {
@@ -1279,20 +1239,25 @@
               "wins": 0,
               "setsWon": 0,
               "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Sofia",
-                "player2": "Caio"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
             }
           ]
         },
         {
+          "name": "Group B",
+          "teams": [
+            {
+              "player1": "Paula",
+              "player2": "Carelli"
+            },
+            {
+              "player1": "Sofia",
+              "player2": "Caio"
+            },
+            {
+              "player1": "Ana",
+              "player2": "Brenner"
+            }
+          ],
           "matches": [
             {
               "team1": {
@@ -1300,8 +1265,8 @@
                 "player2": "Carelli"
               },
               "team2": {
-                "player1": "Ana",
-                "player2": "Brenner"
+                "player1": "Sofia",
+                "player2": "Caio"
               },
               "time": "",
               "court": ""
@@ -1320,8 +1285,8 @@
             },
             {
               "team1": {
-                "player1": "Paula",
-                "player2": "Carelli"
+                "player1": "Sofia",
+                "player2": "Caio"
               },
               "team2": {
                 "player1": "Ana",
@@ -1329,17 +1294,6 @@
               },
               "time": "",
               "court": ""
-            }
-          ],
-          "name": "Grupo B",
-          "teams": [
-            {
-              "player1": "Paula",
-              "player2": "Carelli"
-            },
-            {
-              "player1": "Ana",
-              "player2": "Brenner"
             }
           ],
           "standings": [
@@ -1357,6 +1311,16 @@
               "team": {
                 "player1": "Paula",
                 "player2": "Carelli"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Sofia",
+                "player2": "Caio"
               },
               "played": 0,
               "wins": 0,
@@ -1417,6 +1381,6 @@
       "groupFormationStrategy": "order",
       "includeThirdPlace": true
     },
-    "totalMatches": 13
+    "totalMatches": 10
   }
 }

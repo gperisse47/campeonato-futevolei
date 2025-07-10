@@ -102,11 +102,17 @@ Sartoratto e Poppe
 Olavo e Dudu`,
       groupFormationStrategy: "order",
       includeThirdPlace: true,
+      startTime: "09:00",
     },
   })
 
   const tournamentType = form.watch("tournamentType");
   const teamsInput = form.watch("teams");
+
+   useEffect(() => {
+    const teamsArray = teamsInput.split('\n').map(t => t.trim()).filter(Boolean);
+    form.setValue('numberOfTeams', teamsArray.length);
+  }, [teamsInput, form]);
 
   useEffect(() => {
     if (tournamentType === 'doubleElimination') {
@@ -663,7 +669,7 @@ Olavo e Dudu`,
                   <FormItem>
                     <FormLabel>Nº de Duplas</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -711,12 +717,28 @@ Olavo e Dudu`,
                     <Textarea
                       placeholder="Jogador A e Jogador B"
                       className="min-h-[120px] resize-y"
-                      rows={form.watch('numberOfTeams') > 0 ? form.watch('numberOfTeams') : 4}
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Use o formato: Jogador1 e Jogador2
+                    Total: {form.getValues('numberOfTeams')} duplas. Use o formato: Jogador1 e Jogador2
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+             <FormField
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Horário de Início da Categoria (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} />
+                  </FormControl>
+                   <FormDescription>
+                    Se deixado em branco, usará o horário de início global.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

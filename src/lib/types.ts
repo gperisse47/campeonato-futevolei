@@ -2,11 +2,11 @@
 
 import type {
   GenerateTournamentGroupsInput as AIGenerateTournamentGroupsInput,
-  GenerateTournamentGroupsOutput,
 } from "@/ai/flows/generate-tournament-groups"
 import { z } from "zod"
 
-export type { GenerateTournamentGroupsOutput };
+// This is now an algorithmic output, not from AI.
+export type GenerateTournamentGroupsOutput = z.infer<typeof AlgorithmicGenerateTournamentGroupsOutputSchema>;
 
 // We only need a subset of the AI input type for the action
 export type GenerateTournamentGroupsInput = AIGenerateTournamentGroupsInput;
@@ -76,7 +76,7 @@ export const formSchema = z
     },
     {
       message: "O número de duplas na lista não corresponde ao número total de duplas informado.",
-      path: ["numberOfTeams"],
+      path: ["teams"],
     }
   )
    .refine(
@@ -165,6 +165,21 @@ export const formSchema = z
   );
 
 export type TournamentFormValues = z.infer<typeof formSchema>;
+
+// Zod schema for the output of the algorithmic group generation.
+export const AlgorithmicGenerateTournamentGroupsOutputSchema = z.object({
+  groups: z.array(
+    z.object({
+      name: z.string(),
+      teams: z.array(z.object({ player1: z.string(), player2: z.string() })),
+      matches: z.array(z.object({ 
+        team1: z.object({ player1: z.string(), player2: z.string() }),
+        team2: z.object({ player1: z.string(), player2: z.string() })
+      })),
+    })
+  ),
+  playoffMatches: z.array(z.any()).optional(), // Keep playoffMatches flexible or define schema if needed
+});
 
 // This is the AI output type, redefined here since we can't import it
 type AIOutputGroup = {
