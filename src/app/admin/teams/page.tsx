@@ -120,7 +120,7 @@ export default function TeamsPage() {
     if (result.success) {
       toast({
         title: "Dupla Atualizada!",
-        description: "Os nomes dos integrantes foram atualizados com sucesso.",
+        description: "Os nomes dos jogadores foram atualizados com sucesso.",
       });
       await loadTeams(); // Reload all teams to reflect the change
       setEditingTeam(null);
@@ -186,8 +186,8 @@ export default function TeamsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome da Dupla</TableHead>
-                  <TableHead>Integrante 1</TableHead>
-                  <TableHead>Integrante 2</TableHead>
+                  <TableHead>Jogador 1</TableHead>
+                  <TableHead>Jogador 2</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -230,7 +230,7 @@ export default function TeamsPage() {
                 <Input value={editingTeam.original.category} disabled />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="player1">Integrante 1</Label>
+                <Label htmlFor="player1">Jogador 1</Label>
                 <Input
                   id="player1"
                   value={editingTeam.updated.player1}
@@ -238,7 +238,7 @@ export default function TeamsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="player2">Integrante 2</Label>
+                <Label htmlFor="player2">Jogador 2</Label>
                 <Input
                   id="player2"
                   value={editingTeam.updated.player2}

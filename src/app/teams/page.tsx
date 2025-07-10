@@ -90,8 +90,8 @@ export default function PublicTeamsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Integrante 1</TableHead>
-                  <TableHead>Integrante 2</TableHead>
+                  <TableHead>Jogador 1</TableHead>
+                  <TableHead>Jogador 2</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
