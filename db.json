@@ -1291,16 +1291,6 @@
             "time": "",
             "roundOrder": 2
           }
-        ],
-        "Disputa de 3º Lugar": [
-          {
-            "id": "terceiro-lugar-1",
-            "name": "Disputa de 3º Lugar",
-            "team1Placeholder": "Perdedor Semifinal 1",
-            "team2Placeholder": "Perdedor Semifinal 2",
-            "time": "",
-            "roundOrder": 0
-          }
         ]
       },
       "lower": {
@@ -1379,7 +1369,7 @@
             "time": "",
             "team1Placeholder": "Vencedor Lower Rodada 2 Jogo 1",
             "team2Placeholder": "Vencedor Lower Rodada 2 Jogo 2",
-            "roundOrder": -3.5
+            "roundOrder": -2.5
           },
           {
             "id": "L-R3-2",
@@ -1387,7 +1377,7 @@
             "time": "",
             "team1Placeholder": "Vencedor Lower Rodada 2 Jogo 3",
             "team2Placeholder": "Vencedor Lower Rodada 2 Jogo 4",
-            "roundOrder": -3.5
+            "roundOrder": -2.5
           }
         ],
         "Lower Rodada 4": [
@@ -1397,22 +1387,22 @@
             "time": "",
             "team1Placeholder": "Vencedor Lower Rodada 3 Jogo 1",
             "team2Placeholder": "Vencedor Lower Rodada 3 Jogo 2",
-            "roundOrder": -4
+            "roundOrder": -2.5
           },
           {
             "id": "L-R4-2",
             "name": "Lower Rodada 4 Jogo 2",
             "time": "",
-            "team1Placeholder": "Perdedor Disputa de 3º Lugar",
-            "team2Placeholder": "Perdedor Semifinal 1",
-            "roundOrder": -4
+            "team1Placeholder": "Perdedor Semifinal 1",
+            "team2Placeholder": "Perdedor Semifinal 2",
+            "roundOrder": -2.5
           }
         ]
       },
       "playoffs": {
         "Semifinal": [
           {
-            "id": "Semifinal-1",
+            "id": "Final-Semifinal-1",
             "name": "Semifinal 1",
             "team1Placeholder": "Vencedor Semifinal 1",
             "team2Placeholder": "Vencedor Lower Rodada 4 Jogo 2",
@@ -1420,7 +1410,7 @@
             "roundOrder": 2
           },
           {
-            "id": "Semifinal-2",
+            "id": "Final-Semifinal-2",
             "name": "Semifinal 2",
             "team1Placeholder": "Vencedor Semifinal 2",
             "team2Placeholder": "Vencedor Lower Rodada 4 Jogo 1",

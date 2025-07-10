@@ -102,7 +102,7 @@ const Bracket = ({ playoffs, title }: { playoffs: PlayoffBracket, title?: string
                                     key={match.id}
                                     match={match}
                                     roundName={roundName}
-                                    isFinalRound={roundName.includes('Final') || roundName.includes('Semifinal') || roundName.includes('Disputa de 3º Lugar')}
+                                    isFinalRound={roundName.includes('Final') || roundName.includes('Disputa de 3º Lugar')}
                                 />
                             ))}
                         </CardContent>
@@ -286,3 +286,4 @@ export default function TournamentPage() {
         </div>
     );
 }
+

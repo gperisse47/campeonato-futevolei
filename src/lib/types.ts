@@ -196,3 +196,4 @@ export type ConsolidatedMatch = {
     score2?: number;
     time?: string;
 };
+
