@@ -910,7 +910,7 @@ export function GroupGenerator() {
                         <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
                     ))}
                 </TabsList>
-                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between">
+                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                      <div className="w-48 sm:hidden">
                        <Select value={activeTab} onValueChange={handleTabChange}>
                         <SelectTrigger>
@@ -923,11 +923,6 @@ export function GroupGenerator() {
                         </SelectContent>
                       </Select>
                     </div>
-                     <Button variant="outline" size="sm" asChild>
-                        <Link href={`/tournament/${encodeURIComponent(activeTab)}`} target="_blank">
-                           Ver Página <ExternalLink className="ml-2 h-4 w-4" />
-                        </Link>
-                     </Button>
                  </div>
               </div>
               {Object.keys(tournaments).map(categoryName => {
