@@ -26,9 +26,9 @@ const GenerateTournamentGroupsInputSchema = z.object({
   numberOfTeams: z.number().describe('The number of teams participating in the tournament.'),
   numberOfGroups: z.number().optional().describe('The number of groups to divide the teams into. Only for group stage tournaments.'),
   groupFormationStrategy: z
-    .enum(['balanced', 'random'])
+    .enum(['order', 'random'])
     .describe(
-      'The strategy for forming groups or seeding: balanced to ensure groups/matches are balanced, random for arbitrary assignment.'
+      'The strategy for forming groups or seeding: order to ensure groups/matches are balanced, random for arbitrary assignment.'
     ),
   teams: z.array(TeamSchema).describe('The teams participating in the tournament, with their players.'),
   category: z.string().describe('The category of the tournament (e.g., Masculino, Misto).'),
@@ -77,13 +77,13 @@ The final output should contain the groups, the teams within each group, and the
 
 {{#if isSingleElimination}}
 You need to create the first round of a single elimination (mata-mata) tournament.
-Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'balanced', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
+Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
 {{/if}}
 
 {{#if isDoubleElimination}}
 You need to create the first round of the upper bracket for a double elimination tournament.
-Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'balanced', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
+Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the first-round matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
 {{/if}}
 `,

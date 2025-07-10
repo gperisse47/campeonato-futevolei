@@ -42,7 +42,7 @@ export const formSchema = z
       .int("Deve ser um número inteiro.")
       .min(1, "Deve classificar pelo menos uma dupla.").optional(),
     teams: z.string().min(1, "A lista de duplas é obrigatória."),
-    groupFormationStrategy: z.enum(["balanced", "random"], {
+    groupFormationStrategy: z.enum(["order", "random"], {
       required_error: "A estratégia de formação é obrigatória.",
     }),
     includeThirdPlace: z.boolean().default(true),
