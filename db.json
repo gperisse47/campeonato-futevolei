@@ -1,27 +1,54 @@
-
 {
   "_globalSettings": {
-    "estimatedMatchDuration": 40,
+    "estimatedMatchDuration": 20,
     "courts": [
       {
-        "name": "Quadra 1",
+        "name": "GP1",
         "slots": [
           {
-            "startTime": "09:00",
+            "startTime": "08:00",
             "endTime": "18:00"
           }
         ]
       },
       {
-        "name": "Quadra 2",
+        "name": "GP2",
         "slots": [
           {
-            "startTime": "09:00",
+            "startTime": "08:00",
             "endTime": "18:00"
           }
         ]
+      },
+      {
+        "name": "GP3",
+        "slots": [
+          {
+            "startTime": "08:00",
+            "endTime": "18:00"
+          }
+        ]
+      },
+      {
+        "name": "HD1",
+        "slots": [
+          {
+            "startTime": "08:00",
+            "endTime": "12:00"
+          }
+        ]
+      },
+      {
+        "name": "HD2",
+        "slots": [
+          {
+            "startTime": "08:00",
+            "endTime": "12:00"
+          }
+        ]
       }
-    ]
+    ],
+    "startTime": "08:00"
   },
   "Masculino": {
     "formValues": {

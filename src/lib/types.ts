@@ -71,7 +71,6 @@ export const formSchema = z
       required_error: "A estratégia de formação é obrigatória.",
     }),
     includeThirdPlace: z.boolean().default(true),
-    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
     updatedAt: z.string().optional(),
   })
   .refine(
@@ -121,7 +120,6 @@ export const formSchema = z
       
       const numGroups = data.numberOfGroups;
       const teamsPerGroup = Math.floor(data.numberOfTeams / numGroups);
-      const extraTeams = data.numberOfTeams % numGroups;
       
       // The smallest group will have teamsPerGroup teams.
       // If teamsPerGroupToAdvance is equal or greater, it's invalid.

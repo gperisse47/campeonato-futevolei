@@ -102,7 +102,6 @@ Sartoratto e Poppe
 Olavo e Dudu`,
       groupFormationStrategy: "order",
       includeThirdPlace: true,
-      startTime: "09:00",
     },
   })
 
@@ -111,16 +110,11 @@ Olavo e Dudu`,
   useEffect(() => {
     const teamsList = form.watch('teams').split('\n').map(t => t.trim()).filter(Boolean);
     form.setValue('numberOfTeams', teamsList.length, { shouldValidate: true });
-    
-    // Set default start time from global settings if available
-    if (tournaments._globalSettings?.startTime) {
-        form.setValue('startTime', tournaments._globalSettings.startTime, { shouldValidate: true });
-    }
 
     if (tournamentType === 'doubleElimination') {
       form.setValue('includeThirdPlace', true, { shouldValidate: true });
     }
-  }, [form, tournamentType, tournaments._globalSettings?.startTime]);
+  }, [form, tournamentType]);
 
   const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
     return groups.map(group => {
@@ -150,10 +144,10 @@ Olavo e Dudu`,
 
   const scheduleMatches = useCallback((categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData => {
     const { formValues, tournamentData, playoffs } = categoryData;
-    const { startTime: categoryStartTime } = formValues;
+    const { startTime } = globalSettings;
     const { estimatedMatchDuration, courts } = globalSettings;
 
-    if (!categoryStartTime || !estimatedMatchDuration || !courts || courts.length === 0) {
+    if (!startTime || !estimatedMatchDuration || !courts || courts.length === 0) {
         return categoryData;
     }
 
@@ -192,7 +186,7 @@ Olavo e Dudu`,
             start: parseTime(slot.startTime),
             end: parseTime(slot.endTime)
         })).sort((a, b) => a.start.getTime() - b.start.getTime()),
-        nextAvailableTime: parseTime(categoryStartTime)
+        nextAvailableTime: parseTime(startTime)
     }));
 
     allMatchesToSchedule.forEach(({ match }) => {
@@ -700,19 +694,6 @@ Olavo e Dudu`,
                   <FormMessage />
                 </FormItem>
               )}
-            />
-             <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Horário de Início da Categoria</FormLabel>
-                    <FormControl>
-                        <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
             />
             
             <FormField
