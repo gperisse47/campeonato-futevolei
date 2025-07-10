@@ -64,6 +64,7 @@ const PromptInputSchema = GenerateTournamentGroupsInputSchema.extend({
 
 const generateTournamentGroupsPrompt = ai.definePrompt({
   name: 'generateTournamentGroupsPrompt',
+  model: 'googleai/gemini-1.5-flash-preview-0514',
   input: {schema: PromptInputSchema},
   output: {schema: GenerateTournamentGroupsOutputSchema},
   prompt: `You are a tournament organizer. Your task is to generate the structure for a futevolei tournament.
