@@ -192,139 +192,150 @@ Olavo e Dudu`,
     return `${position}º do Grupo ${groupLetter}`;
   }, []);
 
-  const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues, aiResult: GenerateTournamentGroupsOutput): PlayoffBracketSet | null => {
-        if (!aiResult?.playoffMatches) return null;
+ const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues, aiResult: GenerateTournamentGroupsOutput): PlayoffBracketSet | null => {
+    if (!aiResult?.playoffMatches) return null;
 
-        const numTeams = values.numberOfTeams;
-        if (numTeams < 4) return null;
+    const numTeams = values.numberOfTeams;
+    if (numTeams < 4) return null;
 
-        const upperBracket: PlayoffBracket = {};
-        const lowerBracket: PlayoffBracket = {};
-        const playoffs: PlayoffBracket = {};
-        const losersByRound: { [round: number]: string[] } = {};
+    const upperBracket: PlayoffBracket = {};
+    const lowerBracket: PlayoffBracket = {};
+    const finalPlayoffs: PlayoffBracket = {};
+    const losersByRound: { [round: number]: string[] } = {};
 
-        // 1. Build Upper Bracket
-        let upperRound = 1;
-        let roundOrder = Math.ceil(Math.log2(numTeams));
-        let currentUpperRoundMatches: PlayoffMatch[] = aiResult.playoffMatches.map((match, i) => ({
-            id: `U-R${upperRound}-Jogo${i + 1}`,
-            name: `Upper Rodada ${upperRound} Jogo ${i + 1}`,
-            team1: match.team1,
-            team2: match.team2,
-            team1Placeholder: teamToKey(match.team1),
-            team2Placeholder: teamToKey(match.team2),
-            time: '',
-            roundOrder: roundOrder,
-        }));
-        upperBracket[`Upper Rodada ${upperRound}`] = currentUpperRoundMatches;
-        losersByRound[upperRound] = currentUpperRoundMatches.map(m => `Perdedor ${m.name}`);
+    // 1. Build Upper Bracket
+    let upperRound = 1;
+    let teamsInUpperRound = numTeams;
+    let roundOrder = Math.ceil(Math.log2(numTeams));
+    
+    let currentUpperRoundMatches: PlayoffMatch[] = aiResult.playoffMatches.map((match, i) => ({
+        id: `U-R${upperRound}-Jogo${i + 1}`,
+        name: `Upper Rodada ${upperRound} Jogo ${i + 1}`,
+        team1: match.team1,
+        team2: match.team2,
+        team1Placeholder: teamToKey(match.team1),
+        team2Placeholder: teamToKey(match.team2),
+        time: '',
+        roundOrder: roundOrder,
+    }));
+    upperBracket[`Upper Rodada ${upperRound}`] = currentUpperRoundMatches;
+    losersByRound[upperRound] = currentUpperRoundMatches.map(m => `Perdedor ${m.name}`);
+    
+    // Loop to create subsequent upper bracket rounds
+    while (teamsInUpperRound > 2) {
+        upperRound++;
+        roundOrder--;
+        const previousRoundMatches = upperBracket[`Upper Rodada ${upperRound - 1}`];
+        const nextRoundMatches: PlayoffMatch[] = [];
         
-        let upperTeamsInRound = numTeams / 2;
+        for (let i = 0; i < Math.floor(previousRoundMatches.length / 2); i++) {
+            const matchName = `Upper Rodada ${upperRound} Jogo ${i + 1}`;
+            nextRoundMatches.push({
+                id: `U-R${upperRound}-Jogo${i + 1}`,
+                name: matchName,
+                team1Placeholder: `Vencedor ${previousRoundMatches[i * 2].name}`,
+                team2Placeholder: `Vencedor ${previousRoundMatches[i * 2 + 1].name}`,
+                time: '',
+                roundOrder: roundOrder,
+            });
+        }
+        
+        if (nextRoundMatches.length > 0) {
+            upperBracket[`Upper Rodada ${upperRound}`] = nextRoundMatches;
+            losersByRound[upperRound] = nextRoundMatches.map(m => `Perdedor ${m.name}`);
+        }
+        
+        teamsInUpperRound = nextRoundMatches.length * 2;
+    }
 
-        while (upperTeamsInRound > 1) { // Creates rounds until 2 teams are left
-            const nextRoundWinners = [];
-            for (let i = 0; i < Math.floor(currentUpperRoundMatches.length / 2); i++) {
-                 nextRoundWinners.push(`Vencedor ${currentUpperRoundMatches[i * 2].name}`);
-                 if (currentUpperRoundMatches[i * 2 + 1]) {
-                    nextRoundWinners.push(`Vencedor ${currentUpperRoundMatches[i * 2 + 1].name}`);
-                 }
-            }
+    const finalUpperRoundName = `Upper Rodada ${upperRound}`;
+    const wbFinalists = upperBracket[finalUpperRoundName];
+    const wbClassificado1 = `Vencedor ${wbFinalists[0].name}`;
+    const wbClassificado2 = `Perdedor ${wbFinalists[0].name}`;
 
-            upperRound++;
-            roundOrder--;
-            const roundName = `Upper Rodada ${upperRound}`;
-            const nextRoundMatches: PlayoffMatch[] = [];
-            for (let i = 0; i < nextRoundWinners.length / 2; i++) {
-                const matchName = `${roundName} Jogo ${i + 1}`;
-                nextRoundMatches.push({
-                    id: `U-R${upperRound}-Jogo${i + 1}`,
-                    name: matchName,
-                    team1Placeholder: nextRoundWinners[i * 2],
-                    team2Placeholder: nextRoundWinners[i * 2 + 1],
-                    time: '',
-                    roundOrder: roundOrder,
-                });
-            }
-            if(nextRoundMatches.length > 0){
-                upperBracket[roundName] = nextRoundMatches;
-                losersByRound[upperRound] = nextRoundMatches.map(m => `Perdedor ${m.name}`);
-            }
-            currentUpperRoundMatches = nextRoundMatches;
-            upperTeamsInRound /= 2;
+
+    // 2. Build Lower Bracket
+    let lowerRound = 1;
+    let lowerRoundOrder = -1;
+    let currentTeamsInLower: string[] = [...(losersByRound[1] || [])];
+    let upperLoserRoundToProcess = 2;
+
+    while (currentTeamsInLower.length > 2) {
+        const roundName = `Lower Rodada ${lowerRound}`;
+        const roundMatches: PlayoffMatch[] = [];
+        let matchCounter = 1;
+
+        // Process teams already in the lower bracket
+        for (let i = 0; i < Math.floor(currentTeamsInLower.length / 2); i++) {
+            roundMatches.push({
+                id: `L-R${lowerRound}-Jogo${matchCounter}`,
+                name: `${roundName} Jogo ${matchCounter}`,
+                team1Placeholder: currentTeamsInLower[i * 2],
+                team2Placeholder: currentTeamsInLower[i * 2 + 1],
+                time: '',
+                roundOrder: lowerRoundOrder,
+            });
+            matchCounter++;
+        }
+        
+        if (roundMatches.length > 0) {
+            lowerBracket[roundName] = roundMatches;
         }
 
-        const wbFinalistsPlaceholders = currentUpperRoundMatches.map(m => `Vencedor ${m.name}`);
-        const wbClassificado1 = wbFinalistsPlaceholders[0] || 'Classificado 1 da WB';
-        const wbClassificado2 = wbFinalistsPlaceholders[1] || 'Classificado 2 da WB';
-
-        // 2. Build Lower Bracket
-        let lowerRound = 1;
-        let lowerRoundOrder = -1;
-        let currentLowerRoundTeams: string[] = [...(losersByRound[1] || [])];
-        let upperLoserRoundIndex = 2;
-
-        while(currentLowerRoundTeams.length > 2) {
-             const roundName = `Lower Rodada ${lowerRound}`;
-             const roundMatches: PlayoffMatch[] = [];
-
-            // Elimination round for existing lower bracket teams
-            for (let i = 0; i < Math.floor(currentLowerRoundTeams.length / 2); i++) {
-                const matchName = `${roundName} Jogo ${i + 1}`;
-                roundMatches.push({
+        let nextTeamsInLower = roundMatches.map(m => `Vencedor ${m.name}`);
+        
+        // Drop-down losers from the upper bracket for the next lower round
+        const newLosersFromUpper = losersByRound[upperLoserRoundToProcess] || [];
+        if (newLosersFromUpper.length > 0) {
+            // The next lower round will match survivors with new losers
+            lowerRound++;
+            lowerRoundOrder--;
+            const nextRoundName = `Lower Rodada ${lowerRound}`;
+            const nextRoundMatches: PlayoffMatch[] = [];
+            
+            for (let i = 0; i < newLosersFromUpper.length; i++) {
+                nextRoundMatches.push({
                     id: `L-R${lowerRound}-Jogo${i + 1}`,
-                    name: matchName,
-                    team1Placeholder: currentLowerRoundTeams[i*2],
-                    team2Placeholder: currentLowerRoundTeams[i*2 + 1],
+                    name: `${nextRoundName} Jogo ${i + 1}`,
+                    team1Placeholder: newLosersFromUpper[i],
+                    team2Placeholder: nextTeamsInLower[i], // Match loser against survivor
                     time: '',
                     roundOrder: lowerRoundOrder,
                 });
             }
-
-            if(roundMatches.length > 0) {
-                 lowerBracket[roundName] = roundMatches;
+            if (nextRoundMatches.length > 0) {
+                lowerBracket[nextRoundName] = nextRoundMatches;
             }
-
-            // Prepare for next round: winners from this round + new losers from upper
-            let nextLowerRoundTeams = roundMatches.map(m => `Vencedor ${m.name}`);
-            const newLosersFromUpper = losersByRound[upperLoserRoundIndex] || [];
-            
-            if (newLosersFromUpper.length > 0) {
-                const combined = [];
-                const len = Math.max(nextLowerRoundTeams.length, newLosersFromUpper.length);
-                for(let i=0; i<len; i++) {
-                    if(nextLowerRoundTeams[i]) combined.push(nextLowerRoundTeams[i]);
-                    if(newLosersFromUpper[i]) combined.push(newLosersFromUpper[i]);
-                }
-                currentLowerRoundTeams = combined;
-                upperLoserRoundIndex++;
-            } else {
-                currentLowerRoundTeams = nextLowerRoundTeams;
-            }
-
-            lowerRound++;
-            lowerRoundOrder--;
+            currentTeamsInLower = nextRoundMatches.map(m => `Vencedor ${m.name}`);
+            upperLoserRoundToProcess++;
+        } else {
+            currentTeamsInLower = nextTeamsInLower;
         }
 
-        const lbClassificado1 = currentLowerRoundTeams[0] || 'Classificado 1 da LB';
-        const lbClassificado2 = currentLowerRoundTeams[1] || 'Classificado 2 da LB';
+        lowerRound++;
+        lowerRoundOrder--;
+    }
+    
+    const lbClassificado1 = currentTeamsInLower[0] || 'Classificado 1 da LB';
+    const lbClassificado2 = currentTeamsInLower[1] || 'Classificado 2 da LB';
 
-        // 3. Build Final Playoffs
-        playoffs['Semifinal'] = [
-            { id: 'Final-Semifinal-1', name: 'Semifinal 1', team1Placeholder: wbClassificado1, team2Placeholder: lbClassificado2, time: '', roundOrder: 2 },
-            { id: 'Final-Semifinal-2', name: 'Semifinal 2', team1Placeholder: wbClassificado2, team2Placeholder: lbClassificado1, time: '', roundOrder: 2 }
+    // 3. Build Final Playoffs
+    finalPlayoffs['Semifinal'] = [
+        { id: 'Final-Semifinal-1', name: 'Semifinal 1', team1Placeholder: wbClassificado1, team2Placeholder: lbClassificado2, time: '', roundOrder: 2 },
+        { id: 'Final-Semifinal-2', name: 'Semifinal 2', team1Placeholder: wbClassificado2, team2Placeholder: lbClassificado1, time: '', roundOrder: 2 }
+    ];
+
+    finalPlayoffs['Final'] = [
+        { id: 'Final-1', name: 'Final', team1Placeholder: 'Vencedor Semifinal 1', team2Placeholder: 'Vencedor Semifinal 2', time: '', roundOrder: 1 }
+    ];
+    
+    if (values.includeThirdPlace) {
+        finalPlayoffs['Disputa de 3º Lugar'] = [
+            { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: 'Perdedor Semifinal 1', team2Placeholder: 'Perdedor Semifinal 2', time: '', roundOrder: 0 }
         ];
+    }
 
-        playoffs['Final'] = [
-            { id: 'Final-1', name: 'Final', team1Placeholder: 'Vencedor Semifinal 1', team2Placeholder: 'Vencedor Semifinal 2', time: '', roundOrder: 1 }
-        ];
-        
-        if (values.includeThirdPlace) {
-            playoffs['Disputa de 3º Lugar'] = [
-                { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: 'Perdedor Semifinal 1', team2Placeholder: 'Perdedor Semifinal 2', time: '', roundOrder: 0 }
-            ];
-        }
-
-        return { upper: upperBracket, lower: lowerBracket, playoffs: playoffs };
+    return { upper: upperBracket, lower: lowerBracket, playoffs: finalPlayoffs };
   },[]);
 
 
@@ -413,43 +424,55 @@ Olavo e Dudu`,
                 }
             }
 
-            let currentRoundTeams = [...teamPlaceholders];
+            // Create balanced matchups for the first round
+            const firstRoundMatchups = [];
+            const half = teamPlaceholders.length / 2;
+            for (let i = 0; i < half; i++) {
+                firstRoundMatchups.push({
+                    team1Placeholder: teamPlaceholders[i],
+                    team2Placeholder: teamPlaceholders[teamPlaceholders.length - 1 - i],
+                });
+            }
+
             let teamsInRound = totalQualifiers;
             let roundOrder = Math.log2(teamsInRound);
+            let currentMatchups = firstRoundMatchups;
+            let roundCounter = 1;
 
-            while (teamsInRound > 1) {
-                const roundName = teamsInRound === 2 ? 'Final' : teamsInRound === 4 ? 'Semifinal' : `Rodada de ${teamsInRound}`;
+            while (teamsInRound >= 2) {
+                const roundName = teamsInRound === 2 ? 'Final' : teamsInRound === 4 ? 'Semifinal' : `Quartas de Final`; // Simplified round names
                 bracket[roundName] = [];
-                const nextRoundTeams = [];
+                const nextRoundPlaceholders = [];
 
-                const roundMatches = [];
-                const half = currentRoundTeams.length / 2;
-                for (let i = 0; i < half; i++) {
-                    roundMatches.push({
-                        team1Placeholder: currentRoundTeams[i],
-                        team2Placeholder: currentRoundTeams[currentRoundTeams.length - 1 - i],
-                    });
-                }
-
-                for (let i = 0; i < roundMatches.length; i++) {
-                    const match = roundMatches[i];
-                    const roundNameSingle = roundName === 'Semifinal' ? roundName : roundName.endsWith('s') ? roundName.slice(0, -1) : roundName;
-                    const matchId = `${roundNameSingle.replace(/\s/g, '')}-${i + 1}`;
-                    bracket[roundName].push({
+                for (let i = 0; i < currentMatchups.length; i++) {
+                    const match = currentMatchups[i];
+                    const matchId = `${roundName.replace(/\s/g, '')}-Jogo${i + 1}`;
+                     bracket[roundName].push({
                         id: matchId,
-                        name: `${roundNameSingle} Jogo ${i + 1}`,
+                        name: `${roundName} Jogo ${i + 1}`,
                         team1Placeholder: match.team1Placeholder,
                         team2Placeholder: match.team2Placeholder,
                         time: '',
                         roundOrder
                     });
-                    nextRoundTeams.push(`Vencedor ${matchId}`);
+                    nextRoundPlaceholders.push(`Vencedor ${matchId}`);
                 }
 
-                currentRoundTeams = nextRoundTeams;
+                if(nextRoundPlaceholders.length < 2) break;
+
+                const nextMatchups = [];
+                for(let i=0; i < nextRoundPlaceholders.length / 2; i++) {
+                    nextMatchups.push({
+                        team1Placeholder: nextRoundPlaceholders[i*2],
+                        team2Placeholder: nextRoundPlaceholders[i*2+1],
+                    });
+                }
+                currentMatchups = nextMatchups;
                 teamsInRound /= 2;
                 roundOrder--;
+                roundCounter++;
             }
+
 
             if (includeThirdPlace && bracket['Semifinal']) {
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
