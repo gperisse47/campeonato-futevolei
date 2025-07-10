@@ -40,7 +40,7 @@ export function GroupGenerator() {
       category: "Masculino",
       numberOfTeams: 8,
       numberOfGroups: 2,
-      teams: "Ana e Bia, Carla e Dani, Elena e Fernanda, Gabi e Helo, Isis e Julia, Karla e Laura, Maria e Nina, Olivia e Paula",
+      teams: "Ana e Bia\nCarla e Dani\nElena e Fernanda\nGabi e Helo\nIsis e Julia\nKarla e Laura\nMaria e Nina\nOlivia e Paula",
       groupFormationStrategy: "balanced",
     },
   })
@@ -89,7 +89,7 @@ export function GroupGenerator() {
     setPlayoffs(null)
 
     const teamsArray: Team[] = values.teams
-      .split(",")
+      .split("\n")
       .map((t) => t.trim())
       .filter(Boolean)
       .map((teamString) => {
@@ -242,16 +242,16 @@ export function GroupGenerator() {
                   name="teams"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Duplas (Jogadores)</FormLabel>
+                      <FormLabel>Duplas (uma por linha)</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Separe duplas por vírgula e jogadores por ' e '. Ex: Jogador A e Jogador B, Jogador C e Jogador D"
+                          placeholder="Jogador A e Jogador B\nJogador C e Jogador D"
                           className="min-h-[120px]"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        Use o formato: Jogador1 e Jogador2, Jogador3 e Jogador4
+                        Use o formato: Jogador1 e Jogador2
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

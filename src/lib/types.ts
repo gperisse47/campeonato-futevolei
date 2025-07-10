@@ -31,7 +31,7 @@ export const formSchema = z
   .refine(
     (data) => {
       const teamsArray = data.teams
-        .split(",")
+        .split("\n")
         .map((t) => t.trim())
         .filter(Boolean);
       return teamsArray.length === data.numberOfTeams;
@@ -44,7 +44,7 @@ export const formSchema = z
   .refine(
     (data) => {
       const teamsArray = data.teams
-        .split(",")
+        .split("\n")
         .map((t) => t.trim())
         .filter(Boolean);
       return teamsArray.every((team) => team.includes(" e ") && team.split(" e ").length === 2 && team.split(' e ')[0].trim() && team.split(' e ')[1].trim());
