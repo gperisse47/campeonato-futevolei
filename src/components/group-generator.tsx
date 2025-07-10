@@ -92,7 +92,8 @@ export function GroupGenerator() {
       }
     };
     fetchInitialData();
-  }, [toast, activeTab]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const saveData = async (categoryName: string, data: CategoryData) => {
     setIsSaving(true);
