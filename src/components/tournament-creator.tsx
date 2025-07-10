@@ -741,7 +741,7 @@ Olavo e Dudu`,
                   <FormItem>
                     <FormLabel>Nº de Duplas</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} readOnly className="bg-muted" />
+                      <Input type="number" {...field} readOnly />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
