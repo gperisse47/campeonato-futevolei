@@ -65,7 +65,7 @@ export type MatchWithScore = AIGenerateTournamentGroupsOutput['groups'][0]['matc
 
 export type GroupWithScores = Omit<AIGenerateTournamentGroupsOutput['groups'][0], 'matches'> & {
   matches: MatchWithScore[];
-  standings?: TeamStanding[];
+  standings: TeamStanding[];
 };
 
 export type TournamentData = {
