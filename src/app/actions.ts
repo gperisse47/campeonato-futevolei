@@ -21,8 +21,9 @@ async function readDb(): Promise<TournamentsState> {
     // Ensure global settings exist
     if (!data._globalSettings) {
       data._globalSettings = {
-        estimatedMatchDuration: 40,
-        courts: [{ name: "Quadra 1" }]
+        startTime: "08:00",
+        estimatedMatchDuration: 20,
+        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
       };
     }
     return data;
@@ -30,8 +31,9 @@ async function readDb(): Promise<TournamentsState> {
     if (error.code === 'ENOENT') {
       const defaultData = {
         _globalSettings: {
-          estimatedMatchDuration: 40,
-          courts: [{ name: "Quadra 1" }]
+            startTime: "08:00",
+            estimatedMatchDuration: 20,
+            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
         }
       };
       await writeDb(defaultData);
@@ -84,6 +86,39 @@ export async function saveTournament(categoryName: string, data: CategoryData): 
         return { success: false, error: e.message || "Ocorreu um erro desconhecido ao salvar." };
     }
 }
+
+export async function renameTournament(oldCategoryName: string, newCategoryName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        if (!oldCategoryName || !newCategoryName) {
+            return { success: false, error: "Os nomes da categoria não podem ser vazios." };
+        }
+        if (oldCategoryName === newCategoryName) {
+            return { success: true }; // No change needed
+        }
+
+        const db = await readDb();
+
+        if (!db[oldCategoryName]) {
+            return { success: false, error: `A categoria "${oldCategoryName}" não foi encontrada.` };
+        }
+        if (db[newCategoryName]) {
+            return { success: false, error: `A categoria "${newCategoryName}" já existe.` };
+        }
+
+        const categoryData = db[oldCategoryName];
+        categoryData.formValues.category = newCategoryName; // Update internal name
+
+        db[newCategoryName] = categoryData;
+        delete db[oldCategoryName];
+        
+        await writeDb(db);
+        return { success: true };
+    } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.message || "Ocorreu um erro desconhecido ao renomear." };
+    }
+}
+
 
 export async function deleteTournament(categoryName: string): Promise<{ success: boolean; error?: string }> {
     try {

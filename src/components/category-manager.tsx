@@ -6,10 +6,10 @@ import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid } from "lucide-react"
+import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid, Pencil } from "lucide-react"
 import { format, addMinutes, parse } from 'date-fns';
 
-import { getTournaments, saveTournament, deleteTournament } from "@/app/actions"
+import { getTournaments, saveTournament, deleteTournament, renameTournament } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -25,6 +25,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -34,6 +44,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
+import { Label } from "./ui/label"
 
 
 const teamToKey = (team?: Team) => {
@@ -45,9 +56,11 @@ const teamToKey = (team?: Team) => {
 export function CategoryManager() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { estimatedMatchDuration: 40, courts: [{name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}]}] }})
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}]}] }})
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const { toast } = useToast()
   
   const activeCategoryData = activeTab ? tournaments[activeTab] : null;
@@ -80,6 +93,12 @@ export function CategoryManager() {
     fetchInitialData();
   }, []);
 
+  useEffect(() => {
+    if (activeTab) {
+      setNewCategoryName(activeTab);
+    }
+  }, [activeTab]);
+
   const saveData = async (categoryName: string, data: CategoryData) => {
     setIsSaving(true);
     const result = await saveTournament(categoryName, data);
@@ -91,6 +110,42 @@ export function CategoryManager() {
       });
     }
     setIsSaving(false);
+  };
+
+  const handleRenameCategory = async () => {
+    if (!activeTab || !newCategoryName || activeTab === newCategoryName) {
+      setIsRenameDialogOpen(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await renameTournament(activeTab, newCategoryName);
+
+    if (result.success) {
+      toast({
+        title: "Categoria Renomeada!",
+        description: `"${activeTab}" foi renomeada para "${newCategoryName}".`,
+      });
+
+      // Update state locally
+      setTournaments(prev => {
+        const newState = { ...prev };
+        const data = newState[activeTab!];
+        delete newState[activeTab!];
+        newState[newCategoryName] = data;
+        return newState;
+      });
+
+      setActiveTab(newCategoryName);
+      setIsRenameDialogOpen(false);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Renomear",
+        description: result.error || "Não foi possível renomear a categoria.",
+      });
+    }
+    setIsLoading(false);
   };
 
   const handleDeleteCategory = async (categoryName: string) => {
@@ -125,9 +180,11 @@ export function CategoryManager() {
   const scheduleMatches = useCallback((categoryData: CategoryData, globalSettings: GlobalSettings): CategoryData => {
     const { formValues, tournamentData, playoffs } = categoryData;
     const { startTime: categoryStartTime } = formValues;
-    const { estimatedMatchDuration, courts } = globalSettings;
+    const { estimatedMatchDuration, courts, startTime: globalStartTime } = globalSettings;
 
-    if (!categoryStartTime || !estimatedMatchDuration || !courts || courts.length === 0) {
+    const effectiveStartTime = categoryStartTime || globalStartTime;
+
+    if (!effectiveStartTime || !estimatedMatchDuration || !courts || courts.length === 0) {
         return categoryData;
     }
 
@@ -166,7 +223,7 @@ export function CategoryManager() {
             start: parseTime(slot.startTime),
             end: parseTime(slot.endTime)
         })).sort((a, b) => a.start.getTime() - b.start.getTime()),
-        nextAvailableTime: parseTime(categoryStartTime)
+        nextAvailableTime: parseTime(effectiveStartTime)
     }));
 
     allMatchesToSchedule.forEach(({ match }) => {
@@ -658,7 +715,7 @@ export function CategoryManager() {
               return (
               <TabsContent key={categoryName} value={categoryName}>
                   <Card className="min-h-full mt-4">
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
                         <CardTitle>Gerenciador - {categoryName}</CardTitle>
                         <CardDescription className="flex items-center gap-2 pt-1">
@@ -673,31 +730,72 @@ export function CategoryManager() {
                            )}
                         </CardDescription>
                       </div>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="icon" disabled={isLoading}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. Isso excluirá permanentemente a categoria
-                                "{categoryName}" e todos os seus dados.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteCategory(categoryName)}
-                                className="bg-destructive hover:bg-destructive/90"
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                       <div className="flex items-center gap-2">
+                            <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="icon" disabled={isLoading}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Renomear Categoria</DialogTitle>
+                                        <DialogDescription>
+                                            Escolha um novo nome para a categoria "{activeTab}".
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="new-category-name" className="text-right">
+                                                Nome
+                                            </Label>
+                                            <Input
+                                                id="new-category-name"
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                className="col-span-3"
+                                            />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button type="button" variant="secondary">
+                                                Cancelar
+                                            </Button>
+                                        </DialogClose>
+                                        <Button onClick={handleRenameCategory} disabled={isLoading}>
+                                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Salvar
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" disabled={isLoading}>
+                                    <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta ação não pode ser desfeita. Isso excluirá permanentemente a categoria
+                                        "{categoryName}" e todos os seus dados.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => handleDeleteCategory(categoryName)}
+                                        className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                        Excluir
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                       </div>
                     </CardHeader>
                     <CardContent>
                        {isLoading && activeTab === categoryName && !tournamentData && !playoffs && (

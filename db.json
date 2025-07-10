@@ -155,18 +155,8 @@
           "standings": [
             {
               "team": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Gabe",
-                "player2": "Yan"
+                "player1": "Peri",
+                "player2": "Gularte"
               },
               "played": 0,
               "wins": 0,
@@ -185,8 +175,18 @@
             },
             {
               "team": {
-                "player1": "Peri",
-                "player2": "Gularte"
+                "player1": "Gabe",
+                "player2": "Yan"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Carelli",
+                "player2": "Hantaro"
               },
               "played": 0,
               "wins": 0,
@@ -286,16 +286,6 @@
           "standings": [
             {
               "team": {
-                "player1": "Brenner",
-                "player2": "Py"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
                 "player1": "Fabinho",
                 "player2": "Bergallo"
               },
@@ -306,8 +296,8 @@
             },
             {
               "team": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
+                "player1": "Sartoratto",
+                "player2": "Poppe"
               },
               "played": 0,
               "wins": 0,
@@ -316,8 +306,18 @@
             },
             {
               "team": {
-                "player1": "Sartoratto",
-                "player2": "Poppe"
+                "player1": "Brenner",
+                "player2": "Py"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
               },
               "played": 0,
               "wins": 0,
@@ -417,16 +417,6 @@
           "standings": [
             {
               "team": {
-                "player1": "Carril",
-                "player2": "Leandro"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
                 "player1": "Caslu",
                 "player2": "Leo"
               },
@@ -437,8 +427,8 @@
             },
             {
               "team": {
-                "player1": "Felipe M.",
-                "player2": "Rapha B."
+                "player1": "James",
+                "player2": "Fabio"
               },
               "played": 0,
               "wins": 0,
@@ -447,8 +437,18 @@
             },
             {
               "team": {
-                "player1": "James",
-                "player2": "Fabio"
+                "player1": "Carril",
+                "player2": "Leandro"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Felipe M.",
+                "player2": "Rapha B."
               },
               "played": 0,
               "wins": 0,
@@ -558,6 +558,16 @@
             },
             {
               "team": {
+                "player1": "Russo",
+                "player2": "Maki"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
                 "player1": "Gustavo M.",
                 "player2": "Marcus"
               },
@@ -570,16 +580,6 @@
               "team": {
                 "player1": "Neves",
                 "player2": "Caze"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Russo",
-                "player2": "Maki"
               },
               "played": 0,
               "wins": 0,
