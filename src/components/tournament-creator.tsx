@@ -94,7 +94,6 @@ export function TournamentCreator() {
   useEffect(() => {
     if (isLoaded && watchedCategoryName) {
       const existingCategoryData = tournaments[watchedCategoryName];
-      // Only reset the form if there's an exact match for an existing category
       if (existingCategoryData && watchedCategoryName === existingCategoryData.formValues.category) {
         form.reset(existingCategoryData.formValues);
       }
@@ -189,6 +188,7 @@ export function TournamentCreator() {
                 team1Placeholder: teamToKey(teamsInFirstRound[i]),
                 team2Placeholder: teamToKey(teamsInFirstRound[teamsInFirstRound.length - 1 - i]),
                 time: '', roundOrder: 100 - wbRoundCounter,
+                court: ''
             });
         }
         upperBracket[round1Name] = round1Matches;
@@ -216,6 +216,7 @@ export function TournamentCreator() {
                 team1Placeholder: team1Placeholder,
                 team2Placeholder: team2Placeholder,
                 time: '', roundOrder: 100 - wbRoundCounter,
+                court: ''
             });
         }
         upperBracket[roundName] = nextRoundMatches;
@@ -246,6 +247,7 @@ export function TournamentCreator() {
             team1Placeholder: r1Losers[i]!,
             team2Placeholder: r1Losers[r1Losers.length - 1 - i]!,
             time: '', roundOrder: -(lbRoundCounter * 2),
+            court: ''
         });
       }
       if(lbRound1Matches.length > 0) lowerBracket[lbRound1Name] = lbRound1Matches;
@@ -265,6 +267,7 @@ export function TournamentCreator() {
                     team1Placeholder: contenders[i]!,
                     team2Placeholder: contenders[contenders.length - 1 - i]!,
                     time: '', roundOrder: -(lbRoundCounter * 2),
+                    court: ''
                 });
             }
         }
@@ -284,6 +287,7 @@ export function TournamentCreator() {
                     team1Placeholder: currentSurvivors[i]!,
                     team2Placeholder: currentSurvivors[currentSurvivors.length - 1 - i]!,
                     time: '', roundOrder: -(lbRoundCounter * 2 - 1),
+                    court: ''
                 });
             }
              if (internalRoundMatches.length > 0) {
@@ -303,7 +307,7 @@ export function TournamentCreator() {
     const finalPlayoffs: PlayoffBracket = {};
     const grandFinalName = "Grande Final";
     finalPlayoffs[grandFinalName] = [
-        { id: 'GF-1', name: grandFinalName, team1Placeholder: wbFinalist, team2Placeholder: lbFinalist!, time: '', roundOrder: 101 }
+        { id: 'GF-1', name: grandFinalName, team1Placeholder: wbFinalist, team2Placeholder: lbFinalist!, time: '', roundOrder: 101, court: '' }
     ];
 
     if (values.includeThirdPlace) {
@@ -316,7 +320,7 @@ export function TournamentCreator() {
         if (wbSemiFinalistLoser && lbSemiFinalistLoser) {
             const thirdPlaceName = "Disputa de 3º Lugar";
             finalPlayoffs[thirdPlaceName] = [
-                { id: '3P-1', name: thirdPlaceName, team1Placeholder: wbSemiFinalistLoser, team2Placeholder: lbSemiFinalistLoser, time: '', roundOrder: 0 }
+                { id: '3P-1', name: thirdPlaceName, team1Placeholder: wbSemiFinalistLoser, team2Placeholder: lbSemiFinalistLoser, time: '', roundOrder: 0, court: '' }
             ];
         }
     }
@@ -358,6 +362,7 @@ export function TournamentCreator() {
                 team1Placeholder: teamToKey(match.team1),
                 team2Placeholder: teamToKey(match.team2),
                 time: '',
+                court: '',
                 roundOrder: roundOrder
             }));
 
@@ -384,6 +389,7 @@ export function TournamentCreator() {
                         team1Placeholder: nextRoundPlaceholders[i*2],
                         team2Placeholder: nextRoundPlaceholders[i*2 + 1],
                         time: '',
+                        court: '',
                         roundOrder
                     });
                 }
@@ -401,7 +407,7 @@ export function TournamentCreator() {
             if (values.includeThirdPlace && bracket['Semifinal']) {
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
                 bracket['Disputa de 3º Lugar'] = [
-                    { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', roundOrder: 0 }
+                    { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];
             }
             
@@ -451,6 +457,7 @@ export function TournamentCreator() {
                         team1Placeholder: match.team1Placeholder,
                         team2Placeholder: match.team2Placeholder,
                         time: '',
+                        court: '',
                         roundOrder
                     });
                     nextRoundPlaceholders.push(`Vencedor ${matchId}`);
@@ -474,7 +481,7 @@ export function TournamentCreator() {
             if (includeThirdPlace && bracket['Semifinal']) {
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
                 bracket['Disputa de 3º Lugar'] = [
-                    { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', roundOrder: 0 }
+                    { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];
             }
 

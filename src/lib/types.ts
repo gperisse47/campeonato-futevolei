@@ -105,23 +105,26 @@ export const formSchema = z
       path: ["teamsPerGroupToAdvance"],
     }
   )
-  .refine(
+ .refine(
     (data) => {
-        if (data.tournamentType !== 'groups') return true;
-        if (!data.numberOfGroups || !data.teamsPerGroupToAdvance) return false;
-        
-        const numTeams = data.numberOfTeams;
-        const numGroups = data.numberOfGroups;
-        if (numTeams <= 0 || numGroups <= 0) return true; // Avoid division by zero, let other validators handle it.
+      if (data.tournamentType !== 'groups') return true;
+      if (!data.numberOfGroups || data.numberOfGroups <= 0) return false;
 
-        const minTeamsPerGroup = Math.floor(numTeams / numGroups);
+      const numTeams = data.numberOfTeams;
+      const numGroups = data.numberOfGroups;
+      
+      const groups = Array.from({ length: numGroups }, () => 0);
+      for (let i = 0; i < numTeams; i++) {
+        groups[i % numGroups]++;
+      }
+      
+      const minTeamsInGroup = Math.min(...groups);
 
-        // This check ensures that you can't advance more teams than there are in the smallest possible group.
-        return data.teamsPerGroupToAdvance < minTeamsPerGroup;
+      return data.teamsPerGroupToAdvance! < minTeamsInGroup;
     },
     {
-        message: "O número de classificados deve ser menor que o número de duplas no menor grupo.",
-        path: ["teamsPerGroupToAdvance"],
+      message: "O número de classificados deve ser menor que o número de duplas no menor grupo.",
+      path: ["teamsPerGroupToAdvance"],
     }
 )
   .refine(
