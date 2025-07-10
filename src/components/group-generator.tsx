@@ -226,7 +226,7 @@ Olavo e Dudu`,
             
             let currentRoundMatches: PlayoffMatch[] = aiResult.playoffMatches.map((match, i) => ({
                 id: `R1-${i + 1}`,
-                name: `${firstRoundName.replace(/s$/, "")} ${i + 1}`,
+                name: `${firstRoundName} Jogo ${i + 1}`,
                 team1: match.team1,
                 team2: match.team2,
                 team1Placeholder: teamToKey(match.team1),
@@ -247,18 +247,17 @@ Olavo e Dudu`,
                 const nextRoundPlaceholders = [];
                 
                 for (let i = 0; i < currentRoundMatches.length; i++) {
-                    const singleName = currentRoundMatches[i].name.replace(/ \d+$/, '');
-                    nextRoundPlaceholders.push(`Vencedor ${singleName} ${i + 1}`);
+                    const singleName = currentRoundMatches[i].name.replace(/ Jogo \d+$/, '');
+                    nextRoundPlaceholders.push(`Vencedor ${singleName} Jogo ${i + 1}`);
                 }
 
                 const nextRoundMatches: PlayoffMatch[] = [];
                 
                 const half = nextRoundPlaceholders.length / 2;
                 for (let i = 0; i < half; i++) {
-                    const nextRoundNameSingle = roundName.replace(/s$/, "");
                     nextRoundMatches.push({
-                        id: `${nextRoundNameSingle.replace(/\s/g, '')}-${i + 1}`,
-                        name: `${nextRoundNameSingle} ${i + 1}`,
+                        id: `${roundName.replace(/\s/g, '')}-${i + 1}`,
+                        name: `${roundName} Jogo ${i + 1}`,
                         team1Placeholder: nextRoundPlaceholders[i],
                         team2Placeholder: nextRoundPlaceholders[nextRoundPlaceholders.length - 1 - i],
                         time: '',
