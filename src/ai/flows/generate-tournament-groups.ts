@@ -54,9 +54,17 @@ export async function generateTournamentGroups(
   return generateTournamentGroupsFlow(input);
 }
 
+
+const PromptInputSchema = GenerateTournamentGroupsInputSchema.extend({
+    isGroups: z.boolean(),
+    isSingleElimination: z.boolean(),
+    isDoubleElimination: z.boolean(),
+});
+
+
 const generateTournamentGroupsPrompt = ai.definePrompt({
   name: 'generateTournamentGroupsPrompt',
-  input: {schema: GenerateTournamentGroupsInputSchema},
+  input: {schema: PromptInputSchema},
   output: {schema: GenerateTournamentGroupsOutputSchema},
   prompt: `You are a tournament organizer. Your task is to generate the structure for a futevolei tournament.
 
@@ -69,22 +77,20 @@ Teams:
 {{#each teams}}- {{{this.player1}}} e {{{this.player2}}}
 {{/each}}
 
-{{#if (eq tournamentType "groups")}}
+{{#if isGroups}}
 First, generate the groups, ensuring that each team is assigned to one group. Consider the group formation strategy when assigning teams. The output for each team must include both player names.
 After forming the groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
 The final output should contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
-{{/if}}
-
-{{#if (eq tournamentType "singleElimination")}}
+{{else}}
+{{#if isSingleElimination}}
 You need to create the first round of a single elimination (mata-mata) tournament.
 Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
-{{/if}}
-
-{{#if (eq tournamentType "doubleElimination")}}
+{{else}}
 You need to create the first round of the upper bracket for a double elimination tournament.
 Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the first-round matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
+{{/if}}
 {{/if}}
 `,
 });
@@ -96,7 +102,13 @@ const generateTournamentGroupsFlow = ai.defineFlow(
     outputSchema: GenerateTournamentGroupsOutputSchema,
   },
   async input => {
-    const {output} = await generateTournamentGroupsPrompt(input);
+    const promptInput = {
+        ...input,
+        isGroups: input.tournamentType === 'groups',
+        isSingleElimination: input.tournamentType === 'singleElimination',
+        isDoubleElimination: input.tournamentType === 'doubleElimination',
+    };
+    const {output} = await generateTournamentGroupsPrompt(promptInput);
     return output!;
   }
 );
