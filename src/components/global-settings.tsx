@@ -35,7 +35,7 @@ export function GlobalSettings() {
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: {
         startTime: "09:00",
-        estimatedMatchDuration: 40,
+        estimatedMatchDuration: 20,
         courts: [],
     }
   });
