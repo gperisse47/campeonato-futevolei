@@ -31,11 +31,24 @@ import { Separator } from "./ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
 import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 
 type PlayoffBracket = {
   [round: string]: PlayoffMatch[];
 };
+
+type CategoryData = {
+  tournamentData: TournamentData | null;
+  playoffs: PlayoffBracket | null;
+  formValues: TournamentFormValues;
+}
+
+type TournamentsState = {
+  [categoryName: string]: CategoryData;
+}
+
 
 const roundNames: { [key: number]: string } = {
   2: 'Final',
@@ -46,8 +59,9 @@ const roundNames: { [key: number]: string } = {
 
 export function GroupGenerator() {
   const [isLoading, setIsLoading] = useState(false)
-  const [tournamentData, setTournamentData] = useState<TournamentData | null>(null)
-  const [playoffs, setPlayoffs] = useState<PlayoffBracket | null>(null)
+  const [tournaments, setTournaments] = useState<TournamentsState>({})
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
   const { toast } = useToast()
 
   const form = useForm<TournamentFormValues>({
@@ -64,6 +78,12 @@ export function GroupGenerator() {
   })
 
   const { teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace, numberOfTeams } = form.watch()
+  
+  const activeCategoryData = activeTab ? tournaments[activeTab] : null;
+  const activeTournamentData = activeCategoryData?.tournamentData;
+  const activePlayoffs = activeCategoryData?.playoffs;
+  const activeFormValues = activeCategoryData?.formValues;
+  
 
   const teamToKey = (team: Team) => `${team.player1} e ${team.player2}`;
 
@@ -88,34 +108,39 @@ export function GroupGenerator() {
     return `${position}º do Grupo ${groupLetter}`;
   }, []);
 
-  const generatePlayoffPlaceholders = useCallback((totalQualifiers: number): { [key: string]: string } => {
+  const generatePlayoffPlaceholders = useCallback((totalQualifiers: number, numGroups: number, numAdvance: number): { [key: string]: string } => {
     const placeholders: { [key: string]: string } = {};
     const teamsToSeed = [];
-    for (let i = 0; i < numberOfGroups; i++) {
-      for (let j = 1; j <= teamsPerGroupToAdvance; j++) {
+    for (let i = 0; i < numGroups; i++) {
+      for (let j = 1; j <= numAdvance; j++) {
         teamsToSeed.push(getTeamPlaceholder(i, j));
       }
     }
-
-    // Simple seeding: 1A vs 2B, 1B vs 2A etc.
-    // This creates pairs for the first round.
+  
     for (let i = 0; i < totalQualifiers / 2; i++) {
       placeholders[teamsToSeed[i]] = teamsToSeed[i];
       placeholders[teamsToSeed[totalQualifiers - 1 - i]] = teamsToSeed[totalQualifiers - 1 - i];
     }
     return placeholders;
-  }, [numberOfGroups, teamsPerGroupToAdvance, getTeamPlaceholder]);
+  }, [getTeamPlaceholder]);
 
-  const initializePlayoffs = useCallback(() => {
+  const initializePlayoffs = useCallback((categoryName: string, values: TournamentFormValues) => {
+    const { numberOfGroups, teamsPerGroupToAdvance, includeThirdPlace } = values;
     const totalQualifiers = numberOfGroups * teamsPerGroupToAdvance;
-  
+
     if (totalQualifiers < 2 || (totalQualifiers & (totalQualifiers - 1)) !== 0) {
-        setPlayoffs(null);
-        return;
+      setTournaments(prev => ({
+        ...prev,
+        [categoryName]: {
+          ...prev[categoryName],
+          playoffs: null
+        }
+      }));
+      return;
     }
   
     let bracket: PlayoffBracket = {};
-    const placeholders = generatePlayoffPlaceholders(totalQualifiers);
+    const placeholders = generatePlayoffPlaceholders(totalQualifiers, numberOfGroups, teamsPerGroupToAdvance);
     const teamPlaceholders = Object.keys(placeholders).sort((a, b) => {
       const aMatch = a.match(/(\d+)º do Grupo ([A-Z])/);
       const bMatch = b.match(/(\d+)º do Grupo ([A-Z])/);
@@ -169,45 +194,56 @@ export function GroupGenerator() {
         ];
     }
   
-    setPlayoffs(bracket);
-  
-  }, [numberOfGroups, teamsPerGroupToAdvance, includeThirdPlace, generatePlayoffPlaceholders]);
+    setTournaments(prev => ({
+      ...prev,
+      [categoryName]: {
+        ...prev[categoryName],
+        playoffs: bracket,
+      }
+    }))
+  }, [generatePlayoffPlaceholders]);
 
 
   const updatePlayoffs = useCallback(() => {
+    if (!activeTab || !activeCategoryData) return;
+  
+    const { tournamentData, playoffs, formValues } = activeCategoryData;
     if (!tournamentData || !playoffs) return;
-
+  
     const qualifiedTeams: { [placeholder: string]: Team } = {};
-
+  
     tournamentData.groups.forEach((group, groupIndex) => {
-        // Check if all matches in *this specific group* are played
-        const allMatchesInGroupPlayed = group.matches.every(
-            m => m.score1 !== undefined && m.score2 !== undefined
-        );
-
-        if (allMatchesInGroupPlayed) {
-            // If so, populate qualifiedTeams with the top teams from this group
-            group.standings.slice(0, teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                const placeholder = getTeamPlaceholder(groupIndex, standingIndex + 1);
-                qualifiedTeams[placeholder] = standing.team;
-            });
-        }
+      const allMatchesInGroupPlayed = group.matches.every(
+        (m) => m.score1 !== undefined && m.score2 !== undefined
+      );
+  
+      if (allMatchesInGroupPlayed) {
+        group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+          const placeholder = getTeamPlaceholder(groupIndex, standingIndex + 1);
+          qualifiedTeams[placeholder] = standing.team;
+        });
+      }
     });
-
+  
     const newPlayoffs = JSON.parse(JSON.stringify(playoffs)) as PlayoffBracket;
     const roundOrder = Object.keys(roundNames)
       .map(Number)
       .sort((a,b) => b-a)
       .map(key => roundNames[key])
       .filter(roundName => newPlayoffs[roundName]);
-
+  
     if(newPlayoffs['Disputa de 3º Lugar']) {
-        roundOrder.push('Disputa de 3º Lugar');
+      const finalIndex = roundOrder.indexOf('Final');
+      if (finalIndex !== -1) {
+          roundOrder.splice(finalIndex + 1, 0, 'Disputa de 3º Lugar');
+      } else {
+          roundOrder.push('Disputa de 3º Lugar');
+      }
     }
-
+  
     const winners: { [matchName: string]: Team | undefined } = {};
     const losers: { [matchName: string]: Team | undefined } = {};
-
+  
     roundOrder.forEach(roundName => {
       newPlayoffs[roundName]?.forEach(match => {
         if (!match.team1 && match.team1Placeholder) {
@@ -234,7 +270,7 @@ export function GroupGenerator() {
             match.team2 = qualifiedTeams[placeholder];
           }
         }
-
+  
         if (match.team1 && match.team2 && typeof match.score1 === 'number' && typeof match.score2 === 'number') {
           if (match.score1 > match.score2) {
             winners[match.name] = match.team1;
@@ -246,18 +282,39 @@ export function GroupGenerator() {
         }
       });
     });
-
+  
     if (JSON.stringify(playoffs) !== JSON.stringify(newPlayoffs)) {
-        setPlayoffs(newPlayoffs);
+      setTournaments(prev => ({
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          playoffs: newPlayoffs,
+        }
+      }))
     }
-
-  }, [tournamentData, playoffs, teamsPerGroupToAdvance, getTeamPlaceholder]);
+  
+  }, [activeTab, activeCategoryData, getTeamPlaceholder]);
 
 
   async function onSubmit(values: TournamentFormValues) {
-    setIsLoading(true)
-    setTournamentData(null)
-    setPlayoffs(null)
+    setIsLoading(true);
+    const categoryName = values.category;
+
+    if (tournaments[categoryName]) {
+        toast({
+            variant: "destructive",
+            title: "Categoria já existe",
+            description: "Uma categoria com este nome já foi gerada. Escolha um nome diferente.",
+        });
+        setIsLoading(false);
+        return;
+    }
+    
+    setTournaments(prev => ({
+        ...prev,
+        [categoryName]: { tournamentData: null, playoffs: null, formValues: values }
+    }));
+    setActiveTab(categoryName);
 
     const teamsArray: Team[] = values.teams
       .split("\n")
@@ -277,14 +334,31 @@ export function GroupGenerator() {
     })
 
     if (result.success && result.data) {
-      const groupsWithInitialStandings = initializeStandings(result.data.groups)
-      setTournamentData({ groups: groupsWithInitialStandings })
-      initializePlayoffs()
+      const groupsWithInitialStandings = initializeStandings(result.data.groups);
+      setTournaments(prev => ({
+        ...prev,
+        [categoryName]: {
+          ...prev[categoryName],
+          tournamentData: { groups: groupsWithInitialStandings },
+        }
+      }));
+      initializePlayoffs(categoryName, values);
       toast({
-        title: "Grupos e Jogos Gerados!",
-        description: "Os grupos e confrontos estão prontos. Preencha os resultados.",
+        title: "Categoria Gerada!",
+        description: `A categoria "${categoryName}" foi criada com sucesso.`,
       })
     } else {
+      setTournaments(prev => {
+        const newTournaments = {...prev};
+        delete newTournaments[categoryName];
+        return newTournaments;
+      });
+      if (Object.keys(tournaments).length === 0) {
+        setActiveTab(null);
+      } else {
+        const remainingKeys = Object.keys(tournaments).filter(k => k !== categoryName);
+        setActiveTab(remainingKeys.length > 0 ? remainingKeys[0] : null);
+      }
       toast({
         variant: "destructive",
         title: "Erro ao Gerar",
@@ -295,11 +369,11 @@ export function GroupGenerator() {
   }
 
   useEffect(() => {
-    if (tournamentData) {
-      initializePlayoffs();
+    if (activeTab && tournaments[activeTab] && !tournaments[activeTab].playoffs) {
+      initializePlayoffs(activeTab, tournaments[activeTab].formValues);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace]);
+  }, [activeTab, tournaments]);
 
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
@@ -356,8 +430,8 @@ export function GroupGenerator() {
   }
 
   const handleScoreChange = (groupIndex: number, matchIndex: number, team: 'team1' | 'team2', value: string) => {
-    if (!tournamentData) return;
-    let newTournamentData = JSON.parse(JSON.stringify(tournamentData));
+    if (!activeTab || !activeTournamentData) return;
+    let newTournamentData = JSON.parse(JSON.stringify(activeTournamentData));
     const score = value === '' ? undefined : parseInt(value, 10);
     if (team === 'team1') {
       newTournamentData.groups[groupIndex].matches[matchIndex].score1 = isNaN(score!) ? undefined : score;
@@ -365,12 +439,18 @@ export function GroupGenerator() {
       newTournamentData.groups[groupIndex].matches[matchIndex].score2 = isNaN(score!) ? undefined : score;
     }
     const updatedDataWithStandings = calculateStandings(newTournamentData);
-    setTournamentData(updatedDataWithStandings);
+    setTournaments(prev => ({
+        ...prev,
+        [activeTab]: {
+            ...prev[activeTab],
+            tournamentData: updatedDataWithStandings,
+        }
+    }));
   }
 
   const handlePlayoffScoreChange = (roundName: string, matchIndex: number, team: 'team1' | 'team2', value: string) => {
-    if (!playoffs) return;
-    let newPlayoffs = JSON.parse(JSON.stringify(playoffs));
+    if (!activeTab || !activePlayoffs) return;
+    let newPlayoffs = JSON.parse(JSON.stringify(activePlayoffs));
     const score = value === '' ? undefined : parseInt(value, 10);
 
     if (team === 'team1') {
@@ -378,15 +458,22 @@ export function GroupGenerator() {
     } else {
       newPlayoffs[roundName][matchIndex].score2 = isNaN(score!) ? undefined : score;
     }
-    setPlayoffs(newPlayoffs);
+    
+    setTournaments(prev => ({
+        ...prev,
+        [activeTab]: {
+            ...prev[activeTab],
+            playoffs: newPlayoffs,
+        }
+    }));
   };
 
   useEffect(() => {
     updatePlayoffs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournamentData, JSON.stringify(playoffs)]);
+  }, [activeTournamentData, JSON.stringify(activePlayoffs)]);
 
-  const PlayoffMatchCard = ({ match, roundName, matchIndex, isFinalRound }: { match: PlayoffMatch, roundName: string, matchIndex: number, isFinalRound?: boolean }) => {
+  const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => {
     const getWinner = (m: PlayoffMatch) => {
       if(m.score1 === undefined || m.score2 === undefined || m.score1 === m.score2) return null;
       return m.score1 > m.score2 ? m.team1 : m.team2;
@@ -401,12 +488,14 @@ export function GroupGenerator() {
     const placeholder1 = match.team1Placeholder.replace(/Vencedor Semifinal-?(\d)/, 'Vencedor Semifinal $1').replace(/Perdedor Semifinal-?(\d)/, 'Perdedor Semifinal $1');
     const placeholder2 = match.team2Placeholder.replace(/Vencedor Semifinal-?(\d)/, 'Vencedor Semifinal $1').replace(/Perdedor Semifinal-?(\d)/, 'Perdedor Semifinal $1');
   
+    const isFinalRound = roundName === 'Final' || roundName === 'Disputa de 3º Lugar';
+    
     return (
       <div className="flex flex-col gap-2 w-full">
-          {(roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar') && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
+          {(!isFinalRound || (isFinalRound && activePlayoffs && activePlayoffs[roundName]?.length > 1)) && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
           <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
               <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`${isFinalRound ? 'w-full' : 'flex-1'} text-left truncate pr-2 text-sm`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
+                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'flex-1' : 'w-full'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
                   <Input
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
@@ -417,7 +506,7 @@ export function GroupGenerator() {
               </div>
               <div className="text-muted-foreground text-xs text-center py-1">vs</div>
               <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`${isFinalRound ? 'w-full' : 'flex-1'} text-left truncate pr-2 text-sm`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
+                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'flex-1' : 'w-full'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
                   <Input
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
@@ -433,42 +522,71 @@ export function GroupGenerator() {
 
   const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
     const roundOrder = Object.keys(roundNames)
-        .map(Number)
-        .sort((a, b) => b - a)
-        .map(key => roundNames[key])
-        .filter(roundName => playoffs[roundName]);
-
-    const finalRound = roundOrder.find(r => r === 'Final');
-    const thirdPlaceRound = playoffs['Disputa de 3º Lugar'] ? 'Disputa de 3º Lugar' : undefined;
-    const bracketRounds = roundOrder.filter(r => r !== 'Final' && r !== 'Disputa de 3º Lugar');
-
-    const allRounds = [...bracketRounds];
-    if (finalRound) allRounds.push(finalRound);
-    if (thirdPlaceRound) allRounds.push(thirdPlaceRound);
-
-
+      .map(Number)
+      .sort((a, b) => b - a)
+      .map(key => roundNames[key])
+      .filter(roundName => playoffs[roundName]);
+  
+    const finalMatch = playoffs['Final'] ? playoffs['Final'][0] : null;
+    const thirdPlaceMatch = playoffs['Disputa de 3º Lugar'] ? playoffs['Disputa de 3º Lugar'][0] : null;
+  
+    const regularRounds = roundOrder.filter(r => r !== 'Final' && r !== 'Disputa de 3º Lugar');
+  
     return (
-        <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
-            {allRounds.map(roundName => (
-                <Card key={roundName} className="w-full">
+      <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
+        {regularRounds.map(roundName => (
+          <Card key={roundName} className="w-full">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-8 w-full">
+              {playoffs[roundName].map((match, matchIndex) => (
+                <PlayoffMatchCard 
+                  key={match.id} 
+                  match={match} 
+                  roundName={roundName} 
+                  matchIndex={matchIndex} 
+                />
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+        <div className="flex flex-col gap-8 w-full max-w-lg mx-auto">
+            {finalMatch && (
+                 <Card className="w-full">
                     <CardHeader>
-                        <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
+                        <CardTitle className="text-lg font-bold text-primary">Final</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-8 w-full">
-                        {playoffs[roundName].map((match, matchIndex) => (
-                            <PlayoffMatchCard 
-                                key={match.id} 
-                                match={match} 
-                                roundName={roundName} 
-                                matchIndex={matchIndex} 
-                                isFinalRound={roundName === 'Final' || roundName === 'Disputa de 3º Lugar'}
-                            />
-                        ))}
+                    <CardContent>
+                        <PlayoffMatchCard 
+                            match={finalMatch} 
+                            roundName="Final" 
+                            matchIndex={0} 
+                        />
                     </CardContent>
-                </Card>
-            ))}
+                 </Card>
+            )}
+            {thirdPlaceMatch && (
+                 <Card className="w-full">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold text-primary">Disputa de 3º Lugar</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <PlayoffMatchCard 
+                            match={thirdPlaceMatch} 
+                            roundName="Disputa de 3º Lugar" 
+                            matchIndex={0}
+                        />
+                    </CardContent>
+                 </Card>
+            )}
         </div>
+      </div>
     );
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
   };
 
 
@@ -479,7 +597,7 @@ export function GroupGenerator() {
           <CardHeader>
             <CardTitle>Configurações do Torneio</CardTitle>
             <CardDescription>
-              Insira os detalhes para a geração dos grupos e jogos.
+              Insira os detalhes para a geração de uma nova categoria.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -490,7 +608,7 @@ export function GroupGenerator() {
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Categoria</FormLabel>
+                      <FormLabel>Nome da Categoria</FormLabel>
                       <FormControl>
                         <Input placeholder="Ex: Masculino, Misto" {...field} />
                       </FormControl>
@@ -616,119 +734,148 @@ export function GroupGenerator() {
 
                 <Button type="submit" disabled={isLoading} className="w-full">
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Gerar Grupos e Jogos
+                  Gerar Categoria
                 </Button>
               </form>
             </Form>
           </CardContent>
         </Card>
         <div className="lg:col-span-2">
-          <Card className="min-h-full">
-            <CardHeader>
-              <CardTitle>Grupos e Jogos Gerados</CardTitle>
-              <CardDescription>
-                Visualize os grupos, preencha os resultados e gere os playoffs.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading && (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {[...Array(form.getValues("numberOfGroups"))].map((_, i) => (
-                    <Card key={i}>
-                      <CardHeader>
-                        <Skeleton className="h-6 w-24" />
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-5 w-5/6" />
-                        <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-5 w-4/6" />
-                      </CardContent>
-                    </Card>
-                  ))}
+          {Object.keys(tournaments).length > 0 && activeTab ? (
+             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <div className="flex items-center justify-between">
+                <TabsList>
+                    {Object.keys(tournaments).map(cat => (
+                        <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
+                    ))}
+                </TabsList>
+                <div className="w-48">
+                   <Select value={activeTab} onValueChange={handleTabChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar categoria..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(tournaments).map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-              {tournamentData && (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {tournamentData.groups.map((group, groupIndex) => (
-                      <Card key={group.name} className="flex flex-col">
+              </div>
+              {Object.keys(tournaments).map(categoryName => (
+                  <TabsContent key={categoryName} value={categoryName}>
+                      <Card className="min-h-full mt-4">
                         <CardHeader>
-                          <CardTitle className="text-primary">{group.name}</CardTitle>
+                          <CardTitle>Grupos e Jogos - {categoryName}</CardTitle>
+                          <CardDescription>
+                            Visualize os grupos, preencha os resultados e gere os playoffs.
+                          </CardDescription>
                         </CardHeader>
-                        <CardContent className="flex flex-1 flex-col space-y-4">
-
-                          {group.standings && (
-                            <div>
-                              <h4 className="mb-2 font-semibold">Classificação</h4>
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="p-2">Dupla</TableHead>
-                                    <TableHead className="p-2 text-center">Pts</TableHead>
-                                    <TableHead className="p-2 text-center">J</TableHead>
-                                    <TableHead className="p-2 text-center">V</TableHead>
-                                    <TableHead className="p-2 text-center">SS</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {group.standings.map((standing, index) => (
-                                    <TableRow key={teamToKey(standing.team)} className={index < teamsPerGroupToAdvance ? "bg-green-100 dark:bg-green-900/30" : ""}>
-                                      <TableCell className="p-2 font-medium">{teamToKey(standing.team)}</TableCell>
-                                      <TableCell className="p-2 text-center">{standing.points}</TableCell>
-                                      <TableCell className="p-2 text-center">{standing.played}</TableCell>
-                                      <TableCell className="p-2 text-center">{standing.wins}</TableCell>
-                                      <TableCell className="p-2 text-center">{standing.setDifference > 0 ? `+${standing.setDifference}` : standing.setDifference}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          )}
-
-                          <Separator />
-
-                          <div>
-                            <h4 className="mb-2 font-semibold">Jogos</h4>
-                            <div className="space-y-2">
-                              {group.matches.map((match, matchIndex) => (
-                                <div key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
-                                  <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
-                                  <div className="flex items-center gap-1">
-                                    <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
-                                    <span className="text-muted-foreground">x</span>
-                                    <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
-                                  </div>
-                                  <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
-                                </div>
+                        <CardContent>
+                           {isLoading && activeTab === categoryName && (
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                              {[...Array(tournaments[categoryName]?.formValues.numberOfGroups || 0)].map((_, i) => (
+                                <Card key={i}>
+                                  <CardHeader>
+                                    <Skeleton className="h-6 w-24" />
+                                  </CardHeader>
+                                  <CardContent className="space-y-3">
+                                    <Skeleton className="h-5 w-full" />
+                                    <Skeleton className="h-5 w-5/6" />
+                                    <Skeleton className="h-5 w-full" />
+                                    <Skeleton className="h-5 w-4/6" />
+                                  </CardContent>
+                                </Card>
                               ))}
                             </div>
-                          </div>
+                           )}
+                           {activeTournamentData && (
+                            <div className="space-y-8">
+                              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                {activeTournamentData.groups.map((group, groupIndex) => (
+                                  <Card key={group.name} className="flex flex-col">
+                                    <CardHeader>
+                                      <CardTitle className="text-primary">{group.name}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-1 flex-col space-y-4">
 
+                                      {group.standings && activeFormValues && (
+                                        <div>
+                                          <h4 className="mb-2 font-semibold">Classificação</h4>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead className="p-2">Dupla</TableHead>
+                                                <TableHead className="p-2 text-center">Pts</TableHead>
+                                                <TableHead className="p-2 text-center">J</TableHead>
+                                                <TableHead className="p-2 text-center">V</TableHead>
+                                                <TableHead className="p-2 text-center">SS</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {group.standings.map((standing, index) => (
+                                                <TableRow key={teamToKey(standing.team)} className={index < activeFormValues.teamsPerGroupToAdvance ? "bg-green-100 dark:bg-green-900/30" : ""}>
+                                                  <TableCell className="p-2 font-medium">{teamToKey(standing.team)}</TableCell>
+                                                  <TableCell className="p-2 text-center">{standing.points}</TableCell>
+                                                  <TableCell className="p-2 text-center">{standing.played}</TableCell>
+                                                  <TableCell className="p-2 text-center">{standing.wins}</TableCell>
+                                                  <TableCell className="p-2 text-center">{standing.setDifference > 0 ? `+${standing.setDifference}` : standing.setDifference}</TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      )}
+
+                                      <Separator />
+
+                                      <div>
+                                        <h4 className="mb-2 font-semibold">Jogos</h4>
+                                        <div className="space-y-2">
+                                          {group.matches.map((match, matchIndex) => (
+                                            <div key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                              <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
+                                              <div className="flex items-center gap-1">
+                                                <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
+                                                <span className="text-muted-foreground">x</span>
+                                                <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
+                                              </div>
+                                              <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                               {activePlayoffs && Object.keys(activePlayoffs).length > 0 && (
+                                 <Card>
+                                   <CardHeader>
+                                     <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary" />Playoffs - Mata-Mata</CardTitle>
+                                     <CardDescription>Chaveamento gerado com base na classificação dos grupos.</CardDescription>
+                                   </CardHeader>
+                                   <CardContent>
+                                      <Bracket playoffs={activePlayoffs} />
+                                   </CardContent>
+                                 </Card>
+                              )}
+                            </div>
+                           )}
                         </CardContent>
                       </Card>
-                    ))}
-                  </div>
-                  {playoffs && Object.keys(playoffs).length > 0 && (
-                     <Card>
-                       <CardHeader>
-                         <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary" />Playoffs - Mata-Mata</CardTitle>
-                         <CardDescription>Chaveamento gerado com base na classificação dos grupos.</CardDescription>
-                       </CardHeader>
-                       <CardContent>
-                          <Bracket playoffs={playoffs} />
-                       </CardContent>
-                     </Card>
-                  )}
-                </div>
-              )}
-              {!isLoading && !tournamentData && (
-                <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
-                  <p className="text-muted-foreground">Os grupos e jogos aparecerão aqui após a geração.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </TabsContent>
+                ))}
+            </Tabs>
+          ) : (
+            <Card className="min-h-full">
+                 <CardContent>
+                    <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full min-h-[400px]">
+                      <p className="text-muted-foreground">Gere uma categoria para visualizar os grupos e jogos aqui.</p>
+                    </div>
+                 </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
