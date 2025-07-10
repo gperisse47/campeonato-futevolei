@@ -107,61 +107,74 @@ export function GroupGenerator() {
 
   const initializePlayoffs = useCallback(() => {
     const totalQualifiers = numberOfGroups * teamsPerGroupToAdvance;
-
-    if (totalQualifiers <= 1 || (totalQualifiers & (totalQualifiers - 1)) !== 0) {
-      setPlayoffs(null);
-      return;
+  
+    if (totalQualifiers < 2 || (totalQualifiers & (totalQualifiers - 1)) !== 0) {
+        setPlayoffs(null);
+        return;
     }
-
+  
     let bracket: PlayoffBracket = {};
     const placeholders = generatePlayoffPlaceholders(totalQualifiers);
-    const teamPlaceholders = Object.keys(placeholders);
-
+    const teamPlaceholders = Object.keys(placeholders).sort((a, b) => {
+      // Custom sort to group by letter (A, B, C...) then by number (1, 2, 3...)
+      const aMatch = a.match(/(\d+)º do Grupo ([A-Z])/);
+      const bMatch = b.match(/(\d+)º do Grupo ([A-Z])/);
+      if (aMatch && bMatch) {
+          const [, aPos, aGroup] = aMatch;
+          const [, bPos, bGroup] = bMatch;
+          if (aGroup < bGroup) return -1;
+          if (aGroup > bGroup) return 1;
+          return parseInt(aPos) - parseInt(bPos);
+      }
+      return 0;
+    });
+  
     let currentRoundTeams = [...teamPlaceholders];
     let teamsInRound = totalQualifiers;
     let roundCounter = 1;
-
+  
     while (teamsInRound >= 2) {
-      const roundName = roundNames[teamsInRound] || `Rodada ${roundCounter}`;
-      bracket[roundName] = [];
-      const nextRoundTeams = [];
-
-      // Logic to create pairs, now respecting the visual bracket split
-      const half = currentRoundTeams.length / 2;
-      const leftSide = currentRoundTeams.slice(0, half);
-      const rightSide = currentRoundTeams.slice(half);
-
-      for (let i = 0; i < leftSide.length / 2; i++) {
-          const matchId = `${roundName}-L${i + 1}`;
-          bracket[roundName].push({
-              id: matchId,
-              team1Placeholder: leftSide[i],
-              team2Placeholder: leftSide[leftSide.length - 1 - i],
-          });
-          nextRoundTeams.push(`Vencedor ${matchId}`);
-      }
-      for (let i = 0; i < rightSide.length / 2; i++) {
-          const matchId = `${roundName}-R${i + 1}`;
-          bracket[roundName].push({
-              id: matchId,
-              team1Placeholder: rightSide[i],
-              team2Placeholder: rightSide[rightSide.length - 1 - i],
-          });
-          nextRoundTeams.push(`Vencedor ${matchId}`);
-      }
-
-      currentRoundTeams = nextRoundTeams.sort();
-      teamsInRound /= 2;
-      roundCounter++;
+        const roundName = roundNames[teamsInRound] || `Rodada ${roundCounter}`;
+        bracket[roundName] = [];
+        const nextRoundTeams = [];
+        
+        // Matchmaking for the bracket
+        const half = currentRoundTeams.length / 2;
+        const leftSide = currentRoundTeams.slice(0, half);
+        const rightSide = currentRoundTeams.slice(half).reverse(); // Reverse right side for cross-bracket play
+  
+        const roundMatches = [];
+        for (let i = 0; i < half; i++) {
+            roundMatches.push({
+                team1Placeholder: leftSide[i],
+                team2Placeholder: rightSide[i],
+            });
+        }
+  
+        for (let i = 0; i < roundMatches.length; i++) {
+            const match = roundMatches[i];
+            const matchId = `${roundName.replace(/\s/g, '')}-${i + 1}`;
+            bracket[roundName].push({
+                id: matchId,
+                ...match
+            });
+            nextRoundTeams.push(`Vencedor ${matchId}`);
+        }
+  
+        currentRoundTeams = nextRoundTeams;
+        teamsInRound /= 2;
+        roundCounter++;
     }
-
+  
     if (includeThirdPlace && bracket['Semifinais']) {
+        const semiFinalLosers = bracket['Semifinais'].map(m => `Perdedor ${m.id}`);
         bracket['Disputa de 3º Lugar'] = [
-            { id: 'terceiro-lugar-1', team1Placeholder: "Perdedor Semifinais-L1", team2Placeholder: "Perdedor Semifinais-R1" }
+            { id: 'terceiro-lugar-1', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1] }
         ];
     }
-
+  
     setPlayoffs(bracket);
+  
   }, [numberOfGroups, teamsPerGroupToAdvance, includeThirdPlace, generatePlayoffPlaceholders]);
 
 
@@ -199,25 +212,20 @@ export function GroupGenerator() {
     roundOrder.forEach(roundName => {
       newPlayoffs[roundName].forEach(match => {
         // Assign teams from placeholders or previous matches
-        if (!match.team1) {
-           match.team1 = qualifiedTeams[match.team1Placeholder] || winners[match.team1Placeholder] || undefined;
+        if (!match.team1 && match.team1Placeholder) {
+           match.team1 = qualifiedTeams[match.team1Placeholder] || winners[match.team1Placeholder.replace('Vencedor ', '')] || losers[match.team1Placeholder.replace('Perdedor ', '')] || undefined;
         }
-        if (!match.team2) {
-          match.team2 = qualifiedTeams[match.team2Placeholder] || winners[match.team2Placeholder] || undefined;
+        if (!match.team2 && match.team2Placeholder) {
+          match.team2 = qualifiedTeams[match.team2Placeholder] || winners[match.team2Placeholder.replace('Vencedor ', '')] || losers[match.team2Placeholder.replace('Perdedor ', '')] || undefined;
         }
-
-         if (roundName === 'Disputa de 3º Lugar') {
-             if(!match.team1) match.team1 = losers['Semifinais-L1'];
-             if(!match.team2) match.team2 = losers['Semifinais-R1'];
-         }
 
         // Determine winner and loser
         if (match.team1 && match.team2 && typeof match.score1 === 'number' && typeof match.score2 === 'number') {
           if (match.score1 > match.score2) {
-            winners[`Vencedor ${match.id}`] = match.team1;
+            winners[match.id] = match.team1;
             losers[match.id] = match.team2;
           } else {
-            winners[`Vencedor ${match.id}`] = match.team2;
+            winners[match.id] = match.team2;
             losers[match.id] = match.team1;
           }
         }
@@ -406,82 +414,91 @@ export function GroupGenerator() {
 
   const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
     const roundOrder = Object.keys(roundNames)
-        .map(Number)
-        .sort((a, b) => b - a)
-        .map(key => roundNames[key])
-        .filter(roundName => playoffs[roundName] && roundName !== 'Final');
-
+      .map(Number)
+      .sort((a, b) => b - a)
+      .map(key => roundNames[key])
+      .filter(roundName => playoffs[roundName] && roundName !== 'Final');
+  
     const finalMatch = playoffs['Final']?.[0];
     const thirdPlaceMatch = playoffs['Disputa de 3º Lugar']?.[0];
-
-    // Split rounds into left and right sides of the bracket
+  
     const bracketRounds = roundOrder.map(roundName => {
-        const matches = playoffs[roundName] || [];
-        const half = Math.ceil(matches.length / 2);
-        return {
-            roundName,
-            left: matches.slice(0, half),
-            right: matches.slice(half),
-        };
-    }).filter(r => r.left.length > 0); // Filter out empty rounds
-
-    const leftRounds = bracketRounds;
-    const rightRounds = [...bracketRounds].reverse();
-
-    const renderRound = (round: { roundName: string, matches: PlayoffMatch[] }, side: 'left' | 'right') => {
-        const isReversed = side === 'right';
-        return (
-            <div key={`${round.roundName}-${side}`} className="flex flex-col items-center gap-6">
-                <h4 className="text-lg font-semibold text-center text-primary whitespace-nowrap">{round.roundName}</h4>
-                <div className="flex flex-col justify-around gap-16 w-full max-w-xs mx-auto">
-                    {round.matches.map((match, matchIndex) => {
-                        const originalIndex = playoffs[round.roundName]?.findIndex(m => m.id === match.id) ?? 0;
-                        return (
-                            <div key={match.id} className="relative">
-                                <PlayoffMatchCard match={match} roundName={round.roundName} matchIndex={originalIndex} />
-                                {/* Connector Lines */}
-                                <div className={`absolute top-1/2 h-full w-px bg-border ${isReversed ? 'left-[-1.5rem]' : 'right-[-1.5rem]'} ${matchIndex % 2 === 0 ? 'top-1/2' : 'bottom-1/2'}`} />
-                                <div className={`absolute h-px w-6 bg-border ${isReversed ? 'left-[-1.5rem]' : 'right-[-1.5rem]'} ${matchIndex % 2 === 0 ? 'top-[calc(50%)]' : 'top-[calc(50%)]'}`} />
-                                {matchIndex % 2 === 0 && (
-                                     <div className={`absolute top-full h-px w-6 bg-border ${isReversed ? 'left-[-3rem]' : 'right-[-3rem]'}`} />
-                                )}
-                            </div>
-                        )
-                    })}
+      const matches = playoffs[roundName] || [];
+      const half = Math.ceil(matches.length / 2);
+      return {
+        roundName,
+        left: matches.slice(0, half),
+        right: matches.slice(half),
+      };
+    }).filter(r => r.left.length > 0 || r.right.length > 0);
+  
+    const renderRound = (round: { roundName: string; matches: PlayoffMatch[] }, side: 'left' | 'right') => {
+      const isReversed = side === 'right';
+      return (
+        <div key={`${round.roundName}-${side}`} className="flex flex-col items-center gap-10 w-full">
+          <h4 className="text-lg font-semibold text-center text-primary whitespace-nowrap">{round.roundName}</h4>
+          <div className="flex flex-col justify-around gap-16 w-full max-w-xs mx-auto">
+            {round.matches.map((match, matchIndex) => {
+              const originalIndex = playoffs[round.roundName]?.findIndex(m => m.id === match.id) ?? 0;
+              const isLastMatchInColumn = matchIndex === round.matches.length - 1;
+              const hasPair = matchIndex % 2 === 0;
+  
+              return (
+                <div key={match.id} className="relative flex justify-center">
+                  <PlayoffMatchCard match={match} roundName={round.roundName} matchIndex={originalIndex} />
+                  
+                  {/* Vertical connector line merging pairs */}
+                  {hasPair && !isLastMatchInColumn && (
+                    <div className={`absolute top-1/2 h-[calc(100%_+_4rem)] w-px bg-gray-800 dark:bg-gray-300 ${isReversed ? 'left-[-1.5rem]' : 'right-[-1.5rem]'}`} />
+                  )}
+                  
+                  {/* Horizontal connector line pointing to the next round */}
+                  <div className={`absolute top-1/2 h-px w-6 bg-gray-800 dark:bg-gray-300 ${isReversed ? 'left-[-1.5rem]' : 'right-[-1.5rem]'}`} />
+                  
+                  {/* Horizontal line merging pairs towards the center */}
+                  {hasPair && round.matches.length > 1 && !isLastMatchInColumn && (
+                    <div className={`absolute top-[calc(100%_+_2rem)] h-px w-6 bg-gray-800 dark:bg-gray-300 ${isReversed ? 'left-[-3rem]' : 'right-[-3rem]'}`} />
+                  )}
                 </div>
-            </div>
-        );
-    };
-
-    return (
-        <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
-            <div className="flex justify-center items-start w-full gap-12">
-                {/* Left Bracket */}
-                <div className="flex-1 flex flex-col gap-10">
-                    {leftRounds.map(r => renderRound({ roundName: r.roundName, matches: r.left }, 'left'))}
-                </div>
-
-                {/* Right Bracket */}
-                <div className="flex-1 flex flex-col gap-10">
-                    {rightRounds.map(r => renderRound({ roundName: r.roundName, matches: r.right }, 'right')).reverse()}
-                </div>
-            </div>
-
-            {/* Center Column - Final and 3rd Place */}
-            <div className="flex-shrink-0 flex flex-col items-center justify-center gap-12 pt-8">
-                {thirdPlaceMatch && (
-                    <div className="flex flex-col items-center">
-                         <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isThirdPlace/>
-                    </div>
-                )}
-                {finalMatch && (
-                     <div className="flex flex-col items-center">
-                        <h4 className="text-xl font-bold text-center text-primary whitespace-nowrap">Final</h4>
-                        <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinal/>
-                     </div>
-                )}
-            </div>
+              );
+            })}
+          </div>
         </div>
+      );
+    };
+  
+    const leftBracketRounds = bracketRounds.map(r => ({ ...r, matches: r.left })).filter(r => r.matches.length > 0);
+    const rightBracketRounds = bracketRounds.map(r => ({ ...r, matches: r.right })).filter(r => r.matches.length > 0);
+  
+    return (
+      <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
+        <div className="flex justify-center items-start w-full gap-24">
+          {/* Left Bracket */}
+          <div className="flex-1 flex justify-end gap-12">
+            {leftBracketRounds.map(round => renderRound(round, 'left'))}
+          </div>
+  
+          {/* Right Bracket */}
+          <div className="flex-1 flex justify-start gap-12">
+            {rightBracketRounds.reverse().map(round => renderRound(round, 'right'))}
+          </div>
+        </div>
+  
+        {/* Center Column - Final and 3rd Place */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center gap-12 pt-8">
+           {finalMatch && (
+               <div className="flex flex-col items-center">
+                  <h4 className="text-xl font-bold text-center text-primary whitespace-nowrap">Final</h4>
+                  <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinal/>
+               </div>
+           )}
+           {thirdPlaceMatch && (
+              <div className="flex flex-col items-center">
+                   <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isThirdPlace/>
+              </div>
+           )}
+        </div>
+      </div>
     );
   };
 
@@ -748,3 +765,4 @@ export function GroupGenerator() {
     </div>
   )
 }
+
