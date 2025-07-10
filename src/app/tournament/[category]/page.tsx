@@ -101,7 +101,7 @@ const Bracket = ({ playoffs, title }: { playoffs: PlayoffBracket, title?: string
                                     key={match.id}
                                     match={match}
                                     roundName={roundName}
-                                    isFinalRound={roundName.includes('Final')}
+                                    isFinalRound={roundName.includes('Final') || roundName.includes('Semifinal') || roundName.includes('Disputa de 3º Lugar')}
                                 />
                             ))}
                         </CardContent>
@@ -243,7 +243,7 @@ export default function TournamentPage() {
 
     const upperBracket = getBracketRounds((playoffs as PlayoffBracketSet)?.upper);
     const lowerBracket = getBracketRounds((playoffs as PlayoffBracketSet)?.lower);
-    const grandFinal = getBracketRounds((playoffs as PlayoffBracketSet)?.grandFinal);
+    const finalPlayoffs = getBracketRounds((playoffs as PlayoffBracketSet)?.playoffs);
 
 
     return (
@@ -275,7 +275,7 @@ export default function TournamentPage() {
                 <div className="space-y-8">
                    {Object.keys(upperBracket).length > 0 && <Bracket playoffs={upperBracket} title="Chave Superior (Winners)" />}
                    {Object.keys(lowerBracket).length > 0 && <Bracket playoffs={lowerBracket} title="Chave Inferior (Losers)" />}
-                   {Object.keys(grandFinal).length > 0 && <Bracket playoffs={grandFinal} title="Fase Final" />}
+                   {Object.keys(finalPlayoffs).length > 0 && <Bracket playoffs={finalPlayoffs} title="Fase Final" />}
                 </div>
             )}
 

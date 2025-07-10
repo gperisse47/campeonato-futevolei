@@ -124,6 +124,16 @@ export const formSchema = z
       message: "Existem jogadores duplicados na lista. Cada pessoa só pode fazer parte de uma dupla.",
       path: ["teams"],
     }
+  )
+  .refine(
+    (data) => {
+      if (data.tournamentType !== 'doubleElimination') return true;
+      return data.includeThirdPlace === true;
+    },
+    {
+        message: "A disputa de terceiro lugar é obrigatória para o formato de Dupla Eliminação.",
+        path: ["includeThirdPlace"],
+    }
   );
 
 export type TournamentFormValues = z.infer<typeof formSchema>;
@@ -172,7 +182,7 @@ export type PlayoffBracket = {
 export type PlayoffBracketSet = {
     upper?: PlayoffBracket;
     lower?: PlayoffBracket;
-    grandFinal?: PlayoffBracket;
+    playoffs?: PlayoffBracket;
     [key: string]: PlayoffBracket | undefined;
 } | PlayoffBracket;
 
@@ -196,4 +206,3 @@ export type ConsolidatedMatch = {
     score2?: number;
     time?: string;
 };
-
