@@ -433,56 +433,41 @@ export function GroupGenerator() {
 
   const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
     const roundOrder = Object.keys(roundNames)
-      .map(Number)
-      .sort((a, b) => b - a)
-      .map(key => roundNames[key])
-      .filter(roundName => playoffs[roundName]);
-  
-    const finalMatch = playoffs['Final']?.[0];
-    const thirdPlaceMatch = playoffs['Disputa de 3º Lugar']?.[0];
+        .map(Number)
+        .sort((a, b) => b - a)
+        .map(key => roundNames[key])
+        .filter(roundName => playoffs[roundName]);
+
+    const finalRound = roundOrder.find(r => r === 'Final');
+    const thirdPlaceRound = playoffs['Disputa de 3º Lugar'] ? 'Disputa de 3º Lugar' : undefined;
     const bracketRounds = roundOrder.filter(r => r !== 'Final' && r !== 'Disputa de 3º Lugar');
-  
+
+    const allRounds = [...bracketRounds];
+    if (finalRound) allRounds.push(finalRound);
+    if (thirdPlaceRound) allRounds.push(thirdPlaceRound);
+
+
     return (
-      <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
-        <div className="flex flex-row items-start justify-center w-full gap-8">
-            {bracketRounds.map(roundName => (
-                <div key={roundName} className="flex flex-col items-center gap-6 flex-1 min-w-[280px]">
-                    <h3 className="text-lg font-bold text-primary">{roundName}</h3>
-                    <div className="flex flex-col gap-8 w-full">
+        <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
+            {allRounds.map(roundName => (
+                <Card key={roundName} className="w-full">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-8 w-full">
                         {playoffs[roundName].map((match, matchIndex) => (
                             <PlayoffMatchCard 
                                 key={match.id} 
                                 match={match} 
                                 roundName={roundName} 
                                 matchIndex={matchIndex} 
+                                isFinalRound={roundName === 'Final' || roundName === 'Disputa de 3º Lugar'}
                             />
                         ))}
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
             ))}
         </div>
-        
-        {(finalMatch || thirdPlaceMatch) && <Separator className="my-4"/>}
-  
-        <div className="flex flex-col items-center justify-center w-full gap-8">
-          {finalMatch && (
-            <div className="flex flex-col items-center gap-4 w-full">
-              <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full">
-                <h3 className="text-xl font-bold text-primary">Final</h3>
-                <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinalRound={true} />
-              </div>
-            </div>
-          )}
-          {thirdPlaceMatch && (
-            <div className="flex flex-col items-center gap-4 w-full">
-              <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full">
-                <h3 className="text-xl font-bold text-primary">Disputa de 3º Lugar</h3>
-                <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isFinalRound={true} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     );
   };
 
