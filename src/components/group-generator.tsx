@@ -209,7 +209,7 @@ export function GroupGenerator() {
         if (!match.team1 && match.team1Placeholder) {
           const placeholder = match.team1Placeholder;
           if (placeholder.startsWith('Vencedor Semifinal')) {
-              match.team1 = winners[placeholder.replace('Vencedor ', '').replace('Semifinai', 'Semifinal')];
+              match.team1 = winners[placeholder.replace('Vencedor ', '')];
           } else if (placeholder.startsWith('Vencedor ')) {
             match.team1 = winners[placeholder.replace('Vencedor ', '')];
           } else if (placeholder.startsWith('Perdedor ')) {
@@ -221,7 +221,7 @@ export function GroupGenerator() {
         if (!match.team2 && match.team2Placeholder) {
           const placeholder = match.team2Placeholder;
           if (placeholder.startsWith('Vencedor Semifinal')) {
-              match.team2 = winners[placeholder.replace('Vencedor ', '').replace('Semifinai', 'Semifinal')];
+              match.team2 = winners[placeholder.replace('Vencedor ', '')];
           } else if (placeholder.startsWith('Vencedor ')) {
             match.team2 = winners[placeholder.replace('Vencedor ', '')];
           } else if (placeholder.startsWith('Perdedor ')) {
@@ -393,12 +393,14 @@ export function GroupGenerator() {
 
     const team1Key = match.team1 ? teamToKey(match.team1) : null;
     const team2Key = match.team2 ? teamToKey(match.team2) : null;
+    
+    const team1Placeholder = match.team1Placeholder.replace('Vencedor Semifinais-1', 'Vencedor Semifinal 1');
 
     return (
       <div className={`flex flex-col items-center justify-center gap-2 w-full ${isFinalRound ? 'max-w-md' : 'max-w-sm'} mx-auto`}>
           {isFinalRound !== true && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : match.team1Placeholder.replace('Vencedor Semifinais-1', 'Vencedor Semifinal 1')}</span>
+                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : team1Placeholder}</span>
                 <Input
                     type="number"
                     className="h-8 w-14 text-center"
