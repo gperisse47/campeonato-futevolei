@@ -573,7 +573,7 @@ export function GroupGenerator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTournamentData, JSON.stringify(activePlayoffs)]);
 
-  const PlayoffMatchCard = ({ match, roundName, matchIndex, isFirst, isLast }: { match: PlayoffMatch, roundName: string, matchIndex: number, isFirst: boolean, isLast: boolean }) => {
+  const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => {
     const getWinner = (m: PlayoffMatch) => {
       if(m.score1 === undefined || m.score2 === undefined || m.score1 === m.score2) return null;
       return m.score1 > m.score2 ? m.team1 : m.team2;
@@ -662,8 +662,6 @@ export function GroupGenerator() {
                         match={match} 
                         roundName={roundName} 
                         matchIndex={matchIndex}
-                        isFirst={matchIndex === 0}
-                        isLast={matchIndex === playoffs[roundName].length - 1}
                       />
                       {matchIndex < playoffs[roundName].length - 1 && <Separator />}
                     </React.Fragment>
@@ -683,8 +681,6 @@ export function GroupGenerator() {
                         match={playoffs['Final'][0]} 
                         roundName="Final" 
                         matchIndex={0}
-                        isFirst
-                        isLast
                     />
                 </CardContent>
              </Card>
@@ -699,8 +695,6 @@ export function GroupGenerator() {
                         match={playoffs['Disputa de 3º Lugar'][0]} 
                         roundName="Disputa de 3º Lugar" 
                         matchIndex={0}
-                        isFirst
-                        isLast
                     />
                 </CardContent>
              </Card>
@@ -1025,9 +1019,9 @@ export function GroupGenerator() {
                                                 <div className="flex-1 flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                                                     <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
                                                     <div className="flex items-center gap-1">
-                                                        <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
+                                                        <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
                                                         <span className="text-muted-foreground">x</span>
-                                                        <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score2', e.target.value)} />
+                                                        <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score2', e.target.value)} />
                                                     </div>
                                                     <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
                                                 </div>
