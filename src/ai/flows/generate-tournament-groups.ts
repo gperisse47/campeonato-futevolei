@@ -79,7 +79,7 @@ Teams:
 {{/each}}
 
 {{#if isGroups}}
-First, generate the groups, ensuring that each team is assigned to one group. Consider the group formation strategy when assigning teams. The output for each team must include both player names.
+First, generate the groups by distributing the teams as evenly as possible among the {{{numberOfGroups}}} groups. Adhere to the '{{{groupFormationStrategy}}}' when assigning teams. For 'order', the top seeds should be in different groups. For 'random', the distribution is arbitrary. The output for each team must include both player names.
 After forming the groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
 The final output should contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
 {{else}}

@@ -1151,5 +1151,276 @@
       ]
     },
     "totalMatches": 26
+  },
+  "Misto Iniciante": {
+    "tournamentData": {
+      "groups": [
+        {
+          "matches": [
+            {
+              "team1": {
+                "player1": "Jordana",
+                "player2": "Fabinho"
+              },
+              "team2": {
+                "player1": "Paula",
+                "player2": "Carelli"
+              },
+              "time": "08:00",
+              "court": "GP1"
+            },
+            {
+              "team1": {
+                "player1": "Jordana",
+                "player2": "Fabinho"
+              },
+              "team2": {
+                "player1": "Sofia",
+                "player2": "Caio"
+              },
+              "time": "08:00",
+              "court": "GP2"
+            },
+            {
+              "team1": {
+                "player1": "Jordana",
+                "player2": "Fabinho"
+              },
+              "team2": {
+                "player1": "Mari",
+                "player2": "Neves"
+              },
+              "time": "08:00",
+              "court": "GP3"
+            },
+            {
+              "team1": {
+                "player1": "Paula",
+                "player2": "Carelli"
+              },
+              "team2": {
+                "player1": "Sofia",
+                "player2": "Caio"
+              },
+              "time": "08:00",
+              "court": "HD1"
+            },
+            {
+              "team1": {
+                "player1": "Paula",
+                "player2": "Carelli"
+              },
+              "team2": {
+                "player1": "Mari",
+                "player2": "Neves"
+              },
+              "time": "08:00",
+              "court": "HD2"
+            },
+            {
+              "team1": {
+                "player1": "Sofia",
+                "player2": "Caio"
+              },
+              "team2": {
+                "player1": "Mari",
+                "player2": "Neves"
+              },
+              "time": "08:20",
+              "court": "GP1"
+            }
+          ],
+          "name": "Grupo A",
+          "teams": [
+            {
+              "player1": "Jordana",
+              "player2": "Fabinho"
+            },
+            {
+              "player1": "Paula",
+              "player2": "Carelli"
+            },
+            {
+              "player1": "Sofia",
+              "player2": "Caio"
+            },
+            {
+              "player1": "Mari",
+              "player2": "Neves"
+            }
+          ],
+          "standings": [
+            {
+              "team": {
+                "player1": "Jordana",
+                "player2": "Fabinho"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Mari",
+                "player2": "Neves"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Paula",
+                "player2": "Carelli"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Sofia",
+                "player2": "Caio"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            }
+          ]
+        },
+        {
+          "matches": [
+            {
+              "team1": {
+                "player1": "Carla",
+                "player2": "Henrique"
+              },
+              "team2": {
+                "player1": "Ana",
+                "player2": "Brenner"
+              },
+              "time": "08:20",
+              "court": "GP2"
+            },
+            {
+              "team1": {
+                "player1": "Carla",
+                "player2": "Henrique"
+              },
+              "team2": {
+                "player1": "Carla",
+                "player2": "Henrique"
+              },
+              "time": "08:20",
+              "court": "GP3"
+            },
+            {
+              "team1": {
+                "player1": "Ana",
+                "player2": "Brenner"
+              },
+              "team2": {
+                "player1": "Ana",
+                "player2": "Brenner"
+              },
+              "time": "08:20",
+              "court": "HD1"
+            }
+          ],
+          "name": "Grupo B",
+          "teams": [
+            {
+              "player1": "Carla",
+              "player2": "Henrique"
+            },
+            {
+              "player1": "Ana",
+              "player2": "Brenner"
+            }
+          ],
+          "standings": [
+            {
+              "team": {
+                "player1": "Ana",
+                "player2": "Brenner"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Carla",
+                "player2": "Henrique"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            }
+          ]
+        }
+      ]
+    },
+    "playoffs": {
+      "Semifinal": [
+        {
+          "id": "Semifinal-1",
+          "name": "Semifinal 1",
+          "team1Placeholder": "1º do Grupo A",
+          "team2Placeholder": "2º do Grupo B",
+          "time": "08:40",
+          "roundOrder": 2,
+          "court": "GP2"
+        },
+        {
+          "id": "Semifinal-2",
+          "name": "Semifinal 2",
+          "team1Placeholder": "2º do Grupo A",
+          "team2Placeholder": "1º do Grupo B",
+          "time": "08:40",
+          "roundOrder": 2,
+          "court": "GP3"
+        }
+      ],
+      "Final": [
+        {
+          "id": "Final-1",
+          "name": "Final 1",
+          "team1Placeholder": "Vencedor Semifinal-1",
+          "team2Placeholder": "Vencedor Semifinal-2",
+          "time": "08:40",
+          "roundOrder": 1,
+          "court": "GP1"
+        }
+      ],
+      "Disputa de 3º Lugar": [
+        {
+          "id": "terceiro-lugar-1",
+          "name": "Disputa de 3º Lugar",
+          "team1Placeholder": "Perdedor Semifinal-1",
+          "team2Placeholder": "Perdedor Semifinal-2",
+          "time": "08:20",
+          "roundOrder": 0,
+          "court": "HD2"
+        }
+      ]
+    },
+    "formValues": {
+      "category": "Misto Iniciante",
+      "tournamentType": "groups",
+      "numberOfTeams": 6,
+      "numberOfGroups": 2,
+      "teamsPerGroupToAdvance": 2,
+      "teams": "Jordana e Fabinho\nPaula e Carelli\nSofia e Caio\nMari e Neves \nCarla e Henrique\nAna e Brenner",
+      "groupFormationStrategy": "order",
+      "includeThirdPlace": true
+    },
+    "totalMatches": 13
   }
 }
