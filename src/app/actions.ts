@@ -156,14 +156,14 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             }
         });
         
-        type MatchReference = (MatchWithScore | PlayoffMatch) & { categoryName: string };
+        type MatchReference = (MatchWithScore | PlayoffMatch) & { categoryName: string, isPlayoff: boolean };
         
         // Collect all matches again after reset
         let allMatches: MatchReference[] = [];
         categoryNames.forEach(catName => {
             const catData = db[catName] as CategoryData;
             const groupMatches = catData.tournamentData?.groups.flatMap(group =>
-                group.matches.map(match => ({ ...match, categoryName: catName, isPlayoff: false, roundOrder: -1 }))
+                group.matches.map(match => ({ ...match, categoryName: catName, isPlayoff: false }))
             ) || [];
 
             let playoffMatches: MatchReference[] = [];
@@ -208,37 +208,32 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         while (unscheduledMatches.size > 0 && scheduledInPass) {
             scheduledInPass = false;
 
-            const nextCourtTimes = Object.values(courtAvailability);
-            if(nextCourtTimes.length === 0) break; // No courts available
+            // Find the earliest possible time a match can be scheduled on any court
+            let earliestNextTime = new Date(8640000000000000); // Max date
+            let foundNextSlot = false;
             
-            let currentTime = new Date(Math.min(...nextCourtTimes.map(t => t.getTime())));
-
-
-            // Find next available slot for any court
-            let potentialNextTime = new Date(8640000000000000); // Max date
-            let foundSlot = false;
-
             for (const court of _globalSettings.courts) {
                 const courtAvailableAt = courtAvailability[court.name];
                 for (const slot of court.slots) {
                     const slotStart = parseTime(slot.startTime);
                     const slotEnd = parseTime(slot.endTime);
-                    const effectiveStartTime = max([slotStart, courtAvailableAt]);
+
+                    // The effective start time is the later of the court's availability or the slot's start time
+                    const effectiveStartTime = max([courtAvailableAt, slotStart]);
                     
-                    if (isBefore(effectiveStartTime, slotEnd)) {
-                         if (isBefore(effectiveStartTime, potentialNextTime)) {
-                            potentialNextTime = effectiveStartTime;
-                            foundSlot = true;
-                        }
+                    // If this effective start time is valid (within the slot) and earlier than what we've found so far
+                    if (isBefore(effectiveStartTime, slotEnd) && isBefore(effectiveStartTime, earliestNextTime)) {
+                        earliestNextTime = effectiveStartTime;
+                        foundNextSlot = true;
                     }
                 }
             }
-
-            if(foundSlot) {
-                currentTime = potentialNextTime;
-            } else {
-                break; // No available slots left in the tournament day
+            
+            if (!foundNextSlot) {
+                break; // No more available slots in the entire tournament day
             }
+            
+            let currentTime = earliestNextTime;
 
             // Category Rotation Logic
             let categoriesToTry = categoriesByStartTime.map(c => c.name);
@@ -258,9 +253,9 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 }
 
                 let isInSlot = false;
-                for (const slot of court.slots) {
+                 for (const slot of court.slots) {
                      const slotStart = parseTime(slot.startTime);
-                     const slotEnd = addMinutes(parseTime(slot.endTime), -_globalSettings.estimatedMatchDuration);
+                     const slotEnd = addMinutes(parseTime(slot.endTime), -_globalSettings.estimatedMatchDuration + 1);
                      if (currentTime >= slotStart && currentTime <= slotEnd) {
                         isInSlot = true;
                         break;
@@ -288,7 +283,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     });
                     
                     if (candidateMatches.length === 0) continue;
-
+                    
                     // Simple sort to try playoffs first, then groups
                     candidateMatches.sort((a, b) => (b.isPlayoff ? 1 : 0) - (a.isPlayoff ? 1 : 0));
 
@@ -299,7 +294,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                          let originalMatch: (MatchWithScore | PlayoffMatch | undefined);
                          const categoryData = db[match.categoryName] as CategoryData;
                          
-                         if(match.roundOrder === -1){ // Group match
+                         if(!match.isPlayoff){ // Group match
                             const group = categoryData.tournamentData?.groups.find(g => g.matches.some(m => !m.time && teamIsEqual(m.team1, match.team1) && teamIsEqual(m.team2, match.team2)));
                             originalMatch = group?.matches.find(m => !m.time && teamIsEqual(m.team1, match.team1) && teamIsEqual(m.team2, match.team2));
                          } else { // Playoff match
