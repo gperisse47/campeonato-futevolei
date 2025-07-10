@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from "react"
@@ -36,12 +35,30 @@ const teamToKey = (team?: Team) => {
     return `${team.player1} e ${team.player2}`;
 };
 
+const defaultFormValues: TournamentFormValues = {
+  category: "",
+  tournamentType: "groups",
+  numberOfTeams: 0,
+  numberOfGroups: 0,
+  teamsPerGroupToAdvance: 2,
+  teams: "",
+  groupFormationStrategy: "order",
+  includeThirdPlace: true,
+  startTime: "",
+};
+
+
 export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
+
+  const form = useForm<TournamentFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: defaultFormValues,
+  })
 
   // Load initial data from the "DB"
   useEffect(() => {
@@ -62,7 +79,26 @@ export function TournamentCreator() {
     };
     fetchInitialData();
   }, [toast]);
+  
+  const watchedCategoryName = form.watch("category");
+  const tournamentType = form.watch("tournamentType");
 
+  useEffect(() => {
+    if (isLoaded) {
+      const existingCategoryData = tournaments[watchedCategoryName];
+      if (existingCategoryData) {
+        form.reset(existingCategoryData.formValues);
+      }
+    }
+  }, [watchedCategoryName, tournaments, isLoaded, form]);
+
+
+  useEffect(() => {
+    if (tournamentType === 'doubleElimination') {
+      form.setValue('includeThirdPlace', true, { shouldValidate: true });
+    }
+  }, [form, tournamentType]);
+  
   const saveData = async (categoryName: string, data: CategoryData) => {
     setIsSaving(true);
     const result = await saveTournament(categoryName, data);
@@ -72,48 +108,13 @@ export function TournamentCreator() {
         title: "Erro ao salvar",
         description: result.error || "Não foi possível salvar as alterações.",
       });
+    } else {
+       // Refresh tournaments state after saving
+       const savedTournaments = await getTournaments();
+       setTournaments(savedTournaments);
     }
     setIsSaving(false);
   };
-
-  const form = useForm<TournamentFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      category: "Masculino",
-      tournamentType: "groups",
-      numberOfTeams: 16,
-      numberOfGroups: 4,
-      teamsPerGroupToAdvance: 2,
-      teams: `Peri e Gularte
-Fabinho e Bergallo
-Caslu e Leo
-Alex e Lage
-Felipe M. e Rapha B.
-Rodrigo e Paulinho
-Carelli e Hantaro
-Neves e Caze
-Gustavo M. e Marcus
-Gabe e Yan
-Brenner e Py
-Carril  e Leandro 
-Russo e Maki
-James e Fabio
-Sartoratto e Poppe
-Olavo e Dudu`,
-      groupFormationStrategy: "order",
-      includeThirdPlace: true,
-      startTime: "09:00",
-    },
-  })
-
-  const tournamentType = form.watch("tournamentType");
-
-
-  useEffect(() => {
-    if (tournamentType === 'doubleElimination') {
-      form.setValue('includeThirdPlace', true, { shouldValidate: true });
-    }
-  }, [form, tournamentType]);
 
   const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
     return groups.map(group => {
@@ -548,7 +549,6 @@ Olavo e Dudu`,
     
     newCategoryData.totalMatches = calculateTotalMatches(newCategoryData);
 
-    setTournaments(prev => ({ ...prev, [categoryName]: newCategoryData }));
     await saveData(categoryName, newCategoryData);
     
     toast({
