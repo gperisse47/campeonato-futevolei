@@ -37,7 +37,7 @@ export function SidebarNav() {
     loadTournaments();
 
     // Set up an interval to refresh the categories list periodically
-    const intervalId = setInterval(loadTournaments, 60000); // Refresh every 1 minute
+    const intervalId = setInterval(loadTournaments, 5000); // Refresh every 5 seconds
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
