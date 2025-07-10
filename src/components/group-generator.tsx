@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
+import { Loader2, Swords } from "lucide-react"
 
 import { generateGroupsAction } from "@/app/actions"
 import type { GenerateTournamentGroupsOutput } from "@/lib/types"
@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "./ui/skeleton"
+import { Separator } from "./ui/separator"
 
 export function GroupGenerator() {
   const [isLoading, setIsLoading] = useState(false)
@@ -63,13 +64,13 @@ export function GroupGenerator() {
     if (result.success && result.data) {
       setGeneratedGroups(result.data)
       toast({
-        title: "Grupos Gerados com Sucesso!",
-        description: "Os grupos foram criados e estão prontos para visualização.",
+        title: "Grupos e Jogos Gerados!",
+        description: "Os grupos e confrontos estão prontos para visualização.",
       })
     } else {
       toast({
         variant: "destructive",
-        title: "Erro ao Gerar Grupos",
+        title: "Erro ao Gerar",
         description: result.error || "Ocorreu um erro inesperado.",
       })
     }
@@ -83,7 +84,7 @@ export function GroupGenerator() {
         <CardHeader>
           <CardTitle>Configurações do Torneio</CardTitle>
           <CardDescription>
-            Insira os detalhes para a geração dos grupos.
+            Insira os detalhes para a geração dos grupos e jogos.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,7 +189,7 @@ export function GroupGenerator() {
 
               <Button type="submit" disabled={isLoading} className="w-full">
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Gerar Grupos
+                Gerar Grupos e Jogos
               </Button>
             </form>
           </Form>
@@ -197,9 +198,9 @@ export function GroupGenerator() {
       <div className="lg:col-span-2">
         <Card className="min-h-full">
           <CardHeader>
-            <CardTitle>Grupos Gerados</CardTitle>
+            <CardTitle>Grupos e Jogos Gerados</CardTitle>
             <CardDescription>
-              Visualize os grupos formados pela IA. Você poderá editá-los na próxima etapa.
+              Visualize os grupos e confrontos formados pela IA.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -221,20 +222,36 @@ export function GroupGenerator() {
               </div>
             )}
             {generatedGroups && (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {generatedGroups.groups.map((group) => (
                   <Card key={group.name} className="flex flex-col">
                     <CardHeader>
                       <CardTitle className="text-primary">{group.name}</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1">
-                      <ul className="space-y-2">
-                        {group.teams.map((team, index) => (
-                          <li key={`${team.player1}-${index}`} className="rounded-md bg-secondary/50 p-2 text-sm text-secondary-foreground">
-                            {team.player1} / {team.player2}
-                          </li>
-                        ))}
-                      </ul>
+                    <CardContent className="flex-1 space-y-4">
+                      <div>
+                        <h4 className="mb-2 font-semibold">Duplas</h4>
+                        <ul className="space-y-2">
+                          {group.teams.map((team, index) => (
+                            <li key={`${team.player1}-${index}`} className="rounded-md bg-secondary/50 p-2 text-sm text-secondary-foreground">
+                              {team.player1} / {team.player2}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <Separator/>
+                      <div>
+                        <h4 className="mb-2 font-semibold">Jogos</h4>
+                        <ul className="space-y-2">
+                            {group.matches.map((match, index) => (
+                                <li key={index} className="flex items-center justify-center gap-2 rounded-md bg-secondary/50 p-2 text-center text-sm text-secondary-foreground">
+                                    <span>{match.team1.player1}/{match.team1.player2}</span>
+                                    <Swords className="h-4 w-4 text-primary"/>
+                                    <span>{match.team2.player1}/{match.team2.player2}</span>
+                                </li>
+                            ))}
+                        </ul>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -242,7 +259,7 @@ export function GroupGenerator() {
             )}
             {!isLoading && !generatedGroups && (
                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
-                    <p className="text-muted-foreground">Os grupos aparecerão aqui após a geração.</p>
+                    <p className="text-muted-foreground">Os grupos e jogos aparecerão aqui após a geração.</p>
                 </div>
             )}
           </CardContent>

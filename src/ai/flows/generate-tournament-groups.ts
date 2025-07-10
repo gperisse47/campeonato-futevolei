@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for generating tournament groups using AI.
+ * @fileOverview This file defines a Genkit flow for generating tournament groups and matches using AI.
  *
- * - generateTournamentGroups - A function that generates tournament groups based on input parameters.
+ * - generateTournamentGroups - A function that generates tournament groups and matches based on input parameters.
  * - GenerateTournamentGroupsInput - The input type for the generateTournamentGroups function.
  * - GenerateTournamentGroupsOutput - The return type for the generateTournamentGroups function.
  */
@@ -14,6 +14,11 @@ import {z} from 'genkit';
 const TeamSchema = z.object({
   player1: z.string().describe('The name of the first player in the team.'),
   player2: z.string().describe('The name of the second player in the team.'),
+});
+
+const MatchSchema = z.object({
+  team1: TeamSchema.describe('The first team in the match.'),
+  team2: TeamSchema.describe('The second team in the match.'),
 });
 
 const GenerateTournamentGroupsInputSchema = z.object({
@@ -34,8 +39,9 @@ const GenerateTournamentGroupsOutputSchema = z.object({
     z.object({
       name: z.string().describe('The name of the group (e.g., Group A, Group B).'),
       teams: z.array(TeamSchema).describe('The teams in this group, with their players.'),
+      matches: z.array(MatchSchema).describe('The matches to be played in this group (round-robin).'),
     })
-  ).describe('The generated tournament groups.'),
+  ).describe('The generated tournament groups and their matches.'),
 });
 export type GenerateTournamentGroupsOutput = z.infer<typeof GenerateTournamentGroupsOutputSchema>;
 
@@ -49,7 +55,7 @@ const generateTournamentGroupsPrompt = ai.definePrompt({
   name: 'generateTournamentGroupsPrompt',
   input: {schema: GenerateTournamentGroupsInputSchema},
   output: {schema: GenerateTournamentGroupsOutputSchema},
-  prompt: `You are a tournament organizer. Your task is to divide the teams into groups for a tournament.
+  prompt: `You are a tournament organizer. Your task is to divide the teams into groups for a tournament and then generate the match schedule for each group.
 
 Tournament Category: {{{category}}}
 Number of Teams: {{{numberOfTeams}}}
@@ -59,9 +65,11 @@ Teams:
 {{#each teams}}- {{{this.player1}}} / {{{this.player2}}}
 {{/each}}
 
-Generate the groups, ensuring that each team is assigned to one group. Consider the group formation strategy when assigning teams. The output for each team must include both player names.
+First, generate the groups, ensuring that each team is assigned to one group. Consider the group formation strategy when assigning teams. The output for each team must include both player names.
 
-Groups:
+After forming the groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
+
+The final output should contain the groups, the teams within each group, and the list of matches for each group.
 `,
 });
 
