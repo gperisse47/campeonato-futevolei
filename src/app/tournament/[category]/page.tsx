@@ -45,7 +45,7 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
             <div className="flex flex-col items-center justify-center text-center gap-2">
               {showMatchName && <h4 className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{match.name}</h4>}
                {(match.time || match.court) && (
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-4 text-xs font-bold text-primary">
                       {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
                       {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
                   </div>
@@ -162,7 +162,7 @@ const GroupCard = ({ group, teamsPerGroupToAdvance }: { group: GroupWithScores, 
                     {group.matches.map((match, matchIndex) => (
                         <div key={matchIndex} className="flex flex-col gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                             {(match.time || match.court) && (
-                                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                                <div className="flex items-center justify-center gap-4 text-xs font-bold text-primary">
                                     {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
                                     {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
                                 </div>
