@@ -59,7 +59,7 @@ export const formSchema = z
       path: ["teams"],
     }
   )
-  .refine(
+   .refine(
     (data) => {
         const teamsArray = data.teams
             .split("\n")
@@ -123,16 +123,6 @@ export const formSchema = z
     {
       message: "Existem jogadores duplicados na lista. Cada pessoa só pode fazer parte de uma dupla.",
       path: ["teams"],
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.tournamentType !== 'doubleElimination') return true;
-      return data.includeThirdPlace === true;
-    },
-    {
-        message: "A disputa de terceiro lugar é obrigatória para o formato de Dupla Eliminação.",
-        path: ["includeThirdPlace"],
     }
   );
 
