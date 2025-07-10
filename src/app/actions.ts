@@ -11,8 +11,26 @@ import {
   type GenerateTournamentGroupsInput
 } from "@/ai/flows/generate-tournament-groups"
 import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet } from "@/lib/types"
+import { z } from 'zod';
 
 const dbPath = path.resolve(process.cwd(), "db.json")
+
+// Zod schema for the output of the algorithmic group generation.
+// This is necessary because we can no longer import it from the flow.
+const GenerateTournamentGroupsOutputSchema = z.object({
+  groups: z.array(
+    z.object({
+      name: z.string(),
+      teams: z.array(z.object({ player1: z.string(), player2: z.string() })),
+      matches: z.array(z.object({ 
+        team1: z.object({ player1: z.string(), player2: z.string() }),
+        team2: z.object({ player1: z.string(), player2: z.string() })
+      })),
+    })
+  ),
+  playoffMatches: z.array(z.any()).optional(), // Keep playoffMatches flexible or define schema if needed
+});
+
 
 async function readDb(): Promise<TournamentsState> {
   try {
@@ -135,6 +153,58 @@ export async function deleteTournament(categoryName: string): Promise<{ success:
     }
 }
 
+// Algorithmic group and match generation
+function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): GenerateTournamentGroupsOutput {
+    const { teams, numberOfGroups, groupFormationStrategy } = input;
+    
+    if (!numberOfGroups) {
+      throw new Error("Número de grupos não fornecido.");
+    }
+
+    let teamsToDistribute = [...teams];
+    if (groupFormationStrategy === 'random') {
+        // Fisher-Yates shuffle
+        for (let i = teamsToDistribute.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [teamsToDistribute[i], teamsToDistribute[j]] = [teamsToDistribute[j], teamsToDistribute[i]];
+        }
+    }
+    
+    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
+        name: `Group ${String.fromCharCode(65 + i)}`,
+        teams: [],
+        matches: []
+    }));
+
+    // Distribute teams into groups (serpentine for 'order', sequential for 'random' because it's already shuffled)
+    teamsToDistribute.forEach((team, index) => {
+        let groupIndex: number;
+        if (groupFormationStrategy === 'order') {
+            const round = Math.floor(index / numberOfGroups);
+            const isEvenRound = round % 2 === 0;
+            const pick = index % numberOfGroups;
+            groupIndex = isEvenRound ? pick : numberOfGroups - 1 - pick;
+        } else {
+            groupIndex = index % numberOfGroups;
+        }
+        groups[groupIndex].teams.push(team);
+    });
+
+    // Generate round-robin matches for each group
+    groups.forEach(group => {
+        for (let i = 0; i < group.teams.length; i++) {
+            for (let j = i + 1; j < group.teams.length; j++) {
+                group.matches.push({
+                    team1: group.teams[i],
+                    team2: group.teams[j]
+                });
+            }
+        }
+    });
+
+    return GenerateTournamentGroupsOutputSchema.parse({ groups });
+}
+
 
 export async function generateGroupsAction(
   input: GenerateTournamentGroupsInput
@@ -144,13 +214,20 @@ export async function generateGroupsAction(
   error?: string
 }> {
   try {
-    const output = await generateTournamentGroups(input);
+    let output: GenerateTournamentGroupsOutput;
 
     if (input.tournamentType === 'groups') {
+        output = generateGroupsAlgorithmically(input);
+    } else {
+        // Use AI for single and double elimination
+        output = await generateTournamentGroups(input);
+    }
+    
+    if (input.tournamentType === 'groups') {
       if (!output.groups || output.groups.length === 0) {
-        return { success: false, error: "A IA não conseguiu gerar os grupos. Tente novamente." };
+        return { success: false, error: "Não foi possível gerar os grupos. Verifique os parâmetros." };
       }
-    } else if (input.tournamentType === 'singleElimination') {
+    } else if (input.tournamentType === 'singleElimination' || input.tournamentType === 'doubleElimination') {
       if (!output.playoffMatches || output.playoffMatches.length === 0) {
         return { success: false, error: "A IA não conseguiu gerar o chaveamento. Tente novamente." };
       }

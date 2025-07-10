@@ -2,9 +2,9 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for generating tournament groups and matches using AI.
+ * @fileOverview This file defines a Genkit flow for generating tournament playoffs using AI.
  *
- * - generateTournamentGroups - A function that generates tournament groups and matches based on input parameters.
+ * - generateTournamentGroups - A function that generates tournament playoffs based on input parameters.
  * - GenerateTournamentGroupsInput - The input type for the generateTournamentGroups function.
  * - GenerateTournamentGroupsOutput - The return type for the generateTournamentGroups function.
  */
@@ -78,21 +78,14 @@ Teams:
 {{#each teams}}- {{{this.player1}}} e {{{this.player2}}}
 {{/each}}
 
-{{#if isGroups}}
-Your first step is to ensure the groups are balanced. Divide the total number of teams ({{{numberOfTeams}}}) by the number of groups ({{{numberOfGroups}}}) to determine the size of each group. Distribute the teams to create groups of equal size, or as close to equal as possible (e.g., for 10 teams and 3 groups, create two groups of 3 and one of 4).
-Once the group sizes are determined, populate them with the teams using the '{{{groupFormationStrategy}}}' strategy. For 'order', the top seeds should be in different groups. For 'random', the distribution is arbitrary.
-After forming the balanced groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
-The final output must contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
-{{else}}
 {{#if isSingleElimination}}
 You need to create the first round of a single elimination (mata-mata) tournament.
 Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
-{{else}}
+{{else if isDoubleElimination}}
 You need to create the first round of the upper bracket for a double elimination tournament.
 Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the first-round matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
-{{/if}}
 {{/if}}
 `,
 });
@@ -104,9 +97,15 @@ const generateTournamentGroupsFlow = ai.defineFlow(
     outputSchema: GenerateTournamentGroupsOutputSchema,
   },
   async input => {
+    // This flow is now only for elimination tournaments.
+    // Group generation is handled algorithmically.
+    if (input.tournamentType === 'groups') {
+        return { groups: [] }; // Should not be called for groups.
+    }
+
     const promptInput = {
         ...input,
-        isGroups: input.tournamentType === 'groups',
+        isGroups: false,
         isSingleElimination: input.tournamentType === 'singleElimination',
         isDoubleElimination: input.tournamentType === 'doubleElimination',
     };

@@ -2,22 +2,14 @@
 
 import type {
   GenerateTournamentGroupsInput as AIGenerateTournamentGroupsInput,
-  GenerateTournamentGroupsOutput as AIGenerateTournamentGroupsOutput,
+  GenerateTournamentGroupsOutput,
 } from "@/ai/flows/generate-tournament-groups"
 import { z } from "zod"
 
 export type { GenerateTournamentGroupsOutput };
 
 // We only need a subset of the AI input type for the action
-export type GenerateTournamentGroupsInput = Pick<
-  AIGenerateTournamentGroupsInput,
-  | "numberOfTeams"
-  | "numberOfGroups"
-  | "groupFormationStrategy"
-  | "teams"
-  | "category"
-  | "tournamentType"
->;
+export type GenerateTournamentGroupsInput = AIGenerateTournamentGroupsInput;
 
 export const teamSchema = z.object({
   player1: z.string(),
@@ -174,15 +166,25 @@ export const formSchema = z
 
 export type TournamentFormValues = z.infer<typeof formSchema>;
 
+// This is the AI output type, redefined here since we can't import it
+type AIOutputGroup = {
+    name: string;
+    teams: Team[];
+    matches: {
+        team1: Team;
+        team2: Team;
+    }[];
+};
+
 // Types for state management within the component
-export type MatchWithScore = AIGenerateTournamentGroupsOutput['groups'][0]['matches'][0] & {
+export type MatchWithScore = AIOutputGroup['matches'][0] & {
   score1?: number;
   score2?: number;
   time?: string;
   court?: string;
 };
 
-export type GroupWithScores = Omit<AIGenerateTournamentGroupsOutput['groups'][0], 'matches'> & {
+export type GroupWithScores = Omit<AIOutputGroup, 'matches'> & {
   matches: MatchWithScore[];
   standings: TeamStanding[];
 };
