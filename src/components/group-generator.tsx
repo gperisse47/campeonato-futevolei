@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -162,7 +163,7 @@ export function GroupGenerator() {
     }
   
     if (includeThirdPlace && bracket['Semifinais']) {
-        const semiFinalLosers = bracket['Semifinais'].map(m => `Perdedor ${m.name}`);
+        const semiFinalLosers = bracket['Semifinais'].map(m => `Perdedor ${m.name.replace('s','')}`);
         bracket['Disputa de 3º Lugar'] = [
             { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1] }
         ];
@@ -208,24 +209,20 @@ export function GroupGenerator() {
       newPlayoffs[roundName]?.forEach(match => {
         if (!match.team1 && match.team1Placeholder) {
           const placeholder = match.team1Placeholder;
-          if (placeholder.startsWith('Vencedor Semifinal')) {
-              match.team1 = winners[placeholder.replace('Vencedor ', '')];
-          } else if (placeholder.startsWith('Vencedor ')) {
-            match.team1 = winners[placeholder.replace('Vencedor ', '')];
+          if (placeholder.startsWith('Vencedor ')) {
+            match.team1 = winners[placeholder.replace('Vencedor ', '').replace('s ', ' ')];
           } else if (placeholder.startsWith('Perdedor ')) {
-            match.team1 = losers[placeholder.replace('Perdedor ', '')];
+            match.team1 = losers[placeholder.replace('Perdedor ', '').replace('s ', ' ')];
           } else {
             match.team1 = qualifiedTeams[placeholder];
           }
         }
         if (!match.team2 && match.team2Placeholder) {
           const placeholder = match.team2Placeholder;
-          if (placeholder.startsWith('Vencedor Semifinal')) {
-              match.team2 = winners[placeholder.replace('Vencedor ', '')];
-          } else if (placeholder.startsWith('Vencedor ')) {
-            match.team2 = winners[placeholder.replace('Vencedor ', '')];
+          if (placeholder.startsWith('Vencedor ')) {
+            match.team2 = winners[placeholder.replace('Vencedor ', '').replace('s ', ' ')];
           } else if (placeholder.startsWith('Perdedor ')) {
-            match.team2 = losers[placeholder.replace('Perdedor ', '')];
+            match.team2 = losers[placeholder.replace('Perdedor ', '').replace('s ', ' ')];
           } else {
             match.team2 = qualifiedTeams[placeholder];
           }
@@ -400,7 +397,7 @@ export function GroupGenerator() {
       <div className={`flex flex-col items-center justify-center gap-2 w-full ${isFinalRound ? 'max-w-md' : 'max-w-sm'} mx-auto`}>
           {isFinalRound !== true && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : team1Placeholder}</span>
+                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : team1Placeholder.replace('Vencedor Semifinal-1', 'Vencedor Semifinal 1')}</span>
                 <Input
                     type="number"
                     className="h-8 w-14 text-center"
@@ -412,7 +409,7 @@ export function GroupGenerator() {
             <div className="text-muted-foreground text-xs py-1">vs</div>
 
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team2 ? teamToKey(match.team2) : match.team2Placeholder}</span>
+                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team2 ? teamToKey(match.team2) : match.team2Placeholder.replace('Vencedor Semifinal-2', 'Vencedor Semifinal 2')}</span>
                 <Input
                     type="number"
                     className="h-8 w-14 text-center"
@@ -738,3 +735,5 @@ export function GroupGenerator() {
     </div>
   )
 }
+
+    
