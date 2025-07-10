@@ -207,21 +207,34 @@ export function GlobalSettings() {
                       <Label>Quadras e Horários Disponíveis</Label>
                       {fields.map((field, index) => (
                          <div key={field.id} className="p-4 border rounded-md space-y-2">
-                           <div className="flex items-center gap-2">
-                              <FormField
+                           <div className="flex items-start gap-2">
+                                <FormField
                                 control={globalSettingsForm.control}
                                 name={`courts.${index}.name`}
                                 render={({ field }) => (
-                                  <FormItem className="flex-1">
+                                    <FormItem className="flex-1">
                                     <FormLabel>Nome da Quadra {index + 1}</FormLabel>
                                     <FormControl>
-                                      <Input placeholder={`Ex: Quadra Principal`} {...field} />
+                                        <Input placeholder={`Ex: Quadra Principal`} {...field} />
                                     </FormControl>
                                     <FormMessage />
-                                  </FormItem>
+                                    </FormItem>
                                 )}
-                              />
-                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                />
+                                <FormField
+                                control={globalSettingsForm.control}
+                                name={`courts.${index}.priority`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Prioridade</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" className="w-24" placeholder="Ex: 1" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="mt-8">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                              </Button>
                            </div>
@@ -233,7 +246,7 @@ export function GlobalSettings() {
                           variant="outline"
                           size="sm"
                           className="mt-2"
-                          onClick={() => append({ name: `Quadra ${fields.length + 1}`, slots: [{startTime: "09:00", endTime: "18:00"}] })}>
+                          onClick={() => append({ name: `Quadra ${fields.length + 1}`, slots: [{startTime: "09:00", endTime: "18:00"}], priority: fields.length + 1 })}>
                           Adicionar Quadra
                       </Button>
                     </div>

@@ -42,7 +42,7 @@ async function readDb(): Promise<TournamentsState> {
       data._globalSettings = {
         startTime: "08:00",
         estimatedMatchDuration: 20,
-        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
+        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
       };
     }
     return data;
@@ -52,7 +52,7 @@ async function readDb(): Promise<TournamentsState> {
         _globalSettings: {
             startTime: "08:00",
             estimatedMatchDuration: 20,
-            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
+            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
         }
       };
       await writeDb(defaultData);
@@ -119,6 +119,7 @@ function scheduleMatches(categoryData: CategoryData, globalSettings: GlobalSetti
     const courtAvailability = courts.map((court, index) => ({
         index,
         name: court.name,
+        priority: court.priority || 99,
         slots: court.slots.map(slot => ({
             start: parseTime(slot.startTime),
             end: parseTime(slot.endTime)
@@ -157,6 +158,11 @@ function scheduleMatches(categoryData: CategoryData, globalSettings: GlobalSetti
                  if (bestTime === null || potentialStartTime < bestTime) {
                     bestTime = potentialStartTime;
                     bestCourtIndex = i;
+                } else if (potentialStartTime.getTime() === bestTime.getTime()) {
+                    // If times are equal, check court priority
+                    if(courtAvailability[i].priority < courtAvailability[bestCourtIndex].priority) {
+                        bestCourtIndex = i;
+                    }
                 }
             }
         }
@@ -203,14 +209,7 @@ export async function saveGlobalSettings(settings: GlobalSettings): Promise<{ su
 export async function saveTournament(categoryName: string, data: CategoryData): Promise<{ success: boolean; error?: string }> {
     try {
         const db = await readDb();
-        
-        // Save the unscheduled data first
         db[categoryName] = data;
-
-        // Now schedule the matches
-        const scheduledData = scheduleMatches(data, db._globalSettings);
-        db[categoryName] = scheduledData;
-
         await writeDb(db);
         return { success: true };
     } catch (e: any) {
@@ -235,21 +234,30 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             const [h, m] = timeStr.split(':').map(Number);
             return parse(`${h}:${m}`, 'HH:mm', baseDate);
         };
+        
+        // Define match type for consolidated list
+        type MatchWithCategory = (MatchWithScore | PlayoffMatch) & { categoryName: string; categoryPriority: number };
 
-        const allMatches: (MatchWithScore | PlayoffMatch)[] = [];
+        const allMatches: MatchWithCategory[] = [];
         categories.forEach(catName => {
             const catData = db[catName] as CategoryData;
+            const categoryPriority = catData.formValues.priority || 99; // Default priority
+
             if (catData.tournamentData?.groups) {
-                allMatches.push(...catData.tournamentData.groups.flatMap(g => g.matches));
+                allMatches.push(...catData.tournamentData.groups.flatMap(g => g.matches.map(m => ({ ...m, categoryName: catName, categoryPriority }))));
             }
             if (catData.playoffs) {
+                const addMatchesFromBracket = (bracket: PlayoffBracket) => {
+                    Object.values(bracket).flat().forEach(m => allMatches.push({ ...m, categoryName: catName, categoryPriority }));
+                };
+
                 if ('upper' in catData.playoffs || 'lower' in catData.playoffs || 'playoffs' in catData.playoffs) {
                     const bracketSet = catData.playoffs as PlayoffBracketSet;
-                    if(bracketSet.upper) allMatches.push(...Object.values(bracketSet.upper).flat());
-                    if(bracketSet.lower) allMatches.push(...Object.values(bracketSet.lower).flat());
-                    if(bracketSet.playoffs) allMatches.push(...Object.values(bracketSet.playoffs).flat());
+                    if(bracketSet.upper) addMatchesFromBracket(bracketSet.upper);
+                    if(bracketSet.lower) addMatchesFromBracket(bracketSet.lower);
+                    if(bracketSet.playoffs) addMatchesFromBracket(bracketSet.playoffs);
                 } else {
-                    allMatches.push(...Object.values(catData.playoffs as PlayoffBracket).flat());
+                    addMatchesFromBracket(catData.playoffs as PlayoffBracket);
                 }
             }
         });
@@ -257,11 +265,12 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         // Initialize availability trackers
         const courtAvailability = _globalSettings.courts.map(court => ({
             name: court.name,
+            priority: court.priority || 99,
             slots: court.slots.map(slot => ({
                 start: parseTime(slot.startTime),
                 end: parseTime(slot.endTime)
             })).sort((a, b) => a.start.getTime() - b.start.getTime()),
-            nextAvailableTime: parseTime(_globalSettings.startTime)
+            nextAvailableTime: parseTime(_globalSettings.startTime) // Global start time
         }));
 
         const playerAvailability: { [playerName: string]: Date } = {};
@@ -278,8 +287,13 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         });
         allPlayers.forEach(p => playerAvailability[p] = parseTime(_globalSettings.startTime));
         
-        // Sort matches by round order (playoffs first)
-        allMatches.sort((a, b) => ('roundOrder' in b ? b.roundOrder : -1) - ('roundOrder' in a ? a.roundOrder : -1));
+        // Sort matches by category priority, then by round order (playoffs first)
+        allMatches.sort((a, b) => {
+            if (a.categoryPriority !== b.categoryPriority) {
+                return a.categoryPriority - b.categoryPriority;
+            }
+            return ('roundOrder' in b ? b.roundOrder : -1) - ('roundOrder' in a ? a.roundOrder : -1);
+        });
 
         allMatches.forEach(match => {
             let bestCourtIndex = -1;
@@ -290,10 +304,13 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 match.court = '';
                 return;
             }
+            
+            const categoryStartTime = (db[match.categoryName] as CategoryData)?.formValues?.startTime;
+            const effectiveStartTime = parseTime(categoryStartTime || _globalSettings.startTime);
 
             const playersInMatch = [match.team1.player1, match.team1.player2, match.team2.player1, match.team2.player2];
-            const playersNextAvailableTimes = playersInMatch.map(p => playerAvailability[p]);
-            const matchCanStartAfter = max(playersNextAvailableTimes);
+            const playersNextAvailableTimes = playersInMatch.map(p => playerAvailability[p] || effectiveStartTime);
+            const matchCanStartAfter = max([effectiveStartTime, ...playersNextAvailableTimes]);
 
             for (let i = 0; i < courtAvailability.length; i++) {
                 const court = courtAvailability[i];
@@ -317,6 +334,11 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     if (bestTime === null || potentialStartTime < bestTime) {
                         bestTime = potentialStartTime;
                         bestCourtIndex = i;
+                    } else if (bestTime && potentialStartTime.getTime() === bestTime.getTime()) {
+                        // If times are equal, check court priority
+                        if(courtAvailability[i].priority < courtAvailability[bestCourtIndex].priority) {
+                            bestCourtIndex = i;
+                        }
                     }
                 }
             }

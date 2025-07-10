@@ -29,6 +29,7 @@ export type TimeSlot = z.infer<typeof timeSlotSchema>;
 export const courtSchema = z.object({
     name: z.string().min(1, "O nome da quadra é obrigatório."),
     slots: z.array(timeSlotSchema).min(1, "Deve haver pelo menos um horário disponível para a quadra."),
+    priority: z.coerce.number().int().optional(),
 });
 export type Court = z.infer<typeof courtSchema>;
 
@@ -65,6 +66,7 @@ export const formSchema = z
     includeThirdPlace: z.boolean().default(true),
     updatedAt: z.string().optional(),
     startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional().or(z.literal('')),
+    priority: z.coerce.number().int().positive("A prioridade deve ser um número positivo.").optional(),
   })
   .refine(
     (data) => {

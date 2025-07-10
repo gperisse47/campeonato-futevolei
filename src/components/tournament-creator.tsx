@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -45,13 +46,14 @@ const defaultFormValues: TournamentFormValues = {
   groupFormationStrategy: "order",
   includeThirdPlace: true,
   startTime: "",
+  priority: 1,
 };
 
 
 export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
-  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
+  const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }] } })
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -82,6 +84,13 @@ export function TournamentCreator() {
   
   const watchedCategoryName = form.watch("category");
   const tournamentType = form.watch("tournamentType");
+  const teamsList = form.watch("teams");
+
+  useEffect(() => {
+    const teamsArray = teamsList.split('\n').map(t => t.trim()).filter(Boolean);
+    form.setValue('numberOfTeams', teamsArray.length);
+  }, [teamsList, form]);
+
 
   useEffect(() => {
     if (isLoaded) {
@@ -637,7 +646,7 @@ export function TournamentCreator() {
                   <FormItem>
                     <FormLabel>Nº de Duplas</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -696,22 +705,41 @@ export function TournamentCreator() {
               )}
             />
 
-             <FormField
-              control={form.control}
-              name="startTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Horário de Início da Categoria (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                   <FormDescription>
-                    Se deixado em branco, usará o horário de início global.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Início (Opcional)</FormLabel>
+                    <FormControl>
+                        <Input type="time" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                        Início desejado da categoria.
+                    </FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Prioridade</FormLabel>
+                    <FormControl>
+                        <Input type="number" placeholder="1" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/>
+                    </FormControl>
+                     <FormDescription>
+                        1 = Mais alta. Define a ordem dos jogos.
+                    </FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
+
 
             <FormField
               control={form.control}
