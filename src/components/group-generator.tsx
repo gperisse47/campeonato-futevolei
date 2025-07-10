@@ -464,23 +464,23 @@ export function GroupGenerator() {
         
         {(finalMatch || thirdPlaceMatch) && <Separator className="my-4"/>}
   
-        <div className="flex flex-col md:flex-row items-start justify-center w-full gap-8">
-          <div className="flex flex-col items-center gap-4 w-full md:w-auto">
-            {finalMatch && (
+        <div className="flex flex-col items-center justify-center w-full gap-8">
+          {finalMatch && (
+            <div className="flex flex-col items-center gap-4 w-full">
               <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full">
                 <h3 className="text-xl font-bold text-primary">Final</h3>
                 <PlayoffMatchCard match={finalMatch} roundName="Final" matchIndex={0} isFinalRound={true} />
               </div>
-            )}
-          </div>
-          <div className="flex flex-col items-center gap-4 w-full md:w-auto">
-            {thirdPlaceMatch && (
+            </div>
+          )}
+          {thirdPlaceMatch && (
+            <div className="flex flex-col items-center gap-4 w-full">
               <div className="flex flex-col items-center gap-4 border rounded-lg p-4 w-full">
                 <h3 className="text-xl font-bold text-primary">Disputa de 3º Lugar</h3>
                 <PlayoffMatchCard match={thirdPlaceMatch} roundName="Disputa de 3º Lugar" matchIndex={0} isFinalRound={true} />
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -749,5 +749,3 @@ export function GroupGenerator() {
     </div>
   )
 }
-
-    
