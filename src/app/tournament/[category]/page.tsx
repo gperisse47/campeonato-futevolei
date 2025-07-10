@@ -37,10 +37,12 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
     const placeholder2 = (match.team2Placeholder || '').replace(/Vencedor Semifinal-?(\d)/, 'Vencedor Semifinal').replace(/Perdedor Semifinal-?(\d)/, 'Perdedor Semifinal');
     
     const scoresDefined = match.score1 !== undefined && match.score2 !== undefined;
+    const showMatchName = roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar';
+
 
     return (
         <div className="flex flex-col gap-2 w-full">
-            {(!isFinalRound || (isFinalRound && roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar')) && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4>}
+            {showMatchName && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4>}
             <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-xl' : 'max-w-sm'} w-full mx-auto`}>
                {scoresDefined ? (
                  <>
@@ -286,4 +288,3 @@ export default function TournamentPage() {
         </div>
     );
 }
-
