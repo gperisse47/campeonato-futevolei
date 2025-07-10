@@ -46,7 +46,7 @@ export function GroupGenerator() {
       category: "Masculino",
       numberOfTeams: 8,
       numberOfGroups: 2,
-      teamsPerGroupToAdvance: 4,
+      teamsPerGroupToAdvance: 2,
       teams: "Ana e Bia\nCarla e Dani\nElena e Fernanda\nGabi e Helo\nIsis e Julia\nKarla e Laura\nMaria e Nina\nOlivia e Paula",
       groupFormationStrategy: "balanced",
       includeThirdPlace: true,

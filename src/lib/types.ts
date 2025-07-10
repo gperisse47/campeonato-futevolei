@@ -82,7 +82,9 @@ export const formSchema = z
   )
   .refine(
     (data) => {
-        return data.numberOfTeams / data.numberOfGroups >= data.teamsPerGroupToAdvance;
+      if (data.numberOfTeams <= 0 || data.numberOfGroups <= 0) return true; // Avoid division by zero if other validations fail
+      const teamsPerGroup = Math.ceil(data.numberOfTeams / data.numberOfGroups);
+      return data.teamsPerGroupToAdvance <= teamsPerGroup;
     },
     {
         message: "O número de classificados não pode ser maior que o número de duplas no grupo.",
