@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
+import { useParams } from 'next/navigation'
 import { getTournamentByCategory } from "@/app/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -84,7 +85,7 @@ const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
                                 key={match.id}
                                 match={match}
                                 roundName={roundName}
-                                isFinalRound={roundName === 'Final'}
+                                isFinalRound={false}
                             />
                         ))}
                     </CardContent>
@@ -179,13 +180,18 @@ const GroupCard = ({ group, teamsPerGroupToAdvance }: { group: GroupWithScores, 
     </Card>
 );
 
-export default function TournamentPage({ params }: { params: { category: string } }) {
+export default function TournamentPage() {
+    const params = useParams();
     const [data, setData] = useState<CategoryData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const category = Array.isArray(params.category) ? params.category[0] : params.category;
+
     useEffect(() => {
-        const decodedCategory = decodeURIComponent(params.category);
+        if (!category) return;
+        
+        const decodedCategory = decodeURIComponent(category);
         
         const fetchData = async () => {
             try {
@@ -208,7 +214,7 @@ export default function TournamentPage({ params }: { params: { category: string 
         const intervalId = setInterval(fetchData, 60000); // Poll every 1 minute
 
         return () => clearInterval(intervalId); // Cleanup on component unmount
-    }, [params.category]);
+    }, [category]);
 
     if (isLoading) {
         return (
@@ -235,7 +241,7 @@ export default function TournamentPage({ params }: { params: { category: string 
     }
 
     const { tournamentData, playoffs, formValues } = data;
-    const categoryName = decodeURIComponent(params.category);
+    const categoryName = decodeURIComponent(category || '');
 
     return (
         <div className="container mx-auto p-4 space-y-8">
