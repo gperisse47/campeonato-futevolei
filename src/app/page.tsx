@@ -42,15 +42,17 @@ export default function Home() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="hsl(var(--primary-foreground))"
-                    strokeWidth="1.5"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     className="h-8 w-8"
                 >
-                   <path d="M12 2L9 4.93V8.5h6V4.93L12 2z"/>
-                   <path d="M6 10v4c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-4"/>
-                   <path d="M12 16v6"/>
-                   <path d="M8 22h8"/>
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                    <path d="M4 22h16"/>
+                    <path d="M10 14.5a2.5 2.5 0 0 0-5 0V22h5v-7.5Z"/>
+                    <path d="M19 14.5a2.5 2.5 0 0 0-5 0V22h5v-7.5Z"/>
+                    <path d="M5 10V5c0-1.66 1.34-3 3-3h8c1.66 0 3 1.34 3 3v5"/>
                 </svg>
             </div>
             <h1 className="text-4xl font-bold tracking-tight">Campeonato Amigos do Peri</h1>
