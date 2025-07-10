@@ -25,9 +25,9 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Gerador de Grupos com IA</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Gerador de Torneios com IA</h1>
         <p className="text-muted-foreground">
-          Preencha os detalhes do torneio para gerar os grupos automaticamente.
+          Preencha os detalhes do torneio para gerar os torneios automaticamente.
         </p>
       </div>
       <GroupGenerator />
