@@ -470,18 +470,18 @@ export function GroupGenerator() {
                           defaultValue={field.value}
                           className="flex flex-col space-y-1"
                         >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="balanced" />
+                          <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="balanced" />
                             <FormLabel className="font-normal">
                               Ordem
                             </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="random" />
+                          </div>
+                          <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="random" />
                             <FormLabel className="font-normal">
                               Aleatório (Sorteio)
                             </FormLabel>
-                          </FormItem>
+                          </div>
                         </RadioGroup>
                       </FormControl>
                       <FormMessage />
