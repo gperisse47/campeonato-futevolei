@@ -62,7 +62,7 @@ Number of Teams: {{{numberOfTeams}}}
 Number of Groups: {{{numberOfGroups}}}
 Group Formation Strategy: {{{groupFormationStrategy}}}
 Teams:
-{{#each teams}}- {{{this.player1}}} / {{{this.player2}}}
+{{#each teams}}- {{{this.player1}}} e {{{this.player2}}}
 {{/each}}
 
 First, generate the groups, ensuring that each team is assigned to one group. Consider the group formation strategy when assigning teams. The output for each team must include both player names.

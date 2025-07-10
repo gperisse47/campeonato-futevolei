@@ -45,11 +45,13 @@ export function GroupGenerator() {
     },
   })
 
+  const teamToKey = (team: Team) => `${team.player1} e ${team.player2}`;
+
   const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
     return groups.map(group => {
       const standings: Record<string, TeamStanding> = {}
       group.teams.forEach(team => {
-        const teamKey = `${team.player1}/${team.player2}`
+        const teamKey = teamToKey(team)
         standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
       })
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
@@ -123,7 +125,7 @@ export function GroupGenerator() {
       const standings: Record<string, TeamStanding> = {}
 
       group.teams.forEach(team => {
-        const teamKey = `${team.player1}/${team.player2}`
+        const teamKey = teamToKey(team);
         standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
       })
 
@@ -131,8 +133,8 @@ export function GroupGenerator() {
         const { team1, team2, score1, score2 } = match
         if (score1 === undefined || score2 === undefined) return
 
-        const team1Key = `${team1.player1}/${team1.player2}`
-        const team2Key = `${team2.player1}/${team2.player2}`
+        const team1Key = teamToKey(team1);
+        const team2Key = teamToKey(team2);
 
         standings[team1Key].played++
         standings[team2Key].played++
@@ -349,8 +351,8 @@ export function GroupGenerator() {
                                   </TableHeader>
                                   <TableBody>
                                     {group.standings.map((standing) => (
-                                      <TableRow key={`${standing.team.player1}-${standing.team.player2}`}>
-                                        <TableCell className="p-2 font-medium">{standing.team.player1}/{standing.team.player2}</TableCell>
+                                      <TableRow key={teamToKey(standing.team)}>
+                                        <TableCell className="p-2 font-medium">{teamToKey(standing.team)}</TableCell>
                                         <TableCell className="p-2 text-center">{standing.played}</TableCell>
                                         <TableCell className="p-2 text-center">{standing.wins}</TableCell>
                                         <TableCell className="p-2 text-center">{standing.losses}</TableCell>
@@ -367,23 +369,17 @@ export function GroupGenerator() {
                           <div>
                             <h4 className="mb-2 font-semibold">Jogos</h4>
                             <div className="space-y-2">
-                                {group.matches.map((match, matchIndex) => (
-                                    <div key={matchIndex} className="rounded-md bg-secondary/50 p-3">
-                                      <div className="flex items-center justify-between text-sm">
-                                        <span>{match.team1.player1}/{match.team1.player2}</span>
-                                        <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
-                                      </div>
-                                      <div className="my-2 flex items-center justify-center">
-                                        <div className="flex-grow border-t border-dashed"></div>
-                                        <Swords className="h-4 w-4 text-primary mx-2"/>
-                                        <div className="flex-grow border-t border-dashed"></div>
-                                      </div>
-                                      <div className="flex items-center justify-between text-sm">
-                                        <span>{match.team2.player1}/{match.team2.player2}</span>
-                                        <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
-                                      </div>
-                                    </div>
-                                ))}
+                              {group.matches.map((match, matchIndex) => (
+                                <div key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                  <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
+                                  <div className="flex items-center gap-1">
+                                    <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
+                                    <span className="text-muted-foreground">x</span>
+                                    <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
+                                  </div>
+                                  <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
+                                </div>
+                              ))}
                             </div>
                           </div>
                           
