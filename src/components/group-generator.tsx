@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Swords, Trophy } from "lucide-react"
+import { Loader2, Trophy } from "lucide-react"
 
 import { generateGroupsAction } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput } from "@/lib/types"
@@ -40,7 +40,7 @@ export function GroupGenerator() {
       category: "Masculino",
       numberOfTeams: 8,
       numberOfGroups: 2,
-      teams: "Ana/Bia, Carla/Dani, Elena/Fernanda, Gabi/Helo, Isis/Julia, Karla/Laura, Maria/Nina, Olivia/Paula",
+      teams: "Ana e Bia, Carla e Dani, Elena e Fernanda, Gabi e Helo, Isis e Julia, Karla e Laura, Maria e Nina, Olivia e Paula",
       groupFormationStrategy: "balanced",
     },
   })
@@ -93,7 +93,7 @@ export function GroupGenerator() {
       .map((t) => t.trim())
       .filter(Boolean)
       .map((teamString) => {
-        const players = teamString.split("/").map((p) => p.trim())
+        const players = teamString.split(" e ").map((p) => p.trim())
         return { player1: players[0], player2: players[1] }
       })
 
@@ -245,13 +245,13 @@ export function GroupGenerator() {
                       <FormLabel>Duplas (Jogadores)</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Separe duplas por vírgula e jogadores por barra. Ex: Jogador A/Jogador B, Jogador C/Jogador D"
+                          placeholder="Separe duplas por vírgula e jogadores por ' e '. Ex: Jogador A e Jogador B, Jogador C e Jogador D"
                           className="min-h-[120px]"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        Use o formato: Jogador1/Jogador2, Jogador3/Jogador4
+                        Use o formato: Jogador1 e Jogador2, Jogador3 e Jogador4
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

@@ -47,10 +47,10 @@ export const formSchema = z
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean);
-      return teamsArray.every((team) => team.includes("/") && team.split("/").length === 2 && team.split('/')[0].trim() && team.split('/')[1].trim());
+      return teamsArray.every((team) => team.includes(" e ") && team.split(" e ").length === 2 && team.split(' e ')[0].trim() && team.split(' e ')[1].trim());
     },
     {
-      message: "Cada dupla deve ter dois jogadores separados por uma barra (/). Ex: Jogador A/Jogador B.",
+      message: "Cada dupla deve ter dois jogadores separados por ' e '. Ex: Jogador A e Jogador B.",
       path: ["teams"],
     }
   );
