@@ -186,16 +186,20 @@ export function GroupGenerator() {
              losers['Semifinais'].push(loser);
           }
 
-          const nextRoundName = Object.keys(newPlayoffs)[roundIndex + 1];
-          if (nextRoundName && nextRoundName !== 'Disputa de 3º Lugar') {
-            const nextMatchIndex = Math.floor(matchIndex / 2);
-            if (newPlayoffs[nextRoundName] && newPlayoffs[nextRoundName][nextMatchIndex]) {
-              if (matchIndex % 2 === 0) {
-                newPlayoffs[nextRoundName][nextMatchIndex].team1 = winner;
-              } else {
-                newPlayoffs[nextRoundName][nextMatchIndex].team2 = winner;
-              }
-            }
+          const nextRoundNameKey = Object.keys(newPlayoffs)[roundIndex + 1];
+          if (nextRoundNameKey && nextRoundNameKey !== 'Disputa de 3º Lugar') {
+             const nextRoundMatches = newPlayoffs[nextRoundNameKey];
+             if (nextRoundMatches) {
+                const nextMatchIndex = Math.floor(matchIndex / 2);
+                const nextMatch = nextRoundMatches[nextMatchIndex];
+                if (nextMatch) {
+                    if (matchIndex % 2 === 0) {
+                        nextMatch.team1 = winner;
+                    } else {
+                        nextMatch.team2 = winner;
+                    }
+                }
+             }
           }
         }
       });
@@ -255,7 +259,8 @@ export function GroupGenerator() {
     if (tournamentData) {
       initializePlayoffs();
     }
-  }, [teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace, tournamentData, initializePlayoffs]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamsPerGroupToAdvance, numberOfGroups, includeThirdPlace, tournamentData]);
 
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
@@ -339,7 +344,8 @@ export function GroupGenerator() {
   
   useEffect(() => {
     updatePlayoffs();
-  }, [tournamentData, updatePlayoffs]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournamentData]);
   
   const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => (
       <div className="flex flex-col items-center justify-center gap-2 w-full">
@@ -470,18 +476,22 @@ export function GroupGenerator() {
                           defaultValue={field.value}
                           className="flex flex-col space-y-1"
                         >
-                          <div className="flex items-center space-x-3 space-y-0">
-                            <RadioGroupItem value="balanced" />
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="balanced" />
+                            </FormControl>
                             <FormLabel className="font-normal">
                               Ordem
                             </FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-3 space-y-0">
-                            <RadioGroupItem value="random" />
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="random" />
+                            </FormControl>
                             <FormLabel className="font-normal">
                               Aleatório (Sorteio)
                             </FormLabel>
-                          </div>
+                          </FormItem>
                         </RadioGroup>
                       </FormControl>
                       <FormMessage />
