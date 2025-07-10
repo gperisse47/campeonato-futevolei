@@ -210,9 +210,11 @@ export function GroupGenerator() {
         if (!match.team1 && match.team1Placeholder) {
           const placeholder = match.team1Placeholder;
           if (placeholder.startsWith('Vencedor ')) {
-            match.team1 = winners[placeholder.replace('Vencedor ', '')];
+            const winnerMatchName = placeholder.replace('Vencedor ', '').replace(/(\d+)$/, ' $1');
+            match.team1 = winners[winnerMatchName];
           } else if (placeholder.startsWith('Perdedor ')) {
-            match.team1 = losers[placeholder.replace('Perdedor ', '')];
+            const loserMatchName = placeholder.replace('Perdedor ', '').replace(/(\d+)$/, ' $1');
+            match.team1 = losers[loserMatchName];
           } else {
             match.team1 = qualifiedTeams[placeholder];
           }
@@ -220,9 +222,11 @@ export function GroupGenerator() {
         if (!match.team2 && match.team2Placeholder) {
           const placeholder = match.team2Placeholder;
           if (placeholder.startsWith('Vencedor ')) {
-            match.team2 = winners[placeholder.replace('Vencedor ', '')];
+            const winnerMatchName = placeholder.replace('Vencedor ', '').replace(/(\d+)$/, ' $1');
+            match.team2 = winners[winnerMatchName];
           } else if (placeholder.startsWith('Perdedor ')) {
-            match.team2 = losers[placeholder.replace('Perdedor ', '')];
+            const loserMatchName = placeholder.replace('Perdedor ', '').replace(/(\d+)$/, ' $1');
+            match.team2 = losers[loserMatchName];
           } else {
             match.team2 = qualifiedTeams[placeholder];
           }
@@ -393,12 +397,12 @@ export function GroupGenerator() {
     
     return (
       <div className={`flex flex-col items-center justify-center gap-2 w-full ${isFinalRound ? 'max-w-md' : 'max-w-sm'} mx-auto`}>
-          {isFinalRound !== true && roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar' && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
+          {!isFinalRound && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className="w-full text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : match.team1Placeholder.replace('Vencedor Semifinal 1', 'Vencedor Semifinal 1').replace('Vencedor Semifinal 2', 'Vencedor Semifinal 2')}</span>
+                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team1 ? teamToKey(match.team1) : match.team1Placeholder.replace('Vencedor Semifinal 1', 'Vencedor Semifinal 1').replace('Vencedor Semifinal 2', 'Vencedor Semifinal 2')}</span>
                 <Input
                     type="number"
-                    className="h-8 w-14 text-center"
+                    className="h-8 w-14 shrink-0 text-center"
                     value={match.score1 ?? ''}
                     onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team1', e.target.value)}
                     disabled={!match.team1 || !match.team2}
@@ -407,10 +411,10 @@ export function GroupGenerator() {
             <div className="text-muted-foreground text-xs py-1">vs</div>
 
             <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                <span className="w-full text-left truncate pr-2 text-sm">{match.team2 ? teamToKey(match.team2) : match.team2Placeholder.replace('Vencedor Semifinal 1', 'Vencedor Semifinal 1').replace('Vencedor Semifinal 2', 'Vencedor Semifinal 2')}</span>
+                <span className="flex-1 text-left truncate pr-2 text-sm">{match.team2 ? teamToKey(match.team2) : match.team2Placeholder.replace('Vencedor Semifinal 1', 'Vencedor Semifinal 1').replace('Vencedor Semifinal 2', 'Vencedor Semifinal 2')}</span>
                 <Input
                     type="number"
-                    className="h-8 w-14 text-center"
+                    className="h-8 w-14 shrink-0 text-center"
                     value={match.score2 ?? ''}
                     onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team2', e.target.value)}
                     disabled={!match.team1 || !match.team2}
@@ -733,3 +737,5 @@ export function GroupGenerator() {
     </div>
   )
 }
+
+    
