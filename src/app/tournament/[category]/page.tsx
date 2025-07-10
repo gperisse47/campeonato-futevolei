@@ -75,7 +75,7 @@ const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
     return (
         <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
             {roundOrder.map(roundName => (
-                <Card key={roundName} className="w-full max-w-lg">
+                <Card key={roundName} className="w-full max-w-xl">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
                     </CardHeader>
@@ -92,7 +92,7 @@ const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
                 </Card>
             ))}
             {playoffs['Final'] && (
-                <Card className="w-full max-w-lg">
+                <Card className="w-full max-w-xl">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold text-primary">Final</CardTitle>
                     </CardHeader>
@@ -106,7 +106,7 @@ const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
                 </Card>
             )}
             {playoffs['Disputa de 3º Lugar'] && (
-                <Card className="w-full max-w-lg">
+                <Card className="w-full max-w-xl">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold text-primary">Disputa de 3º Lugar</CardTitle>
                     </CardHeader>
@@ -211,7 +211,7 @@ export default function TournamentPage() {
 
         fetchData();
         
-        const intervalId = setInterval(fetchData, 60000); // Poll every 1 minute
+        const intervalId = setInterval(fetchData, 5000); // Poll every 5 seconds
 
         return () => clearInterval(intervalId); // Cleanup on component unmount
     }, [category]);
@@ -248,7 +248,7 @@ export default function TournamentPage() {
         <div className="container mx-auto p-4 space-y-8">
             <div className="text-center">
                 <h1 className="text-4xl font-bold tracking-tight text-primary">{categoryName}</h1>
-                <p className="text-lg text-muted-foreground">Acompanhe os resultados e a classificação em tempo real.</p>
+                <p className="text-lg text-muted-foreground">Acompanhe os jogos e classificações em tempo real.</p>
             </div>
 
             {isGroupTournament && tournamentData && (
