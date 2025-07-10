@@ -1166,8 +1166,8 @@
                 "player1": "Paula",
                 "player2": "Carelli"
               },
-              "time": "08:00",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1178,8 +1178,8 @@
                 "player1": "Sofia",
                 "player2": "Caio"
               },
-              "time": "08:00",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1190,8 +1190,8 @@
                 "player1": "Mari",
                 "player2": "Neves"
               },
-              "time": "08:00",
-              "court": "GP3"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1202,8 +1202,8 @@
                 "player1": "Sofia",
                 "player2": "Caio"
               },
-              "time": "08:00",
-              "court": "HD1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1214,8 +1214,8 @@
                 "player1": "Mari",
                 "player2": "Neves"
               },
-              "time": "08:00",
-              "court": "HD2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1226,11 +1226,11 @@
                 "player1": "Mari",
                 "player2": "Neves"
               },
-              "time": "08:20",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             }
           ],
-          "name": "Group A",
+          "name": "Grupo A",
           "teams": [
             {
               "player1": "Jordana",
@@ -1303,8 +1303,8 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
-              "time": "08:20",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1315,8 +1315,8 @@
                 "player1": "Carla",
                 "player2": "Henrique"
               },
-              "time": "08:20",
-              "court": "GP3"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1327,11 +1327,11 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
-              "time": "08:20",
-              "court": "HD1"
+              "time": "",
+              "court": ""
             }
           ],
-          "name": "Group B",
+          "name": "Grupo B",
           "teams": [
             {
               "player1": "Carla",
@@ -1374,18 +1374,16 @@
           "name": "Semifinal 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo B",
-          "time": "08:40",
-          "roundOrder": 2,
-          "court": "GP2"
+          "time": "",
+          "roundOrder": 2
         },
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo B",
-          "time": "08:40",
-          "roundOrder": 2,
-          "court": "GP3"
+          "time": "",
+          "roundOrder": 2
         }
       ],
       "Final": [
@@ -1394,9 +1392,8 @@
           "name": "Final 1",
           "team1Placeholder": "Vencedor Semifinal-1",
           "team2Placeholder": "Vencedor Semifinal-2",
-          "time": "08:40",
-          "roundOrder": 1,
-          "court": "GP1"
+          "time": "",
+          "roundOrder": 1
         }
       ],
       "Disputa de 3º Lugar": [
@@ -1405,9 +1402,8 @@
           "name": "Disputa de 3º Lugar",
           "team1Placeholder": "Perdedor Semifinal-1",
           "team2Placeholder": "Perdedor Semifinal-2",
-          "time": "08:20",
-          "roundOrder": 0,
-          "court": "HD2"
+          "time": "",
+          "roundOrder": 0
         }
       ]
     },
