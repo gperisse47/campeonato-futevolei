@@ -6,7 +6,7 @@ import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy, Clock, Trash2, Swords } from "lucide-react"
+import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw } from "lucide-react"
 import { format, addMinutes, parse } from 'date-fns';
 
 
@@ -58,6 +58,7 @@ const teamToKey = (team?: Team) => {
 export function GroupGenerator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentsState>({})
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -281,8 +282,11 @@ Olavo e Dudu`,
     const byes = bracketSize - numTeams;
 
     // Separate teams that play from teams that get a bye
-    const teamsWithBye = teams.slice(0, byes);
-    const teamsInFirstRound = teams.slice(byes);
+    const teamsWithBye = values.groupFormationStrategy === 'order'
+        ? teams.slice(numTeams - byes) // Last teams get the bye
+        : teams.slice(0, byes);        // First teams get the bye (random)
+    
+    const teamsInFirstRound = teams.filter(team => !teamsWithBye.some(byeTeam => teamToKey(byeTeam) === teamToKey(team)));
 
 
     const upperBracket: PlayoffBracket = {};
@@ -376,8 +380,25 @@ Olavo e Dudu`,
     // LB Subsequent Rounds
     for (let wbR = 2; wbR < wbRoundCounter; wbR++) {
         // Round where losers drop down
-        const losersFromWb = wbLosersByRound[wbR] || [];
-        const contenders = [...lbSurvivors, ...losersFromWb].reverse();
+        let losersFromWb = (wbLosersByRound[wbR] || []).filter(p => p !== null) as string[];
+
+        // Check if a bye from WB Round 1 needs to propagate to a bye in LB
+        const matchForByeTeamInR2 = round2Matches.find(m => teamsWithBye.some(bt => m.team1Placeholder === teamToKey(bt) || m.team2Placeholder === teamToKey(bt)));
+        if (matchForByeTeamInR2) {
+            const byePlaceholder = `Perdedor ${matchForByeTeamInR2.id}`;
+            const index = losersFromWb.indexOf(byePlaceholder);
+            if(index > -1) {
+                losersFromWb.splice(index, 1); // remove it from dropdowns
+            }
+        }
+        
+        let contenders = [...lbSurvivors, ...losersFromWb].reverse();
+
+        // If we have an odd number of contenders, one must get a bye
+        let byeTeamPlaceholder: string | null = null;
+        if(contenders.length % 2 !== 0){
+            byeTeamPlaceholder = contenders.pop()!;
+        }
 
         const dropDownRoundName = `Lower Rodada ${lbRoundCounter}`;
         const dropDownRoundMatches: PlayoffMatch[] = [];
@@ -392,7 +413,11 @@ Olavo e Dudu`,
         if (dropDownRoundMatches.length > 0) {
             lowerBracket[dropDownRoundName] = dropDownRoundMatches;
         }
-        const currentSurvivors = dropDownRoundMatches.map(m => `Vencedor ${m.id}`);
+
+        let currentSurvivors = dropDownRoundMatches.map(m => `Vencedor ${m.id}`);
+        if(byeTeamPlaceholder) {
+            currentSurvivors.push(byeTeamPlaceholder);
+        }
         lbRoundCounter++;
 
         // Round where only survivors play each other
@@ -860,6 +885,37 @@ Olavo e Dudu`,
     setIsLoading(false);
   }
 
+  const handleUpdateCategory = async (values: TournamentFormValues) => {
+    if (!activeTab || !activeCategoryData) return;
+
+    setIsUpdating(true);
+    
+    // Create a deep copy to avoid direct state mutation
+    let updatedCategoryData = JSON.parse(JSON.stringify(activeCategoryData));
+
+    // Update form values, but keep the original category name
+    updatedCategoryData.formValues = {
+        ...values,
+        category: activeCategoryData.formValues.category
+    };
+    
+    // Re-schedule matches with new settings
+    updatedCategoryData = scheduleMatches(updatedCategoryData);
+
+    // Update the state
+    setTournaments(prev => ({ ...prev, [activeTab]: updatedCategoryData }));
+
+    // Save the changes
+    await saveData(activeTab, updatedCategoryData);
+
+    toast({
+        title: "Categoria Atualizada!",
+        description: `As configurações de horário para "${activeTab}" foram atualizadas.`,
+    });
+
+    setIsUpdating(false);
+  };
+
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
     const newGroups = currentTournamentData.groups.map(group => {
       const standings: Record<string, TeamStanding> = {}
@@ -994,7 +1050,7 @@ Olavo e Dudu`,
     const placeholder1 = (match.team1Placeholder || '').replace(/Vencedor Semifinal-\d/, 'Vencedor Semifinal').replace(/Perdedor Semifinal-\d/, 'Perdedor Semifinal');
     const placeholder2 = (match.team2Placeholder || '').replace(/Vencedor Semifinal-\d/, 'Vencedor Semifinal').replace(/Perdedor Semifinal-\d/, 'Perdedor Semifinal');
   
-    const isFinalRound = roundName.includes('Final') || roundName.includes('Disputa de 3º Lugar');
+    const isFinalRound = roundName === 'Final' || roundName === 'Disputa de 3º Lugar';
     const showMatchName = roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar';
 
     return (
@@ -1084,6 +1140,13 @@ Olavo e Dudu`,
     setActiveTab(value);
   };
 
+  // When activeTab changes, update the form with its data
+  useEffect(() => {
+    if (activeCategoryData) {
+        form.reset(activeCategoryData.formValues);
+    }
+  }, [activeCategoryData, form]);
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -1100,7 +1163,7 @@ Olavo e Dudu`,
           <CardHeader>
             <CardTitle>Configurações do Torneio</CardTitle>
             <CardDescription>
-              Insira os detalhes para a geração de uma nova categoria.
+              Insira os detalhes para a geração de uma nova categoria ou atualize uma existente.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1113,7 +1176,7 @@ Olavo e Dudu`,
                     <FormItem>
                       <FormLabel>Nome da Categoria</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: Masculino, Misto" {...field} />
+                        <Input placeholder="Ex: Masculino, Misto" {...field} disabled={!!activeTab} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1130,7 +1193,9 @@ Olavo e Dudu`,
                             <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
+                            value={field.value}
                             className="flex flex-col space-y-1"
+                            disabled={!!activeTab}
                             >
                             <div className="flex items-center space-x-3 space-y-0">
                                 <RadioGroupItem value="groups" id="groups"/>
@@ -1164,7 +1229,7 @@ Olavo e Dudu`,
                       <FormItem>
                         <FormLabel>Nº de Duplas</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -1180,7 +1245,7 @@ Olavo e Dudu`,
                             <FormItem>
                                 <FormLabel>Nº de Grupos</FormLabel>
                                 <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -1193,7 +1258,7 @@ Olavo e Dudu`,
                                 <FormItem>
                                 <FormLabel>Classificados por Grupo</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                    <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} disabled={!!activeTab} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -1263,6 +1328,7 @@ Olavo e Dudu`,
                           className="min-h-[120px] resize-y"
                           rows={form.watch('numberOfTeams') > 0 ? form.watch('numberOfTeams') : 4}
                           {...field}
+                           disabled={!!activeTab}
                         />
                       </FormControl>
                       <FormDescription>
@@ -1282,8 +1348,10 @@ Olavo e Dudu`,
                        <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
+                          value={field.value}
                           defaultValue={field.value}
                           className="flex flex-col space-y-1"
+                           disabled={!!activeTab}
                         >
                           <div className="flex items-center space-x-3 space-y-0">
                               <RadioGroupItem value="order" id="order"/>
@@ -1312,24 +1380,31 @@ Olavo e Dudu`,
                       <div className="space-y-0.5">
                         <Label>Disputa de 3º Lugar</Label>
                         <FormDescription>
-                          Incluir um jogo para definir o terceiro lugar na fase final.
+                          Incluir um jogo para definir o terceiro lugar.
                         </FormDescription>
                       </div>
                       <FormControl>
                         <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          disabled={tournamentType === 'doubleElimination'}
+                          disabled={tournamentType === 'doubleElimination' || !!activeTab}
                         />
                       </FormControl>
                     </FormItem>
                   )}
                 />
 
-                <Button type="submit" disabled={isLoading || isSaving} className="w-full">
+                <Button type="submit" disabled={isLoading || isSaving || !!activeTab} className="w-full">
                   {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                    {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Categoria'}
                 </Button>
+                {activeTab && (
+                    <Button type="button" variant="secondary" onClick={form.handleSubmit(handleUpdateCategory)} disabled={isUpdating} className="w-full">
+                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <RefreshCcw className="mr-2 h-4 w-4"/>
+                        Atualizar Categoria
+                    </Button>
+                )}
               </form>
             </Form>
           </CardContent>
@@ -1552,7 +1627,7 @@ Olavo e Dudu`,
                                     </div>
                                 )}
 
-                                {formValues.tournamentType === 'groups' && playoffs && (
+                                {formValues.tournamentType === 'groups' && playoffs && Object.keys(playoffs).length > 0 && (
                                     <Card>
                                         <CardHeader>
                                         <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary" />Playoffs - Mata-Mata</CardTitle>

@@ -56,7 +56,7 @@ export const formSchema = z
       .number({ invalid_type_error: "Deve ser um número." })
       .int("Deve ser um número inteiro.")
       .min(1, "Deve haver pelo menos uma quadra."),
-
+    updatedAt: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -102,8 +102,14 @@ export const formSchema = z
       if (data.tournamentType !== 'groups') return true;
       if (!data.numberOfGroups || !data.teamsPerGroupToAdvance) return false;
       if (data.numberOfTeams <= 0 || data.numberOfGroups <= 0) return true; // Avoid division by zero if other validations fail
-      const teamsInSmallestGroup = Math.floor(data.numberOfTeams / data.numberOfGroups);
-      return teamsInSmallestGroup > 0 && data.teamsPerGroupToAdvance < teamsInSmallestGroup;
+      
+      const numGroups = data.numberOfGroups;
+      const teamsPerGroup = Math.floor(data.numberOfTeams / numGroups);
+      const extraTeams = data.numberOfTeams % numGroups;
+      
+      // The smallest group will have teamsPerGroup teams.
+      // If teamsPerGroupToAdvance is equal or greater, it's invalid.
+      return data.teamsPerGroupToAdvance < teamsPerGroup;
     },
     {
         message: "O número de classificados deve ser menor que o número de duplas em qualquer grupo.",
