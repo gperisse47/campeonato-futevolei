@@ -69,19 +69,19 @@ Teams:
 {{#each teams}}- {{{this.player1}}} e {{{this.player2}}}
 {{/each}}
 
-{{#if isGroupTournament}}
+{{#if (eq tournamentType "groups")}}
 First, generate the groups, ensuring that each team is assigned to one group. Consider the group formation strategy when assigning teams. The output for each team must include both player names.
 After forming the groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
 The final output should contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
 {{/if}}
 
-{{#if isSingleElimination}}
+{{#if (eq tournamentType "singleElimination")}}
 You need to create the first round of a single elimination (mata-mata) tournament.
 Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
 {{/if}}
 
-{{#if isDoubleElimination}}
+{{#if (eq tournamentType "doubleElimination")}}
 You need to create the first round of the upper bracket for a double elimination tournament.
 Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'order', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the first-round matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
@@ -96,16 +96,7 @@ const generateTournamentGroupsFlow = ai.defineFlow(
     outputSchema: GenerateTournamentGroupsOutputSchema,
   },
   async input => {
-    // A simple way to handle conditional logic in Handlebars without custom helpers
-    // is to add boolean flags to the input object.
-    const augmentedInput = {
-      ...input,
-      isGroupTournament: input.tournamentType === 'groups',
-      isSingleElimination: input.tournamentType === 'singleElimination',
-      isDoubleElimination: input.tournamentType === 'doubleElimination',
-    };
-    
-    const {output} = await generateTournamentGroupsPrompt(augmentedInput as any);
+    const {output} = await generateTournamentGroupsPrompt(input);
     return output!;
   }
 );
