@@ -101,7 +101,7 @@ export const formSchema = z
   )
   .refine(
     (data) => {
-        if (data.tournamentType === 'groups' || data.tournamentType === 'doubleElimination') return true;
+        if (data.tournamentType !== 'singleElimination') return true;
         const numTeams = data.numberOfTeams;
         return numTeams > 1 && (numTeams & (numTeams - 1)) === 0;
     },
@@ -110,6 +110,17 @@ export const formSchema = z
         path: ["numberOfTeams"],
     }
    )
+  .refine(
+    (data) => {
+      if (data.tournamentType !== 'doubleElimination') return true;
+      if (data.numberOfTeams < 4) return false;
+      return true;
+    },
+    {
+      message: "Dupla eliminação requer no mínimo 4 duplas.",
+      path: ["numberOfTeams"],
+    }
+  )
   .refine(
     (data) => {
       const players = data.teams
@@ -203,5 +214,7 @@ export type ConsolidatedMatch = {
 
 
 
+
+    
 
     
