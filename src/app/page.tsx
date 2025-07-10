@@ -60,9 +60,9 @@ export default function Home() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : categories.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col items-center gap-4">
               {categories.map((category) => (
-                <Button key={category} variant="outline" asChild className="justify-between">
+                <Button key={category} variant="outline" asChild className="justify-between w-full max-w-sm">
                   <Link href={`/tournament/${encodeURIComponent(category)}`}>
                     {category}
                     <ArrowRight className="h-4 w-4" />
