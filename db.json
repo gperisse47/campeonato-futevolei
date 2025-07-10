@@ -51,94 +51,9 @@
     "startTime": "08:00"
   },
   "Masculino Avançado": {
-    "formValues": {
-      "category": "Masculino Avançado",
-      "tournamentType": "groups",
-      "numberOfTeams": 16,
-      "numberOfGroups": 4,
-      "teamsPerGroupToAdvance": 2,
-      "teams": "Peri e Gularte\nFabinho e Bergallo\nCaslu e Leo\nAlex e Lage\nFelipe M. e Rapha B.\nRodrigo e Paulinho\nCarelli e Hantaro\nNeves e Caze\nGustavo e Marcus\nGabe e Yan\nBrenner e Py\nCarril  e Leandro \nRusso e Maki\nJames e Fabio\nSartoratto e Poppe\nOlavo e Dudu",
-      "groupFormationStrategy": "balanced",
-      "includeThirdPlace": true,
-      "startTime": "09:00"
-    },
     "tournamentData": {
       "groups": [
         {
-          "matches": [
-            {
-              "team1": {
-                "player1": "Peri",
-                "player2": "Gularte"
-              },
-              "team2": {
-                "player1": "Olavo",
-                "player2": "Dudu"
-              },
-              "time": "09:00",
-              "court": "GP1"
-            },
-            {
-              "team1": {
-                "player1": "Peri",
-                "player2": "Gularte"
-              },
-              "team2": {
-                "player1": "Gabe",
-                "player2": "Yan"
-              },
-              "time": "09:00",
-              "court": "GP2"
-            },
-            {
-              "team1": {
-                "player1": "Peri",
-                "player2": "Gularte"
-              },
-              "team2": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
-              },
-              "time": "09:00",
-              "court": "GP3"
-            },
-            {
-              "team1": {
-                "player1": "Olavo",
-                "player2": "Dudu"
-              },
-              "team2": {
-                "player1": "Gabe",
-                "player2": "Yan"
-              },
-              "time": "09:00",
-              "court": "HD1"
-            },
-            {
-              "team1": {
-                "player1": "Olavo",
-                "player2": "Dudu"
-              },
-              "team2": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
-              },
-              "time": "09:00",
-              "court": "HD2"
-            },
-            {
-              "team1": {
-                "player1": "Gabe",
-                "player2": "Yan"
-              },
-              "team2": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
-              },
-              "time": "09:20",
-              "court": "GP1"
-            }
-          ],
           "name": "Group A",
           "teams": [
             {
@@ -146,23 +61,107 @@
               "player2": "Gularte"
             },
             {
+              "player1": "Neves",
+              "player2": "Caze"
+            },
+            {
+              "player1": "Gustavo",
+              "player2": "Marcus"
+            },
+            {
               "player1": "Olavo",
               "player2": "Dudu"
+            }
+          ],
+          "matches": [
+            {
+              "team1": {
+                "player1": "Peri",
+                "player2": "Gularte"
+              },
+              "team2": {
+                "player1": "Neves",
+                "player2": "Caze"
+              },
+              "time": "08:00",
+              "court": "GP1"
             },
             {
-              "player1": "Gabe",
-              "player2": "Yan"
+              "team1": {
+                "player1": "Peri",
+                "player2": "Gularte"
+              },
+              "team2": {
+                "player1": "Gustavo",
+                "player2": "Marcus"
+              },
+              "time": "08:00",
+              "court": "GP2"
             },
             {
-              "player1": "Carelli",
-              "player2": "Hantaro"
+              "team1": {
+                "player1": "Peri",
+                "player2": "Gularte"
+              },
+              "team2": {
+                "player1": "Olavo",
+                "player2": "Dudu"
+              },
+              "time": "08:00",
+              "court": "GP3"
+            },
+            {
+              "team1": {
+                "player1": "Neves",
+                "player2": "Caze"
+              },
+              "team2": {
+                "player1": "Gustavo",
+                "player2": "Marcus"
+              },
+              "time": "08:00",
+              "court": "HD1"
+            },
+            {
+              "team1": {
+                "player1": "Neves",
+                "player2": "Caze"
+              },
+              "team2": {
+                "player1": "Olavo",
+                "player2": "Dudu"
+              },
+              "time": "08:00",
+              "court": "HD2"
+            },
+            {
+              "team1": {
+                "player1": "Gustavo",
+                "player2": "Marcus"
+              },
+              "team2": {
+                "player1": "Olavo",
+                "player2": "Dudu"
+              },
+              "time": "08:20",
+              "court": "GP1"
             }
           ],
           "standings": [
             {
               "team": {
-                "player1": "Peri",
-                "player2": "Gularte"
+                "player1": "Gustavo",
+                "player2": "Marcus"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Neves",
+                "player2": "Caze"
               },
               "played": 0,
               "wins": 0,
@@ -181,6 +180,133 @@
             },
             {
               "team": {
+                "player1": "Peri",
+                "player2": "Gularte"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            }
+          ]
+        },
+        {
+          "name": "Group B",
+          "teams": [
+            {
+              "player1": "Fabinho",
+              "player2": "Bergallo"
+            },
+            {
+              "player1": "Carelli",
+              "player2": "Hantaro"
+            },
+            {
+              "player1": "Gabe",
+              "player2": "Yan"
+            },
+            {
+              "player1": "Sartoratto",
+              "player2": "Poppe"
+            }
+          ],
+          "matches": [
+            {
+              "team1": {
+                "player1": "Fabinho",
+                "player2": "Bergallo"
+              },
+              "team2": {
+                "player1": "Carelli",
+                "player2": "Hantaro"
+              },
+              "time": "08:20",
+              "court": "GP2"
+            },
+            {
+              "team1": {
+                "player1": "Fabinho",
+                "player2": "Bergallo"
+              },
+              "team2": {
+                "player1": "Gabe",
+                "player2": "Yan"
+              },
+              "time": "08:20",
+              "court": "GP3"
+            },
+            {
+              "team1": {
+                "player1": "Fabinho",
+                "player2": "Bergallo"
+              },
+              "team2": {
+                "player1": "Sartoratto",
+                "player2": "Poppe"
+              },
+              "time": "08:20",
+              "court": "HD1"
+            },
+            {
+              "team1": {
+                "player1": "Carelli",
+                "player2": "Hantaro"
+              },
+              "team2": {
+                "player1": "Gabe",
+                "player2": "Yan"
+              },
+              "time": "08:20",
+              "court": "HD2"
+            },
+            {
+              "team1": {
+                "player1": "Carelli",
+                "player2": "Hantaro"
+              },
+              "team2": {
+                "player1": "Sartoratto",
+                "player2": "Poppe"
+              },
+              "time": "08:40",
+              "court": "GP1"
+            },
+            {
+              "team1": {
+                "player1": "Gabe",
+                "player2": "Yan"
+              },
+              "team2": {
+                "player1": "Sartoratto",
+                "player2": "Poppe"
+              },
+              "time": "08:40",
+              "court": "GP2"
+            }
+          ],
+          "standings": [
+            {
+              "team": {
+                "player1": "Carelli",
+                "player2": "Hantaro"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Fabinho",
+                "player2": "Bergallo"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
                 "player1": "Gabe",
                 "player2": "Yan"
               },
@@ -191,8 +317,8 @@
             },
             {
               "team": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
+                "player1": "Sartoratto",
+                "player2": "Poppe"
               },
               "played": 0,
               "wins": 0,
@@ -202,217 +328,6 @@
           ]
         },
         {
-          "matches": [
-            {
-              "team1": {
-                "player1": "Fabinho",
-                "player2": "Bergallo"
-              },
-              "team2": {
-                "player1": "Sartoratto",
-                "player2": "Poppe"
-              },
-              "time": "09:20",
-              "court": "GP2"
-            },
-            {
-              "team1": {
-                "player1": "Fabinho",
-                "player2": "Bergallo"
-              },
-              "team2": {
-                "player1": "Brenner",
-                "player2": "Py"
-              },
-              "time": "09:20",
-              "court": "GP3"
-            },
-            {
-              "team1": {
-                "player1": "Fabinho",
-                "player2": "Bergallo"
-              },
-              "team2": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
-              },
-              "time": "09:20",
-              "court": "HD1"
-            },
-            {
-              "team1": {
-                "player1": "Sartoratto",
-                "player2": "Poppe"
-              },
-              "team2": {
-                "player1": "Brenner",
-                "player2": "Py"
-              },
-              "time": "09:20",
-              "court": "HD2"
-            },
-            {
-              "team1": {
-                "player1": "Sartoratto",
-                "player2": "Poppe"
-              },
-              "team2": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
-              },
-              "time": "09:40",
-              "court": "GP1"
-            },
-            {
-              "team1": {
-                "player1": "Brenner",
-                "player2": "Py"
-              },
-              "team2": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
-              },
-              "time": "09:40",
-              "court": "GP2"
-            }
-          ],
-          "name": "Group B",
-          "teams": [
-            {
-              "player1": "Fabinho",
-              "player2": "Bergallo"
-            },
-            {
-              "player1": "Sartoratto",
-              "player2": "Poppe"
-            },
-            {
-              "player1": "Brenner",
-              "player2": "Py"
-            },
-            {
-              "player1": "Rodrigo",
-              "player2": "Paulinho"
-            }
-          ],
-          "standings": [
-            {
-              "team": {
-                "player1": "Fabinho",
-                "player2": "Bergallo"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Sartoratto",
-                "player2": "Poppe"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Brenner",
-                "player2": "Py"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            }
-          ]
-        },
-        {
-          "matches": [
-            {
-              "team1": {
-                "player1": "Caslu",
-                "player2": "Leo"
-              },
-              "team2": {
-                "player1": "James",
-                "player2": "Fabio"
-              },
-              "time": "09:40",
-              "court": "GP3"
-            },
-            {
-              "team1": {
-                "player1": "Caslu",
-                "player2": "Leo"
-              },
-              "team2": {
-                "player1": "Carril",
-                "player2": "Leandro"
-              },
-              "time": "09:40",
-              "court": "HD1"
-            },
-            {
-              "team1": {
-                "player1": "Caslu",
-                "player2": "Leo"
-              },
-              "team2": {
-                "player1": "Felipe M.",
-                "player2": "Rapha B."
-              },
-              "time": "09:40",
-              "court": "HD2"
-            },
-            {
-              "team1": {
-                "player1": "James",
-                "player2": "Fabio"
-              },
-              "team2": {
-                "player1": "Carril",
-                "player2": "Leandro"
-              },
-              "time": "10:00",
-              "court": "GP1"
-            },
-            {
-              "team1": {
-                "player1": "James",
-                "player2": "Fabio"
-              },
-              "team2": {
-                "player1": "Felipe M.",
-                "player2": "Rapha B."
-              },
-              "time": "10:00",
-              "court": "GP2"
-            },
-            {
-              "team1": {
-                "player1": "Carril",
-                "player2": "Leandro"
-              },
-              "team2": {
-                "player1": "Felipe M.",
-                "player2": "Rapha B."
-              },
-              "time": "10:00",
-              "court": "GP3"
-            }
-          ],
           "name": "Group C",
           "teams": [
             {
@@ -420,19 +335,103 @@
               "player2": "Leo"
             },
             {
+              "player1": "Rodrigo",
+              "player2": "Paulinho"
+            },
+            {
+              "player1": "Brenner",
+              "player2": "Py"
+            },
+            {
               "player1": "James",
               "player2": "Fabio"
+            }
+          ],
+          "matches": [
+            {
+              "team1": {
+                "player1": "Caslu",
+                "player2": "Leo"
+              },
+              "team2": {
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
+              },
+              "time": "08:40",
+              "court": "GP3"
             },
             {
-              "player1": "Carril",
-              "player2": "Leandro"
+              "team1": {
+                "player1": "Caslu",
+                "player2": "Leo"
+              },
+              "team2": {
+                "player1": "Brenner",
+                "player2": "Py"
+              },
+              "time": "08:40",
+              "court": "HD1"
             },
             {
-              "player1": "Felipe M.",
-              "player2": "Rapha B."
+              "team1": {
+                "player1": "Caslu",
+                "player2": "Leo"
+              },
+              "team2": {
+                "player1": "James",
+                "player2": "Fabio"
+              },
+              "time": "08:40",
+              "court": "HD2"
+            },
+            {
+              "team1": {
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
+              },
+              "team2": {
+                "player1": "Brenner",
+                "player2": "Py"
+              },
+              "time": "09:00",
+              "court": "GP1"
+            },
+            {
+              "team1": {
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
+              },
+              "team2": {
+                "player1": "James",
+                "player2": "Fabio"
+              },
+              "time": "09:00",
+              "court": "GP2"
+            },
+            {
+              "team1": {
+                "player1": "Brenner",
+                "player2": "Py"
+              },
+              "team2": {
+                "player1": "James",
+                "player2": "Fabio"
+              },
+              "time": "09:00",
+              "court": "GP3"
             }
           ],
           "standings": [
+            {
+              "team": {
+                "player1": "Brenner",
+                "player2": "Py"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
             {
               "team": {
                 "player1": "Caslu",
@@ -447,6 +446,123 @@
               "team": {
                 "player1": "James",
                 "player2": "Fabio"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            }
+          ]
+        },
+        {
+          "name": "Group D",
+          "teams": [
+            {
+              "player1": "Alex",
+              "player2": "Lage"
+            },
+            {
+              "player1": "Felipe M.",
+              "player2": "Rapha B."
+            },
+            {
+              "player1": "Carril",
+              "player2": "Leandro"
+            },
+            {
+              "player1": "Russo",
+              "player2": "Maki"
+            }
+          ],
+          "matches": [
+            {
+              "team1": {
+                "player1": "Alex",
+                "player2": "Lage"
+              },
+              "team2": {
+                "player1": "Felipe M.",
+                "player2": "Rapha B."
+              },
+              "time": "09:00",
+              "court": "HD1"
+            },
+            {
+              "team1": {
+                "player1": "Alex",
+                "player2": "Lage"
+              },
+              "team2": {
+                "player1": "Carril",
+                "player2": "Leandro"
+              },
+              "time": "09:00",
+              "court": "HD2"
+            },
+            {
+              "team1": {
+                "player1": "Alex",
+                "player2": "Lage"
+              },
+              "team2": {
+                "player1": "Russo",
+                "player2": "Maki"
+              },
+              "time": "09:20",
+              "court": "GP1"
+            },
+            {
+              "team1": {
+                "player1": "Felipe M.",
+                "player2": "Rapha B."
+              },
+              "team2": {
+                "player1": "Carril",
+                "player2": "Leandro"
+              },
+              "time": "09:20",
+              "court": "GP2"
+            },
+            {
+              "team1": {
+                "player1": "Felipe M.",
+                "player2": "Rapha B."
+              },
+              "team2": {
+                "player1": "Russo",
+                "player2": "Maki"
+              },
+              "time": "09:20",
+              "court": "GP3"
+            },
+            {
+              "team1": {
+                "player1": "Carril",
+                "player2": "Leandro"
+              },
+              "team2": {
+                "player1": "Russo",
+                "player2": "Maki"
+              },
+              "time": "09:20",
+              "court": "HD1"
+            }
+          ],
+          "standings": [
+            {
+              "team": {
+                "player1": "Alex",
+                "player2": "Lage"
               },
               "played": 0,
               "wins": 0,
@@ -472,138 +588,11 @@
               "wins": 0,
               "setsWon": 0,
               "setDifference": 0
-            }
-          ]
-        },
-        {
-          "matches": [
-            {
-              "team1": {
-                "player1": "Alex",
-                "player2": "Lage"
-              },
-              "team2": {
-                "player1": "Russo",
-                "player2": "Maki"
-              },
-              "time": "10:00",
-              "court": "HD1"
-            },
-            {
-              "team1": {
-                "player1": "Alex",
-                "player2": "Lage"
-              },
-              "team2": {
-                "player1": "Gustavo",
-                "player2": "Marcus"
-              },
-              "time": "10:00",
-              "court": "HD2"
-            },
-            {
-              "team1": {
-                "player1": "Alex",
-                "player2": "Lage"
-              },
-              "team2": {
-                "player1": "Neves",
-                "player2": "Caze"
-              },
-              "time": "10:20",
-              "court": "GP1"
-            },
-            {
-              "team1": {
-                "player1": "Russo",
-                "player2": "Maki"
-              },
-              "team2": {
-                "player1": "Gustavo",
-                "player2": "Marcus"
-              },
-              "time": "10:20",
-              "court": "GP2"
-            },
-            {
-              "team1": {
-                "player1": "Russo",
-                "player2": "Maki"
-              },
-              "team2": {
-                "player1": "Neves",
-                "player2": "Caze"
-              },
-              "time": "10:20",
-              "court": "GP3"
-            },
-            {
-              "team1": {
-                "player1": "Gustavo",
-                "player2": "Marcus"
-              },
-              "team2": {
-                "player1": "Neves",
-                "player2": "Caze"
-              },
-              "time": "10:20",
-              "court": "HD1"
-            }
-          ],
-          "name": "Group D",
-          "teams": [
-            {
-              "player1": "Alex",
-              "player2": "Lage"
-            },
-            {
-              "player1": "Russo",
-              "player2": "Maki"
-            },
-            {
-              "player1": "Gustavo",
-              "player2": "Marcus"
-            },
-            {
-              "player1": "Neves",
-              "player2": "Caze"
-            }
-          ],
-          "standings": [
-            {
-              "team": {
-                "player1": "Alex",
-                "player2": "Lage"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
             },
             {
               "team": {
                 "player1": "Russo",
                 "player2": "Maki"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Gustavo",
-                "player2": "Marcus"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Neves",
-                "player2": "Caze"
               },
               "played": 0,
               "wins": 0,
@@ -621,7 +610,7 @@
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
-          "time": "10:40",
+          "time": "09:40",
           "roundOrder": 3,
           "court": "HD1"
         },
@@ -630,7 +619,7 @@
           "name": "Quartas de Final 2",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
-          "time": "10:40",
+          "time": "09:40",
           "roundOrder": 3,
           "court": "HD2"
         },
@@ -639,7 +628,7 @@
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
-          "time": "11:00",
+          "time": "10:00",
           "roundOrder": 3,
           "court": "GP1"
         },
@@ -648,7 +637,7 @@
           "name": "Quartas de Final 4",
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
-          "time": "11:00",
+          "time": "10:00",
           "roundOrder": 3,
           "court": "GP2"
         }
@@ -657,18 +646,18 @@
         {
           "id": "Semifinal-1",
           "name": "Semifinal 1",
-          "team1Placeholder": "Vencedor Quartas de Final 1",
-          "team2Placeholder": "Vencedor Quartas de Final 4",
-          "time": "10:40",
+          "team1Placeholder": "Vencedor QuartasdeFinal-1",
+          "team2Placeholder": "Vencedor QuartasdeFinal-4",
+          "time": "09:40",
           "roundOrder": 2,
           "court": "GP2"
         },
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor Quartas de Final 2",
-          "team2Placeholder": "Vencedor Quartas de Final 3",
-          "time": "10:40",
+          "team1Placeholder": "Vencedor QuartasdeFinal-2",
+          "team2Placeholder": "Vencedor QuartasdeFinal-3",
+          "time": "09:40",
           "roundOrder": 2,
           "court": "GP3"
         }
@@ -677,9 +666,9 @@
         {
           "id": "Final-1",
           "name": "Final 1",
-          "team1Placeholder": "Vencedor Semifinal 1",
-          "team2Placeholder": "Vencedor Semifinal 2",
-          "time": "10:40",
+          "team1Placeholder": "Vencedor Semifinal-1",
+          "team2Placeholder": "Vencedor Semifinal-2",
+          "time": "09:40",
           "roundOrder": 1,
           "court": "GP1"
         }
@@ -688,13 +677,24 @@
         {
           "id": "terceiro-lugar-1",
           "name": "Disputa de 3º Lugar",
-          "team1Placeholder": "Perdedor Semifinal 1",
-          "team2Placeholder": "Perdedor Semifinal 2",
-          "time": "10:20",
+          "team1Placeholder": "Perdedor Semifinal-1",
+          "team2Placeholder": "Perdedor Semifinal-2",
+          "time": "09:20",
           "roundOrder": 0,
           "court": "HD2"
         }
       ]
+    },
+    "formValues": {
+      "category": "Masculino Avançado",
+      "tournamentType": "groups",
+      "numberOfTeams": 16,
+      "numberOfGroups": 4,
+      "teamsPerGroupToAdvance": 2,
+      "teams": "Peri e Gularte\nFabinho e Bergallo\nCaslu e Leo\nAlex e Lage\nFelipe M. e Rapha B.\nRodrigo e Paulinho\nCarelli e Hantaro\nNeves e Caze\nGustavo e Marcus\nGabe e Yan\nBrenner e Py\nCarril  e Leandro \nRusso e Maki\nJames e Fabio\nSartoratto e Poppe\nOlavo e Dudu",
+      "groupFormationStrategy": "order",
+      "includeThirdPlace": true,
+      "startTime": "00:00"
     },
     "totalMatches": 32
   },

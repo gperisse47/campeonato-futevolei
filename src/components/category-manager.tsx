@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid, Pencil, MapPin } from "lucide-react"
 
-import { getTournaments, saveTournament, deleteTournament, renameTournament, rescheduleCategory } from "@/app/actions"
+import { getTournaments, saveTournament, deleteTournament, renameTournament } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings, MatchWithScore } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -196,30 +196,6 @@ export function CategoryManager() {
       });
     }
     setIsLoading(false);
-  };
-
-  const handleReschedule = async () => {
-    if (!activeTab) return;
-
-    setIsSaving(true);
-    const result = await rescheduleCategory(activeTab);
-    
-    if(result.success) {
-        const updatedTournaments = await getTournaments();
-        setTournaments(updatedTournaments);
-        toast({
-            title: "Horários Atualizados!",
-            description: `Os horários para "${activeTab}" foram recalculados com sucesso.`,
-        });
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Erro ao reagendar",
-            description: result.error || "Não foi possível reagendar os jogos.",
-        });
-    }
-
-    setIsSaving(false);
   };
   
   const getTeamPlaceholder = useCallback((groupIndex: number, position: number) => {
@@ -509,9 +485,9 @@ export function CategoryManager() {
             <div className="flex flex-col items-center justify-center text-center gap-2">
               {showMatchName && <h4 className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{match.name}</h4>}
                {(match.time || match.court) && (
-                  <div className="flex items-center gap-4 text-xs font-bold text-primary">
-                      {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
-                      {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
+                  <div className="flex items-center gap-4 text-sm font-bold text-primary">
+                      {match.time && <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {match.time}</span>}
+                      {match.court && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {match.court}</span>}
                   </div>
               )}
             </div>
@@ -679,9 +655,6 @@ export function CategoryManager() {
                         </CardDescription>
                       </div>
                        <div className="flex items-center gap-2 self-start sm:self-center">
-                            <Button variant="outline" size="icon" onClick={handleReschedule} disabled={isLoading || isSaving} title="Recalcular horários">
-                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                            </Button>
                             <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" size="icon" disabled={isLoading} title="Renomear Categoria">
@@ -813,9 +786,9 @@ export function CategoryManager() {
                                         {group.matches.map((match, matchIndex) => (
                                             <div key={matchIndex} className="flex flex-col gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                                                 {(match.time || match.court) && (
-                                                    <div className="flex items-center justify-center gap-4 text-xs font-bold text-primary">
-                                                        {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
-                                                        {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
+                                                    <div className="flex items-center justify-center gap-4 text-sm font-bold text-primary">
+                                                        {match.time && <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {match.time}</span>}
+                                                        {match.court && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {match.court}</span>}
                                                     </div>
                                                 )}
                                                 <div className="flex items-center justify-between gap-2">

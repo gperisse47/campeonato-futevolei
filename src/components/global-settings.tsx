@@ -1,13 +1,14 @@
 
+
 "use client"
 
 import * as React from "react"
 import { useState, useEffect } from "react"
 import { useForm, useFieldArray, useForm as useFormGlobal } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Settings, Trash2 } from "lucide-react"
+import { Loader2, Settings, Trash2, RefreshCcw } from "lucide-react"
 
-import { getTournaments, saveGlobalSettings } from "@/app/actions"
+import { getTournaments, saveGlobalSettings, rescheduleAllTournaments } from "@/app/actions"
 import type { GlobalSettings as GlobalSettingsType, TournamentsState } from "@/lib/types"
 import { globalSettingsSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -27,7 +28,7 @@ import { Label } from "@/components/ui/label"
 
 
 export function GlobalSettings() {
-  const [isSavingGlobal, setIsSavingGlobal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -69,7 +70,7 @@ export function GlobalSettings() {
   });
 
   const handleSaveGlobalSettings = async (values: GlobalSettingsType) => {
-    setIsSavingGlobal(true);
+    setIsSaving(true);
     const result = await saveGlobalSettings(values);
     if(result.success) {
         toast({
@@ -83,7 +84,25 @@ export function GlobalSettings() {
             description: result.error || "Não foi possível salvar as configurações globais.",
         });
     }
-    setIsSavingGlobal(false);
+    setIsSaving(false);
+  }
+
+  const handleRescheduleAll = async () => {
+    setIsSaving(true);
+    const result = await rescheduleAllTournaments();
+    if (result.success) {
+      toast({
+        title: "Torneio Reagendado!",
+        description: "Todos os jogos foram recalculados com sucesso.",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Reagendar",
+        description: result.error || "Não foi possível reagendar o torneio.",
+      });
+    }
+    setIsSaving(false);
   }
 
   if (!isLoaded) {
@@ -147,6 +166,7 @@ export function GlobalSettings() {
 
 
   return (
+    <div className="space-y-8">
     <Card>
         <CardHeader>
             <CardTitle className="flex items-center"><Settings className="mr-2 h-5 w-5"/>Formulário de Configurações</CardTitle>
@@ -217,13 +237,36 @@ export function GlobalSettings() {
                           Adicionar Quadra
                       </Button>
                     </div>
-                    <Button type="submit" disabled={isSavingGlobal} className="w-full">
-                        {isSavingGlobal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" disabled={isSaving} className="w-full">
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Salvar Configurações
                     </Button>
                 </form>
             </Form>
         </CardContent>
     </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center"><RefreshCcw className="mr-2 h-5 w-5"/>Ações Globais</CardTitle>
+          <CardDescription>
+            Use estas ações para gerenciar todo o torneio de uma vez.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <Label>Recalcular Horários</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Recalcula todos os horários de todos os jogos, em todas as categorias. Esta ação considera conflitos de jogadores que participam de múltiplas categorias. Use após cadastrar todas as categorias e duplas.
+              </p>
+            </div>
+            <Button onClick={handleRescheduleAll} disabled={isSaving} className="w-full">
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Recalcular Horários de Todo o Torneio
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
