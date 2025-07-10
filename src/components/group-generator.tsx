@@ -1,11 +1,12 @@
 
+
 "use client"
 
 import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy, Clock, Trash2, ArrowRight } from "lucide-react"
+import { Loader2, Trophy, Clock, Trash2 } from "lucide-react"
 
 import { generateGroupsAction, getTournaments, saveTournament, deleteTournament } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet } from "@/lib/types"
@@ -168,6 +169,13 @@ Olavo e Dudu`,
   })
   
   const tournamentType = form.watch("tournamentType");
+
+  useEffect(() => {
+    if (tournamentType === 'doubleElimination') {
+      form.setValue('includeThirdPlace', false);
+    }
+  }, [tournamentType, form]);
+
 
   const activeCategoryData = activeTab ? tournaments[activeTab] : null;
   const activeTournamentData = activeCategoryData?.tournamentData;
