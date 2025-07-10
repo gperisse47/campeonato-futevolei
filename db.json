@@ -616,7 +616,8 @@
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         },
         {
           "id": "QuartasdeFinal-2",
@@ -624,7 +625,8 @@
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         },
         {
           "id": "QuartasdeFinal-3",
@@ -632,7 +634,8 @@
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         },
         {
           "id": "QuartasdeFinal-4",
@@ -640,7 +643,8 @@
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         }
       ],
       "Semifinal": [
@@ -650,7 +654,8 @@
           "team1Placeholder": "Vencedor QuartasdeFinal-1",
           "team2Placeholder": "Vencedor QuartasdeFinal-4",
           "time": "",
-          "roundOrder": 2
+          "roundOrder": 2,
+          "court": ""
         },
         {
           "id": "Semifinal-2",
@@ -658,7 +663,8 @@
           "team1Placeholder": "Vencedor QuartasdeFinal-2",
           "team2Placeholder": "Vencedor QuartasdeFinal-3",
           "time": "",
-          "roundOrder": 2
+          "roundOrder": 2,
+          "court": ""
         }
       ],
       "Final": [
@@ -668,7 +674,8 @@
           "team1Placeholder": "Vencedor Semifinal-1",
           "team2Placeholder": "Vencedor Semifinal-2",
           "time": "",
-          "roundOrder": 1
+          "roundOrder": 1,
+          "court": ""
         }
       ],
       "Disputa de 3º Lugar": [
@@ -678,7 +685,8 @@
           "team1Placeholder": "Perdedor Semifinal-1",
           "team2Placeholder": "Perdedor Semifinal-2",
           "time": "",
-          "roundOrder": 0
+          "roundOrder": 0,
+          "court": ""
         }
       ]
     },
@@ -883,7 +891,8 @@
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo B",
           "time": "",
-          "roundOrder": 2
+          "roundOrder": 2,
+          "court": ""
         },
         {
           "id": "Semifinal-2",
@@ -891,7 +900,8 @@
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo B",
           "time": "",
-          "roundOrder": 2
+          "roundOrder": 2,
+          "court": ""
         }
       ],
       "Final": [
@@ -901,7 +911,8 @@
           "team1Placeholder": "Vencedor Semifinal-1",
           "team2Placeholder": "Vencedor Semifinal-2",
           "time": "",
-          "roundOrder": 1
+          "roundOrder": 1,
+          "court": ""
         }
       ],
       "Disputa de 3º Lugar": [
@@ -911,7 +922,8 @@
           "team1Placeholder": "Perdedor Semifinal-1",
           "team2Placeholder": "Perdedor Semifinal-2",
           "time": "",
-          "roundOrder": 0
+          "roundOrder": 0,
+          "court": ""
         }
       ]
     },
@@ -1290,7 +1302,8 @@
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         },
         {
           "id": "QuartasdeFinal-2",
@@ -1298,7 +1311,8 @@
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         },
         {
           "id": "QuartasdeFinal-3",
@@ -1306,7 +1320,8 @@
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         },
         {
           "id": "QuartasdeFinal-4",
@@ -1314,7 +1329,8 @@
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
           "time": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "court": ""
         }
       ],
       "Semifinal": [
@@ -1324,7 +1340,8 @@
           "team1Placeholder": "Vencedor QuartasdeFinal-1",
           "team2Placeholder": "Vencedor QuartasdeFinal-4",
           "time": "",
-          "roundOrder": 2
+          "roundOrder": 2,
+          "court": ""
         },
         {
           "id": "Semifinal-2",
@@ -1332,7 +1349,8 @@
           "team1Placeholder": "Vencedor QuartasdeFinal-2",
           "team2Placeholder": "Vencedor QuartasdeFinal-3",
           "time": "",
-          "roundOrder": 2
+          "roundOrder": 2,
+          "court": ""
         }
       ],
       "Final": [
@@ -1342,7 +1360,8 @@
           "team1Placeholder": "Vencedor Semifinal-1",
           "team2Placeholder": "Vencedor Semifinal-2",
           "time": "",
-          "roundOrder": 1
+          "roundOrder": 1,
+          "court": ""
         }
       ],
       "Disputa de 3º Lugar": [
@@ -1352,7 +1371,8 @@
           "team1Placeholder": "Perdedor Semifinal-1",
           "team2Placeholder": "Perdedor Semifinal-2",
           "time": "",
-          "roundOrder": 0
+          "roundOrder": 0,
+          "court": ""
         }
       ]
     },

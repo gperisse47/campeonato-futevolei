@@ -123,47 +123,53 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         const { _globalSettings } = db;
         const categories = Object.keys(db).filter(k => k !== '_globalSettings');
 
-        type MatchWithCategory = (MatchWithScore | PlayoffMatch) & { categoryName: string; categoryPriority: number };
+        type MatchReference = (MatchWithScore | PlayoffMatch) & { 
+            categoryName: string; 
+            categoryPriority: number 
+        };
 
-        const allMatches: MatchWithCategory[] = [];
+        const allMatches: MatchReference[] = [];
+
         categories.forEach(catName => {
             const catData = db[catName] as CategoryData;
             const categoryPriority = catData.formValues.priority || 99;
 
-            // Reset existing schedules
-            catData.tournamentData?.groups.forEach(g => g.matches.forEach(m => { m.time = ''; m.court = ''; }));
-             if (catData.playoffs) {
-                const resetBracketSchedules = (bracket: PlayoffBracket) => {
-                    Object.values(bracket).flat().forEach(m => { m.time = ''; m.court = ''; });
-                };
-                 if ('upper' in catData.playoffs || 'lower' in catData.playoffs || 'playoffs' in catData.playoffs) {
-                    const bracketSet = catData.playoffs as PlayoffBracketSet;
-                    if(bracketSet.upper) resetBracketSchedules(bracketSet.upper);
-                    if(bracketSet.lower) resetBracketSchedules(bracketSet.lower);
-                    if(bracketSet.playoffs) resetBracketSchedules(bracketSet.playoffs);
-                } else {
-                    resetBracketSchedules(catData.playoffs as PlayoffBracket);
-                }
-            }
+            // Group matches
+            catData.tournamentData?.groups.forEach(group => {
+                group.matches.forEach(match => {
+                    match.time = '';
+                    match.court = '';
+                    allMatches.push({ ...match, categoryName: catName, categoryPriority, roundOrder: -1 });
+                });
+            });
 
+            // Playoff matches
+            const processBracket = (bracket: PlayoffBracket | undefined) => {
+                if (!bracket) return;
+                Object.values(bracket).flat().forEach(match => {
+                    match.time = '';
+                    match.court = '';
+                    allMatches.push({ ...match, categoryName: catName, categoryPriority });
+                });
+            };
 
-            if (catData.tournamentData?.groups) {
-                allMatches.push(...catData.tournamentData.groups.flatMap(g => g.matches.map(m => ({ ...m, categoryName: catName, categoryPriority, roundOrder: -1 })))); // group matches have lowest round order
-            }
             if (catData.playoffs) {
-                const addMatchesFromBracket = (bracket: PlayoffBracket) => {
-                    Object.values(bracket).flat().forEach(m => allMatches.push({ ...m, categoryName: catName, categoryPriority }));
-                };
-
-                 if ('upper' in catData.playoffs || 'lower' in catData.playoffs || 'playoffs' in catData.playoffs) {
+                if ('upper' in catData.playoffs || 'lower' in catData.playoffs || 'playoffs' in catData.playoffs) {
                     const bracketSet = catData.playoffs as PlayoffBracketSet;
-                    if(bracketSet.upper) addMatchesFromBracket(bracketSet.upper);
-                    if(bracketSet.lower) addMatchesFromBracket(bracketSet.lower);
-                    if(bracketSet.playoffs) addMatchesFromBracket(bracketSet.playoffs);
+                    processBracket(bracketSet.upper);
+                    processBracket(bracketSet.lower);
+                    processBracket(bracketSet.playoffs);
                 } else {
-                    addMatchesFromBracket(catData.playoffs as PlayoffBracket);
+                    processBracket(catData.playoffs as PlayoffBracket);
                 }
             }
+        });
+        
+        allMatches.sort((a, b) => {
+            if (a.categoryPriority !== b.categoryPriority) {
+                return a.categoryPriority - b.categoryPriority;
+            }
+            return (b.roundOrder ?? -1) - (a.roundOrder ?? -1);
         });
 
         const courtAvailability = _globalSettings.courts
@@ -177,7 +183,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 })).sort((a, b) => a.start.getTime() - b.start.getTime()),
                 nextAvailableTime: parseTime(_globalSettings.startTime)
             }));
-
+            
         const playerAvailability: { [playerName: string]: Date } = {};
         const allPlayers = new Set<string>();
         allMatches.forEach(match => {
@@ -188,33 +194,27 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         });
         allPlayers.forEach(p => playerAvailability[p] = parseTime(_globalSettings.startTime));
         
-        allMatches.sort((a, b) => {
-            if (a.categoryPriority !== b.categoryPriority) {
-                return a.categoryPriority - b.categoryPriority;
-            }
-            return (b.roundOrder ?? -1) - (a.roundOrder ?? -1);
-        });
-
-        allMatches.forEach(match => {
-            if (!match.team1 || !match.team2) {
+        allMatches.forEach(matchRef => {
+            if (!matchRef.team1 || !matchRef.team2) {
                 return; // Can't schedule matches without teams
             }
             
             let bestTime: Date | null = null;
             let bestCourtIndex = -1;
 
-            const categoryStartTime = (db[match.categoryName] as CategoryData)?.formValues?.startTime;
+            const categoryStartTime = (db[matchRef.categoryName] as CategoryData)?.formValues?.startTime;
             const effectiveStartTime = parseTime(categoryStartTime || _globalSettings.startTime);
 
-            const playersInMatch = [match.team1.player1, match.team1.player2, match.team2.player1, match.team2.player2];
+            const playersInMatch = [matchRef.team1.player1, matchRef.team1.player2, matchRef.team2.player1, matchRef.team2.player2].filter(Boolean);
             const playersNextAvailableTimes = playersInMatch.map(p => playerAvailability[p] || effectiveStartTime);
             
             let earliestPossibleStart = max([effectiveStartTime, ...playersNextAvailableTimes]);
 
-            for(let t = earliestPossibleStart.getTime(); ; t += 60000) { // Iterate minute by minute
-                 const potentialStartTime = new Date(t);
+            let foundSlot = false;
+            let potentialStartTime = earliestPossibleStart;
 
-                 for (let i = 0; i < courtAvailability.length; i++) {
+            while (!foundSlot) {
+                for (let i = 0; i < courtAvailability.length; i++) {
                      const court = courtAvailability[i];
 
                      const courtStartTime = max([potentialStartTime, court.nextAvailableTime]);
@@ -227,28 +227,54 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                              break;
                          }
                      }
-
                      if (isInSlot) {
                         bestTime = courtStartTime;
                         bestCourtIndex = i;
-                        break; // Found a slot in this court
+                        foundSlot = true;
+                        break; 
                      }
                  }
-                 if(bestTime) break; // Found a time in some court
+                 if (!foundSlot) {
+                    // if no slot found, advance time by 1 minute and retry
+                    potentialStartTime = addMinutes(potentialStartTime, 1);
+                 }
             }
             
             
             if (bestCourtIndex !== -1 && bestTime) {
                 const assignedCourt = courtAvailability[bestCourtIndex];
-                match.time = format(bestTime, 'HH:mm');
-                match.court = assignedCourt.name;
+                const timeStr = format(bestTime, 'HH:mm');
+                const courtName = assignedCourt.name;
+
+                // Find the original match object in the db and update it
+                const categoryData = db[matchRef.categoryName] as CategoryData;
+                let originalMatch: MatchWithScore | PlayoffMatch | undefined;
+
+                if (matchRef.roundOrder === -1) { // Group match
+                   originalMatch = categoryData.tournamentData?.groups
+                    .flatMap(g => g.matches)
+                    .find(m => m.team1.player1 === matchRef.team1.player1 && m.team1.player2 === matchRef.team1.player2 && m.team2.player1 === matchRef.team2.player1 && m.team2.player2 === matchRef.team2.player2);
+                } else { // Playoff match
+                    const findInBracket = (bracket: PlayoffBracket | undefined) => {
+                        if (!bracket) return undefined;
+                        return Object.values(bracket).flat().find(m => m.id === matchRef.id);
+                    }
+                    if ('upper' in categoryData.playoffs! || 'lower' in categoryData.playoffs! || 'playoffs' in categoryData.playoffs!) {
+                        const bracketSet = categoryData.playoffs as PlayoffBracketSet;
+                        originalMatch = findInBracket(bracketSet.upper) || findInBracket(bracketSet.lower) || findInBracket(bracketSet.playoffs);
+                    } else {
+                        originalMatch = findInBracket(categoryData.playoffs as PlayoffBracket);
+                    }
+                }
+                
+                if (originalMatch) {
+                    originalMatch.time = timeStr;
+                    originalMatch.court = courtName;
+                }
                 
                 const matchEndTime = addMinutes(bestTime, _globalSettings.estimatedMatchDuration);
                 assignedCourt.nextAvailableTime = matchEndTime;
                 playersInMatch.forEach(p => playerAvailability[p] = matchEndTime);
-            } else {
-                match.time = 'N/A';
-                match.court = 'N/A';
             }
         });
 
