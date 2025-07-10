@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react"
 
 import { generateGroupsAction } from "@/app/actions"
 import type { GenerateTournamentGroupsOutput } from "@/lib/types"
-import { formSchema, type TournamentFormValues } from "@/lib/types"
+import { formSchema, type TournamentFormValues, type Team } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
 import { Button } from "@/components/ui/button"
@@ -37,7 +37,7 @@ export function GroupGenerator() {
       category: "Masculino",
       numberOfTeams: 8,
       numberOfGroups: 2,
-      teams: "Dupla A, Dupla B, Dupla C, Dupla D, Dupla E, Dupla F, Dupla G, Dupla H",
+      teams: "Ana/Bia, Carla/Dani, Elena/Fernanda, Gabi/Helo, Isis/Julia, Karla/Laura, Maria/Nina, Olivia/Paula",
       groupFormationStrategy: "balanced",
     },
   })
@@ -46,10 +46,14 @@ export function GroupGenerator() {
     setIsLoading(true)
     setGeneratedGroups(null)
 
-    const teamsArray = values.teams
+    const teamsArray: Team[] = values.teams
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean)
+      .map((teamString) => {
+        const players = teamString.split("/").map((p) => p.trim());
+        return { player1: players[0], player2: players[1] };
+      });
 
     const result = await generateGroupsAction({
       ...values,
@@ -132,16 +136,16 @@ export function GroupGenerator() {
                 name="teams"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nomes das Duplas</FormLabel>
+                    <FormLabel>Duplas (Jogadores)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Separe os nomes das duplas por vírgula"
+                        placeholder="Separe duplas por vírgula e jogadores por barra. Ex: Jogador A/Jogador B, Jogador C/Jogador D"
                         className="min-h-[120px]"
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Insira os nomes separados por vírgula.
+                      Use o formato: Jogador1/Jogador2, Jogador3/Jogador4
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -225,9 +229,9 @@ export function GroupGenerator() {
                     </CardHeader>
                     <CardContent className="flex-1">
                       <ul className="space-y-2">
-                        {group.teams.map((team) => (
-                          <li key={team} className="rounded-md bg-secondary/50 p-2 text-sm text-secondary-foreground">
-                            {team}
+                        {group.teams.map((team, index) => (
+                          <li key={`${team.player1}-${index}`} className="rounded-md bg-secondary/50 p-2 text-sm text-secondary-foreground">
+                            {team.player1} / {team.player2}
                           </li>
                         ))}
                       </ul>

@@ -7,6 +7,11 @@ import { z } from "zod"
 export type GenerateTournamentGroupsOutput = AIGenerateTournamentGroupsOutput;
 export type GenerateTournamentGroupsInput = AIGenerateTournamentGroupsInput;
 
+const teamSchema = z.object({
+  player1: z.string(),
+  player2: z.string(),
+});
+export type Team = z.infer<typeof teamSchema>;
 
 export const formSchema = z
   .object({
@@ -26,11 +31,27 @@ export const formSchema = z
   })
   .refine(
     (data) => {
-      const teamsArray = data.teams.split(",").map((t) => t.trim()).filter(Boolean);
+      const teamsArray = data.teams
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
       return teamsArray.length === data.numberOfTeams;
     },
     {
       message: "O número de duplas na lista não corresponde ao número total de duplas informado.",
+      path: ["teams"],
+    }
+  )
+  .refine(
+    (data) => {
+      const teamsArray = data.teams
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      return teamsArray.every((team) => team.includes("/") && team.split("/").length === 2 && team.split('/')[0].trim() && team.split('/')[1].trim());
+    },
+    {
+      message: "Cada dupla deve ter dois jogadores separados por uma barra (/). Ex: Jogador A/Jogador B.",
       path: ["teams"],
     }
   );
