@@ -42,8 +42,8 @@
                 "player2": "Gularte"
               },
               "team2": {
-                "player1": "Russo",
-                "player2": "Maki"
+                "player1": "Carelli",
+                "player2": "Hantaro"
               },
               "time": ""
             },
@@ -64,8 +64,8 @@
                 "player2": "Dudu"
               },
               "team2": {
-                "player1": "Russo",
-                "player2": "Maki"
+                "player1": "Carelli",
+                "player2": "Hantaro"
               },
               "time": ""
             },
@@ -75,8 +75,8 @@
                 "player2": "Yan"
               },
               "team2": {
-                "player1": "Russo",
-                "player2": "Maki"
+                "player1": "Carelli",
+                "player2": "Hantaro"
               },
               "time": ""
             }
@@ -96,11 +96,21 @@
               "player2": "Yan"
             },
             {
-              "player1": "Russo",
-              "player2": "Maki"
+              "player1": "Carelli",
+              "player2": "Hantaro"
             }
           ],
           "standings": [
+            {
+              "team": {
+                "player1": "Carelli",
+                "player2": "Hantaro"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
             {
               "team": {
                 "player1": "Gabe",
@@ -130,16 +140,6 @@
               "wins": 0,
               "setsWon": 0,
               "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Russo",
-                "player2": "Maki"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
             }
           ]
         },
@@ -162,8 +162,8 @@
                 "player2": "Bergallo"
               },
               "team2": {
-                "player1": "Gustavo M.",
-                "player2": "Marcus"
+                "player1": "Brenner",
+                "player2": "Py"
               },
               "time": ""
             },
@@ -173,8 +173,8 @@
                 "player2": "Bergallo"
               },
               "team2": {
-                "player1": "Carril",
-                "player2": "Leandro"
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
               },
               "time": ""
             },
@@ -184,8 +184,8 @@
                 "player2": "Poppe"
               },
               "team2": {
-                "player1": "Gustavo M.",
-                "player2": "Marcus"
+                "player1": "Brenner",
+                "player2": "Py"
               },
               "time": ""
             },
@@ -195,19 +195,19 @@
                 "player2": "Poppe"
               },
               "team2": {
-                "player1": "Carril",
-                "player2": "Leandro"
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
               },
               "time": ""
             },
             {
               "team1": {
-                "player1": "Gustavo M.",
-                "player2": "Marcus"
+                "player1": "Brenner",
+                "player2": "Py"
               },
               "team2": {
-                "player1": "Carril",
-                "player2": "Leandro"
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
               },
               "time": ""
             }
@@ -223,19 +223,19 @@
               "player2": "Poppe"
             },
             {
-              "player1": "Gustavo M.",
-              "player2": "Marcus"
+              "player1": "Brenner",
+              "player2": "Py"
             },
             {
-              "player1": "Carril",
-              "player2": "Leandro"
+              "player1": "Rodrigo",
+              "player2": "Paulinho"
             }
           ],
           "standings": [
             {
               "team": {
-                "player1": "Carril",
-                "player2": "Leandro"
+                "player1": "Brenner",
+                "player2": "Py"
               },
               "played": 0,
               "wins": 0,
@@ -254,8 +254,8 @@
             },
             {
               "team": {
-                "player1": "Gustavo M.",
-                "player2": "Marcus"
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
               },
               "played": 0,
               "wins": 0,
@@ -293,8 +293,8 @@
                 "player2": "Leo"
               },
               "team2": {
-                "player1": "Felipe M.",
-                "player2": "Rapha B."
+                "player1": "Carril",
+                "player2": "Leandro"
               },
               "time": ""
             },
@@ -304,8 +304,19 @@
                 "player2": "Leo"
               },
               "team2": {
-                "player1": "Brenner",
-                "player2": "Py"
+                "player1": "Felipe M.",
+                "player2": "Rapha B."
+              },
+              "time": ""
+            },
+            {
+              "team1": {
+                "player1": "James",
+                "player2": "Fabio"
+              },
+              "team2": {
+                "player1": "Carril",
+                "player2": "Leandro"
               },
               "time": ""
             },
@@ -322,23 +333,12 @@
             },
             {
               "team1": {
-                "player1": "James",
-                "player2": "Fabio"
+                "player1": "Carril",
+                "player2": "Leandro"
               },
               "team2": {
-                "player1": "Brenner",
-                "player2": "Py"
-              },
-              "time": ""
-            },
-            {
-              "team1": {
                 "player1": "Felipe M.",
                 "player2": "Rapha B."
-              },
-              "team2": {
-                "player1": "Brenner",
-                "player2": "Py"
               },
               "time": ""
             }
@@ -354,19 +354,19 @@
               "player2": "Fabio"
             },
             {
-              "player1": "Felipe M.",
-              "player2": "Rapha B."
+              "player1": "Carril",
+              "player2": "Leandro"
             },
             {
-              "player1": "Brenner",
-              "player2": "Py"
+              "player1": "Felipe M.",
+              "player2": "Rapha B."
             }
           ],
           "standings": [
             {
               "team": {
-                "player1": "Brenner",
-                "player2": "Py"
+                "player1": "Carril",
+                "player2": "Leandro"
               },
               "played": 0,
               "wins": 0,
@@ -413,8 +413,8 @@
                 "player2": "Lage"
               },
               "team2": {
-                "player1": "Neves",
-                "player2": "Caze"
+                "player1": "Russo",
+                "player2": "Maki"
               },
               "time": ""
             },
@@ -424,8 +424,8 @@
                 "player2": "Lage"
               },
               "team2": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
+                "player1": "Gustavo M.",
+                "player2": "Marcus"
               },
               "time": ""
             },
@@ -435,41 +435,41 @@
                 "player2": "Lage"
               },
               "team2": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
-              },
-              "time": ""
-            },
-            {
-              "team1": {
                 "player1": "Neves",
                 "player2": "Caze"
               },
+              "time": ""
+            },
+            {
+              "team1": {
+                "player1": "Russo",
+                "player2": "Maki"
+              },
               "team2": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
+                "player1": "Gustavo M.",
+                "player2": "Marcus"
               },
               "time": ""
             },
             {
               "team1": {
+                "player1": "Russo",
+                "player2": "Maki"
+              },
+              "team2": {
                 "player1": "Neves",
                 "player2": "Caze"
               },
-              "team2": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
-              },
               "time": ""
             },
             {
               "team1": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
+                "player1": "Gustavo M.",
+                "player2": "Marcus"
               },
               "team2": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
+                "player1": "Neves",
+                "player2": "Caze"
               },
               "time": ""
             }
@@ -481,16 +481,16 @@
               "player2": "Lage"
             },
             {
+              "player1": "Russo",
+              "player2": "Maki"
+            },
+            {
+              "player1": "Gustavo M.",
+              "player2": "Marcus"
+            },
+            {
               "player1": "Neves",
               "player2": "Caze"
-            },
-            {
-              "player1": "Rodrigo",
-              "player2": "Paulinho"
-            },
-            {
-              "player1": "Carelli",
-              "player2": "Hantaro"
             }
           ],
           "standings": [
@@ -506,8 +506,8 @@
             },
             {
               "team": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
+                "player1": "Gustavo M.",
+                "player2": "Marcus"
               },
               "played": 0,
               "wins": 0,
@@ -526,8 +526,8 @@
             },
             {
               "team": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
+                "player1": "Russo",
+                "player2": "Maki"
               },
               "played": 0,
               "wins": 0,
@@ -546,15 +546,7 @@
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
           "time": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Gabe",
-            "player2": "Yan"
-          },
-          "team2": {
-            "player1": "Carelli",
-            "player2": "Hantaro"
-          }
+          "roundOrder": 3
         },
         {
           "id": "QuartasdeFinal-2",
@@ -562,15 +554,7 @@
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
           "time": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Olavo",
-            "player2": "Dudu"
-          },
-          "team2": {
-            "player1": "Alex",
-            "player2": "Lage"
-          }
+          "roundOrder": 3
         },
         {
           "id": "QuartasdeFinal-3",
@@ -578,16 +562,7 @@
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
           "time": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Carril",
-            "player2": "Leandro"
-          },
-          "team2": {
-            "player1": "Caslu",
-            "player2": "Leo"
-          },
-          "score1": 0
+          "roundOrder": 3
         },
         {
           "id": "QuartasdeFinal-4",
@@ -595,15 +570,7 @@
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
           "time": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Fabinho",
-            "player2": "Bergallo"
-          },
-          "team2": {
-            "player1": "Brenner",
-            "player2": "Py"
-          }
+          "roundOrder": 3
         }
       ],
       "Semifinal": [

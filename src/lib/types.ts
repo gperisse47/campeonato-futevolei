@@ -129,7 +129,7 @@ export const formSchema = z
    .refine(
     (data) => {
         if(data.tournamentType === 'doubleElimination') {
-            return data.includeThirdPlace === false;
+            return !data.includeThirdPlace;
         }
         return true;
     }, {
