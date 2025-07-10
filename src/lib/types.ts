@@ -100,12 +100,12 @@ export const formSchema = z
   )
    .refine(
     (data) => {
-        if (data.tournamentType === 'groups') return true;
+        if (data.tournamentType === 'groups' || data.tournamentType === 'doubleElimination') return true;
         const numTeams = data.numberOfTeams;
         return numTeams > 1 && (numTeams & (numTeams - 1)) === 0;
     },
     {
-        message: "Para este tipo de torneio, o número de duplas deve ser uma potência de 2 (4, 8, 16...).",
+        message: "Para mata-mata simples, o número de duplas deve ser uma potência de 2 (4, 8, 16...).",
         path: ["numberOfTeams"],
     }
    )
@@ -196,4 +196,5 @@ export type ConsolidatedMatch = {
     score2?: number;
     time?: string;
 };
+
 
