@@ -15,6 +15,7 @@ export type GenerateTournamentGroupsInput = Pick<
   | "groupFormationStrategy"
   | "teams"
   | "category"
+  | "tournamentType"
 >;
 
 export const teamSchema = z.object({
@@ -26,6 +27,7 @@ export type Team = z.infer<typeof teamSchema>;
 export const formSchema = z
   .object({
     category: z.string().min(1, "A categoria é obrigatória."),
+    tournamentType: z.enum(['groups', 'singleElimination']),
     numberOfTeams: z.coerce
       .number({ invalid_type_error: "Deve ser um número." })
       .int("Deve ser um número inteiro.")
@@ -33,11 +35,11 @@ export const formSchema = z
     numberOfGroups: z.coerce
       .number({ invalid_type_error: "Deve ser um número." })
       .int("Deve ser um número inteiro.")
-      .positive("Deve ser um número positivo."),
+      .positive("Deve ser um número positivo.").optional(),
     teamsPerGroupToAdvance: z.coerce
       .number({ invalid_type_error: "Deve ser um número." })
       .int("Deve ser um número inteiro.")
-      .min(1, "Deve classificar pelo menos uma dupla."),
+      .min(1, "Deve classificar pelo menos uma dupla.").optional(),
     teams: z.string().min(1, "A lista de duplas é obrigatória."),
     groupFormationStrategy: z.enum(["balanced", "random"], {
       required_error: "A estratégia de formação é obrigatória.",
@@ -72,6 +74,8 @@ export const formSchema = z
   )
   .refine(
     (data) => {
+      if (data.tournamentType !== 'groups') return true;
+      if (!data.numberOfGroups || !data.teamsPerGroupToAdvance) return false;
       const qualifiers = data.numberOfGroups * data.teamsPerGroupToAdvance;
       // Check if qualifiers is a power of 2 (and > 1)
       return qualifiers > 1 && (qualifiers & (qualifiers - 1)) === 0;
@@ -83,6 +87,8 @@ export const formSchema = z
   )
   .refine(
     (data) => {
+      if (data.tournamentType !== 'groups') return true;
+      if (!data.numberOfGroups || !data.teamsPerGroupToAdvance) return false;
       if (data.numberOfTeams <= 0 || data.numberOfGroups <= 0) return true; // Avoid division by zero if other validations fail
       // The number of advancing teams must be less than the number of teams in the smallest group.
       const teamsInSmallestGroup = Math.floor(data.numberOfTeams / data.numberOfGroups);
@@ -93,6 +99,17 @@ export const formSchema = z
         path: ["teamsPerGroupToAdvance"],
     }
   )
+   .refine(
+    (data) => {
+        if (data.tournamentType !== 'singleElimination') return true;
+        const numTeams = data.numberOfTeams;
+        return numTeams > 1 && (numTeams & (numTeams - 1)) === 0;
+    },
+    {
+        message: "Para mata-mata simples, o número de duplas deve ser uma potência de 2 (4, 8, 16...).",
+        path: ["numberOfTeams"],
+    }
+   )
   .refine(
     (data) => {
       const players = data.teams

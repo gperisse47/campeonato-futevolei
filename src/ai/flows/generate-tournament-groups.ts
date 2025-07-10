@@ -23,14 +23,15 @@ const MatchSchema = z.object({
 
 const GenerateTournamentGroupsInputSchema = z.object({
   numberOfTeams: z.number().describe('The number of teams participating in the tournament.'),
-  numberOfGroups: z.number().describe('The number of groups to divide the teams into.'),
+  numberOfGroups: z.number().optional().describe('The number of groups to divide the teams into. Only for group stage tournaments.'),
   groupFormationStrategy: z
     .enum(['balanced', 'random'])
     .describe(
-      'The strategy for forming groups: balanced to ensure groups have roughly the same number of teams, random for arbitrary assignment.'
+      'The strategy for forming groups or seeding: balanced to ensure groups/matches are balanced, random for arbitrary assignment.'
     ),
   teams: z.array(TeamSchema).describe('The teams participating in the tournament, with their players.'),
   category: z.string().describe('The category of the tournament (e.g., Masculino, Misto).'),
+  tournamentType: z.enum(['groups', 'singleElimination']).describe('The type of tournament to generate.'),
 });
 export type GenerateTournamentGroupsInput = z.infer<typeof GenerateTournamentGroupsInputSchema>;
 
@@ -41,7 +42,8 @@ const GenerateTournamentGroupsOutputSchema = z.object({
       teams: z.array(TeamSchema).describe('The teams in this group, with their players.'),
       matches: z.array(MatchSchema).describe('The matches to be played in this group (round-robin).'),
     })
-  ).describe('The generated tournament groups and their matches.'),
+  ).describe('The generated tournament groups and their matches. This will be empty if tournamentType is not "groups".'),
+  playoffMatches: z.array(MatchSchema).optional().describe('The generated playoff matches for a single elimination tournament.'),
 });
 export type GenerateTournamentGroupsOutput = z.infer<typeof GenerateTournamentGroupsOutputSchema>;
 
@@ -55,21 +57,26 @@ const generateTournamentGroupsPrompt = ai.definePrompt({
   name: 'generateTournamentGroupsPrompt',
   input: {schema: GenerateTournamentGroupsInputSchema},
   output: {schema: GenerateTournamentGroupsOutputSchema},
-  prompt: `You are a tournament organizer. Your task is to divide the teams into groups for a tournament and then generate the match schedule for each group.
+  prompt: `You are a tournament organizer. Your task is to generate the structure for a futevolei tournament.
 
 Tournament Category: {{{category}}}
+Tournament Type: {{{tournamentType}}}
 Number of Teams: {{{numberOfTeams}}}
-Number of Groups: {{{numberOfGroups}}}
-Group Formation Strategy: {{{groupFormationStrategy}}}
+{{#if numberOfGroups}}Number of Groups: {{{numberOfGroups}}}{{/if}}
+Seeding Strategy: {{{groupFormationStrategy}}}
 Teams:
 {{#each teams}}- {{{this.player1}}} e {{{this.player2}}}
 {{/each}}
 
+{{#if (eq tournamentType "groups")}}
 First, generate the groups, ensuring that each team is assigned to one group. Consider the group formation strategy when assigning teams. The output for each team must include both player names.
-
 After forming the groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
-
-The final output should contain the groups, the teams within each group, and the list of matches for each group.
+The final output should contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
+{{else if (eq tournamentType "singleElimination")}}
+You need to create the first round of a single elimination (mata-mata) tournament.
+Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'balanced', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
+The output should contain the matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
+{{/if}}
 `,
 });
 
