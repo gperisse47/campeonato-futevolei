@@ -140,12 +140,27 @@ export function GroupGenerator() {
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      category: "",
+      category: "Masculino",
       tournamentType: "groups",
-      numberOfTeams: 8,
-      numberOfGroups: 2,
+      numberOfTeams: 16,
+      numberOfGroups: 4,
       teamsPerGroupToAdvance: 2,
-      teams: "",
+      teams: `Peri e Gularte
+Fabinho e Bergallo
+Caslu e Leo
+Alex e Lage
+Felipe M. e Rapha B.
+Rodrigo e Paulinho
+Carelli e Hantaro
+Neves e Caze
+Gustavo M. e Marcus
+Gabe e Yan
+Brenner e Py
+Carril e Leandro
+Russo e Maki
+James e Fabio
+Sartoratto e Poppe
+Olavo e Dudu`,
       groupFormationStrategy: "balanced",
       includeThirdPlace: true,
     },
@@ -311,7 +326,7 @@ export function GroupGenerator() {
             return bracket;
         }
         return null;
-    }, [getTeamPlaceholder, teamToKey]);
+    }, [getTeamPlaceholder]);
 
     const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues, initialUpperBracket: PlayoffBracket): PlayoffBracketSet => {
         const numTeams = values.numberOfTeams;
