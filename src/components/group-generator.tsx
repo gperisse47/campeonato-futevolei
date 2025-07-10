@@ -27,11 +27,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "./ui/skeleton"
 import { Separator } from "./ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
+import { Switch } from "./ui/switch"
 
 type PlayoffBracket = {
   quarters: PlayoffMatch[];
   semis: PlayoffMatch[];
   final: PlayoffMatch[];
+  thirdPlace?: PlayoffMatch[];
 }
 
 export function GroupGenerator() {
@@ -48,10 +50,12 @@ export function GroupGenerator() {
       numberOfGroups: 2,
       teams: "Ana e Bia\nCarla e Dani\nElena e Fernanda\nGabi e Helo\nIsis e Julia\nKarla e Laura\nMaria e Nina\nOlivia e Paula",
       groupFormationStrategy: "balanced",
+      includeThirdPlace: false,
     },
   })
 
   const numberOfTeams = form.watch("numberOfTeams")
+  const includeThirdPlace = form.watch("includeThirdPlace")
 
   const teamToKey = (team: Team) => `${team.player1} e ${team.player2}`;
 
@@ -104,6 +108,12 @@ export function GroupGenerator() {
            { team1Placeholder: "Vencedor SF1", team2Placeholder: "Vencedor SF2" },
         ]
       }
+    }
+
+    if (newPlayoffs && includeThirdPlace) {
+      newPlayoffs.thirdPlace = [
+        { team1Placeholder: "Perdedor SF1", team2Placeholder: "Perdedor SF2" }
+      ]
     }
     setPlayoffs(newPlayoffs)
   }
@@ -331,6 +341,27 @@ export function GroupGenerator() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="includeThirdPlace"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>Disputa de 3º Lugar</FormLabel>
+                        <FormDescription>
+                          Incluir um jogo para definir o terceiro lugar.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
                 <Button type="submit" disabled={isLoading} className="w-full">
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Gerar Grupos e Jogos
@@ -456,16 +487,29 @@ export function GroupGenerator() {
                             </div>
                          )}
 
+                        <div className="flex flex-col gap-8">
+                         {playoffs.thirdPlace && playoffs.thirdPlace.length > 0 && (
+                            <div>
+                                <h4 className="text-lg font-semibold text-center text-primary">3º Lugar</h4>
+                                <div className="flex flex-col justify-center h-full mt-10">
+                                {playoffs.thirdPlace.map((match, index) => (
+                                    <PlayoffMatchCard key={`3rd-${index}`} match={match} />
+                                ))}
+                                </div>
+                            </div>
+                         )}
+
                          {playoffs.final.length > 0 && (
-                            <div className="flex flex-col gap-8">
+                            <div className={playoffs.thirdPlace && playoffs.thirdPlace.length > 0 ? "mt-10" : ""}>
                                 <h4 className="text-lg font-semibold text-center text-primary">Final</h4>
-                                <div className="flex flex-col justify-center h-full">
+                                <div className="flex flex-col justify-center h-full mt-10">
                                 {playoffs.final.map((match, index) => (
                                     <PlayoffMatchCard key={`f-${index}`} match={match} />
                                 ))}
                                 </div>
                             </div>
                          )}
+                        </div>
 
                        </CardContent>
                      </Card>

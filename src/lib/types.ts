@@ -27,6 +27,7 @@ export const formSchema = z
     groupFormationStrategy: z.enum(["balanced", "random"], {
       required_error: "A estratégia de formação é obrigatória.",
     }),
+    includeThirdPlace: z.boolean().default(false),
   })
   .refine(
     (data) => {
