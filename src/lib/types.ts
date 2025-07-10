@@ -91,6 +91,22 @@ export const formSchema = z
         message: "O número de classificados deve ser menor que o número de duplas em qualquer grupo.",
         path: ["teamsPerGroupToAdvance"],
     }
+  )
+  .refine(
+    (data) => {
+      const players = data.teams
+        .split('\n')
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .flatMap((teamString) => teamString.split(' e ').map((p) => p.trim()));
+
+      const uniquePlayers = new Set(players);
+      return players.length === uniquePlayers.size;
+    },
+    {
+      message: "Existem jogadores duplicados na lista. Cada pessoa só pode fazer parte de uma dupla.",
+      path: ["teams"],
+    }
   );
 
 export type TournamentFormValues = z.infer<typeof formSchema>;
