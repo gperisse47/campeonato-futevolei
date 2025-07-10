@@ -6,12 +6,12 @@ import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm, useFieldArray, useForm as useFormGlobal } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, RefreshCcw, Settings, Trash2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { format, addMinutes, parse } from 'date-fns';
 
-import { getTournaments, saveTournament, generateGroupsAction, saveGlobalSettings } from "@/app/actions"
+import { getTournaments, saveTournament, generateGroupsAction } from "@/app/actions"
 import type { TournamentData, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
-import { formSchema, globalSettingsSchema } from "@/lib/types"
+import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "./ui/separator"
 import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
 
@@ -40,7 +39,6 @@ const teamToKey = (team?: Team) => {
 export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false);
-  const [isSavingGlobal, setIsSavingGlobal] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "09:00", estimatedMatchDuration: 40, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] }})
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
@@ -51,7 +49,6 @@ export function TournamentCreator() {
       try {
         const savedTournaments = await getTournaments();
         setTournaments(savedTournaments);
-        globalSettingsForm.reset(savedTournaments._globalSettings);
       } catch (error) {
         console.error("Failed to load tournaments from DB", error);
         toast({
@@ -64,7 +61,7 @@ export function TournamentCreator() {
       }
     };
     fetchInitialData();
-  }, []);
+  }, [toast]);
 
   const saveData = async (categoryName: string, data: CategoryData) => {
     setIsSaving(true);
@@ -109,32 +106,21 @@ Olavo e Dudu`,
     },
   })
 
-  const globalSettingsForm = useFormGlobal<GlobalSettings>({
-    resolver: zodResolver(globalSettingsSchema),
-    defaultValues: {
-        startTime: "09:00",
-        estimatedMatchDuration: 40,
-        courts: [],
-    }
-  });
-
-   const { fields, append, remove } = useFieldArray({
-    control: globalSettingsForm.control,
-    name: "courts",
-  });
-
-  
-  
   const tournamentType = form.watch("tournamentType");
 
   useEffect(() => {
     const teamsList = form.watch('teams').split('\n').map(t => t.trim()).filter(Boolean);
     form.setValue('numberOfTeams', teamsList.length, { shouldValidate: true });
+    
+    // Set default start time from global settings if available
+    if (tournaments._globalSettings?.startTime) {
+        form.setValue('startTime', tournaments._globalSettings.startTime, { shouldValidate: true });
+    }
 
     if (tournamentType === 'doubleElimination') {
       form.setValue('includeThirdPlace', true, { shouldValidate: true });
     }
-  }, [form.watch('teams'), tournamentType, form]);
+  }, [form, tournamentType, tournaments._globalSettings?.startTime]);
 
   const initializeStandings = (groups: GenerateTournamentGroupsOutput['groups']): GroupWithScores[] => {
     return groups.map(group => {
@@ -245,7 +231,6 @@ Olavo e Dudu`,
             match.court = assignedCourt.name;
             assignedCourt.nextAvailableTime = addMinutes(bestTime, estimatedMatchDuration);
         } else {
-            // Fallback or error handling if no slot can be found
             match.time = 'N/A';
             match.court = 'N/A';
         }
@@ -270,25 +255,18 @@ Olavo e Dudu`,
         teams.sort(() => Math.random() - 0.5);
     }
     
-    // For "order" strategy, we reverse to match traditional seeding (1 vs N, 2 vs N-1)
-    if (values.groupFormationStrategy === 'order') {
-        // No need to reverse, the logic will pit first against last
-    }
-
     const bracketSize = Math.pow(2, Math.ceil(Math.log2(numTeams)));
     const byes = bracketSize - numTeams;
 
-    // Separate teams that play from teams that get a bye
     const teamsWithBye = values.groupFormationStrategy === 'order'
-        ? teams.slice(0, byes) // Top teams get the bye
-        : teams.slice(numTeams - byes); // Last teams (in random order) get the bye
+        ? teams.slice(0, byes)
+        : teams.slice(numTeams - byes); 
 
     const teamsInFirstRound = teams.filter(team => !teamsWithBye.some(byeTeam => teamToKey(byeTeam) === teamToKey(team)));
     
     const upperBracket: PlayoffBracket = {};
     let wbRoundCounter = 1;
 
-    // --- WB Round 1 ---
     let round1Matches: PlayoffMatch[] = [];
     if (teamsInFirstRound.length > 0) {
         const round1Name = `Upper Rodada ${wbRoundCounter}`;
@@ -305,13 +283,11 @@ Olavo e Dudu`,
         upperBracket[round1Name] = round1Matches;
     }
 
-    // --- WB Round 2 and onwards ---
     let currentUpperRoundTeamsPlaceholders: string[] = teamsWithBye.map(t => teamToKey(t)!);
     if(round1Matches.length > 0) {
       currentUpperRoundTeamsPlaceholders.push(...round1Matches.map(m => `Vencedor ${m.id}`));
     }
     
-    // Ensure the placeholders are ordered correctly for seeding
     currentUpperRoundTeamsPlaceholders.sort();
 
     wbRoundCounter++;
@@ -336,7 +312,6 @@ Olavo e Dudu`,
         wbRoundCounter++;
     }
 
-    // --- LB Generation ---
     const lowerBracket: PlayoffBracket = {};
     const wbLosersByRound: { [key: number]: (string | null)[] } = {};
     
@@ -349,7 +324,6 @@ Olavo e Dudu`,
     let lbRoundCounter = 1;
     let lbSurvivors: (string | null)[] = [];
 
-    // LB Round 1: Only has losers from WB Round 1
     const r1Losers = wbLosersByRound[1] || [];
     
     if (r1Losers.length > 0) {
@@ -368,9 +342,7 @@ Olavo e Dudu`,
       lbRoundCounter++;
     }
 
-    // LB Subsequent Rounds
     for (let wbR = 2; wbR < wbRoundCounter; wbR++) {
-        // Drop-down round
         let contenders = [...lbSurvivors, ...(wbLosersByRound[wbR] || [])].filter(Boolean) as string[];
         
         const dropDownRoundName = `Lower Rodada ${lbRoundCounter}`;
@@ -392,7 +364,6 @@ Olavo e Dudu`,
         let currentSurvivors = dropDownRoundMatches.map(m => `Vencedor ${m.id}`);
         lbRoundCounter++;
 
-        // Internal survivor round
         if (currentSurvivors.length > 1) {
             const internalRoundName = `Lower Rodada ${lbRoundCounter}`;
             const internalRoundMatches: PlayoffMatch[] = [];
@@ -425,9 +396,8 @@ Olavo e Dudu`,
     ];
 
     if (values.includeThirdPlace) {
-       // Find the semi-finals of both brackets to determine 3rd/4th place candidates
        const wbFinalRoundName = `Upper Rodada ${wbRoundCounter - 1}`;
-       const lbFinalRoundName = `Lower Rodada ${lbRoundCounter - 2}`; // The last round with matches before the final survivor
+       const lbFinalRoundName = `Lower Rodada ${lbRoundCounter - 2}`;
        
        const wbSemiFinalistLoser = `Perdedor ${upperBracket[wbFinalRoundName]?.[0]?.id}`;
        const lbSemiFinalistLoser = `Perdedor ${lowerBracket[lbFinalRoundName]?.[0]?.id}`;
@@ -542,7 +512,6 @@ Olavo e Dudu`,
                 }
             }
 
-            // Create balanced matchups for the first round
             const firstRoundMatchups = [];
             const half = teamPlaceholders.length / 2;
             for (let i = 0; i < half; i++) {
@@ -639,24 +608,14 @@ Olavo e Dudu`,
         return count;
     };
 
-    // Use global start time
-    const globalSettings = tournaments._globalSettings;
-    const categorySpecificFormValues = {
-        ...values,
-        startTime: globalSettings.startTime || "09:00",
-    }
-
     let newCategoryData: CategoryData = {
         tournamentData: null,
         playoffs: null,
-        formValues: categorySpecificFormValues,
+        formValues: values,
     };
 
-    const tempTournaments = { ...tournaments, [categoryName]: newCategoryData };
-    setTournaments(tempTournaments);
-
     if (values.tournamentType === 'doubleElimination') {
-        const finalPlayoffs = initializeDoubleEliminationBracket(categorySpecificFormValues);
+        const finalPlayoffs = initializeDoubleEliminationBracket(values);
         
         newCategoryData.playoffs = finalPlayoffs;
     } else {
@@ -679,12 +638,6 @@ Olavo e Dudu`,
         })
 
         if (!result.success || !result.data) {
-          setTournaments(prev => {
-            const newTournaments = {...prev};
-            delete newTournaments[categoryName];
-            return newTournaments;
-          });
-          
           toast({
             variant: "destructive",
             title: "Erro ao Gerar",
@@ -696,13 +649,12 @@ Olavo e Dudu`,
 
         if (values.tournamentType === 'groups') {
             newCategoryData.tournamentData = { groups: initializeStandings(result.data.groups) };
-            newCategoryData.playoffs = initializePlayoffs(categorySpecificFormValues, result.data);
+            newCategoryData.playoffs = initializePlayoffs(values, result.data);
         } else if (values.tournamentType === 'singleElimination') {
-            newCategoryData.playoffs = initializePlayoffs(categorySpecificFormValues, result.data);
+            newCategoryData.playoffs = initializePlayoffs(values, result.data);
         }
     }
     
-    // Schedule matches for the newly created data
     newCategoryData = scheduleMatches(newCategoryData, tournaments._globalSettings);
     newCategoryData.totalMatches = calculateTotalMatches(newCategoryData);
 
@@ -717,25 +669,6 @@ Olavo e Dudu`,
     setIsLoading(false);
   }
 
-  const handleSaveGlobalSettings = async (values: GlobalSettings) => {
-    setIsSavingGlobal(true);
-    const result = await saveGlobalSettings(values);
-    if(result.success) {
-        setTournaments(prev => ({ ...prev, _globalSettings: values }));
-        toast({
-            title: "Configurações Salvas!",
-            description: "As configurações globais do torneio foram salvas.",
-        });
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Erro ao Salvar",
-            description: result.error || "Não foi possível salvar as configurações globais.",
-        });
-    }
-    setIsSavingGlobal(false);
-  }
-
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -744,329 +677,210 @@ Olavo e Dudu`,
     );
   }
 
-  const CourtSlots = ({ courtIndex }: { courtIndex: number }) => {
-    const { fields: slotFields, append: appendSlot, remove: removeSlot } = useFieldArray({
-        control: globalSettingsForm.control,
-        name: `courts.${courtIndex}.slots`,
-    });
-
-    return (
-        <div className="pl-4 border-l-2 border-muted ml-4 mt-2 space-y-2">
-            {slotFields.map((slot, slotIndex) => (
-                <div key={slot.id} className="flex items-center gap-2">
-                    <FormField
-                        control={globalSettingsForm.control}
-                        name={`courts.${courtIndex}.slots.${slotIndex}.startTime`}
-                        render={({ field }) => (
-                            <FormItem className="flex-1">
-                                <FormControl>
-                                    <Input type="time" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <span className="text-muted-foreground">-</span>
-                     <FormField
-                        control={globalSettingsForm.control}
-                        name={`courts.${courtIndex}.slots.${slotIndex}.endTime`}
-                        render={({ field }) => (
-                            <FormItem className="flex-1">
-                                <FormControl>
-                                    <Input type="time" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSlot(slotIndex)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                </div>
-            ))}
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendSlot({ startTime: '09:00', endTime: '18:00' })}>
-                Adicionar Horário
-            </Button>
-        </div>
-    );
-};
-
-
   return (
-    <div className="flex flex-col gap-8">
-      <Card>
-          <CardHeader>
-              <CardTitle className="flex items-center"><Settings className="mr-2 h-5 w-5"/>Configurações Globais</CardTitle>
-              <CardDescription>
-                  Parâmetros que afetam todas as categorias do torneio.
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
-              <Form {...globalSettingsForm}>
-                  <form onSubmit={globalSettingsForm.handleSubmit(handleSaveGlobalSettings)} className="space-y-6">
-                       <FormField
-                            control={globalSettingsForm.control}
-                            name="startTime"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Horário de Início do Torneio</FormLabel>
-                                <FormControl>
-                                    <Input type="time" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                       <FormField
-                            control={globalSettingsForm.control}
-                            name="estimatedMatchDuration"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Duração Estimada da Partida (min)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                      <div className="space-y-4">
-                        <Label>Quadras e Horários Disponíveis</Label>
-                        {fields.map((field, index) => (
-                           <div key={field.id} className="p-4 border rounded-md space-y-2">
-                             <div className="flex items-center gap-2">
-                                <FormField
-                                  control={globalSettingsForm.control}
-                                  name={`courts.${index}.name`}
-                                  render={({ field }) => (
-                                    <FormItem className="flex-1">
-                                      <FormLabel>Nome da Quadra {index + 1}</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder={`Ex: Quadra Principal`} {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                               <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                               </Button>
-                             </div>
-                             <CourtSlots courtIndex={index} />
-                           </div>
-                        ))}
-                         <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="mt-2"
-                            onClick={() => append({ name: `Quadra ${fields.length + 1}`, slots: [{startTime: "09:00", endTime: "18:00"}] })}>
-                            Adicionar Quadra
-                        </Button>
-                      </div>
-                      <Button type="submit" disabled={isSavingGlobal} className="w-full">
-                          {isSavingGlobal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Salvar Globais
-                      </Button>
-                  </form>
-              </Form>
-          </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurar Nova Categoria</CardTitle>
-          <CardDescription>
-            Insira os detalhes para a geração de uma nova categoria.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome da Categoria</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Masculino, Misto" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                  control={form.control}
-                  name="tournamentType"
-                  render={({ field }) => (
-                      <FormItem className="space-y-3">
-                      <FormLabel>Tipo de Torneio</FormLabel>
-                      <FormControl>
-                          <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
-                          >
-                          <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="groups" id="groups"/>
-                              <Label htmlFor="groups" className="font-normal">
-                              Fase de Grupos + Mata-Mata
-                              </Label>
-                          </div>
-                          <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="singleElimination" id="singleElimination"/>
-                              <Label htmlFor="singleElimination" className="font-normal">
-                              Mata-Mata Simples
-                              </Label>
-                          </div>
-                           <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="doubleElimination" id="doubleElimination"/>
-                              <Label htmlFor="doubleElimination" className="font-normal">
-                              Dupla Eliminação
-                              </Label>
-                          </div>
-                          </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              
-              <FormField
-                  control={form.control}
-                  name="numberOfTeams"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nº de Duplas</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} readOnly className="bg-muted" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-              {tournamentType === "groups" && (
-                  <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                          control={form.control}
-                          name="numberOfGroups"
-                          render={({ field }) => (
-                          <FormItem>
-                              <FormLabel>Nº de Grupos</FormLabel>
-                              <FormControl>
-                              <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
-                              </FormControl>
-                              <FormMessage />
-                          </FormItem>
-                          )}
-                      />
-                      <FormField
-                          control={form.control}
-                          name="teamsPerGroupToAdvance"
-                          render={({ field }) => (
-                              <FormItem>
-                              <FormLabel>Classificados por Grupo</FormLabel>
-                              <FormControl>
-                                  <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
-                              </FormControl>
-                              <FormMessage />
-                              </FormItem>
-                          )}
-                          />
-                  </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Formulário da Categoria</CardTitle>
+        <CardDescription>
+          Insira os detalhes para a geração de uma nova categoria.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome da Categoria</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Masculino, Misto" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-             
-              <FormField
+            />
+             <FormField
                 control={form.control}
-                name="teams"
+                name="startTime"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Horário de Início da Categoria</FormLabel>
+                    <FormControl>
+                        <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            
+            <FormField
+                control={form.control}
+                name="tournamentType"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                    <FormLabel>Tipo de Torneio</FormLabel>
+                    <FormControl>
+                        <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                        className="flex flex-col space-y-1"
+                        >
+                        <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="groups" id="groups"/>
+                            <Label htmlFor="groups" className="font-normal">
+                            Fase de Grupos + Mata-Mata
+                            </Label>
+                        </div>
+                        <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="singleElimination" id="singleElimination"/>
+                            <Label htmlFor="singleElimination" className="font-normal">
+                            Mata-Mata Simples
+                            </Label>
+                        </div>
+                         <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="doubleElimination" id="doubleElimination"/>
+                            <Label htmlFor="doubleElimination" className="font-normal">
+                            Dupla Eliminação
+                            </Label>
+                        </div>
+                        </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            
+            <FormField
+                control={form.control}
+                name="numberOfTeams"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duplas (uma por linha)</FormLabel>
+                    <FormLabel>Nº de Duplas</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Jogador A e Jogador B"
-                        className="min-h-[120px] resize-y"
-                        rows={form.watch('numberOfTeams') > 0 ? form.watch('numberOfTeams') : 4}
-                        {...field}
-                      />
+                      <Input type="number" {...field} readOnly className="bg-muted" />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+            {tournamentType === "groups" && (
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="numberOfGroups"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Nº de Grupos</FormLabel>
+                            <FormControl>
+                            <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="teamsPerGroupToAdvance"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Classificados por Grupo</FormLabel>
+                            <FormControl>
+                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                </div>
+            )}
+           
+            <FormField
+              control={form.control}
+              name="teams"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duplas (uma por linha)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Jogador A e Jogador B"
+                      className="min-h-[120px] resize-y"
+                      rows={form.watch('numberOfTeams') > 0 ? form.watch('numberOfTeams') : 4}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Use o formato: Jogador1 e Jogador2
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="groupFormationStrategy"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Estratégia de Sorteio</FormLabel>
+                   <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                      className="flex flex-col space-y-1"
+                    >
+                      <div className="flex items-center space-x-3 space-y-0">
+                          <RadioGroupItem value="order" id="order"/>
+                        <Label htmlFor="order" className="font-normal">
+                          Ordem (Cabeças de chave)
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-3 space-y-0">
+                          <RadioGroupItem value="random" id="random"/>
+                        <Label htmlFor="random" className="font-normal">
+                          Aleatório (Sorteio)
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="includeThirdPlace"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <Label>Disputa de 3º Lugar</Label>
                     <FormDescription>
-                      Use o formato: Jogador1 e Jogador2
+                      Incluir um jogo para definir o terceiro lugar.
                     </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={tournamentType === 'doubleElimination'}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="groupFormationStrategy"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Estratégia de Sorteio</FormLabel>
-                     <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <div className="flex items-center space-x-3 space-y-0">
-                            <RadioGroupItem value="order" id="order"/>
-                          <Label htmlFor="order" className="font-normal">
-                            Ordem (Cabeças de chave)
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-3 space-y-0">
-                            <RadioGroupItem value="random" id="random"/>
-                          <Label htmlFor="random" className="font-normal">
-                            Aleatório (Sorteio)
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="includeThirdPlace"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                      <Label>Disputa de 3º Lugar</Label>
-                      <FormDescription>
-                        Incluir um jogo para definir o terceiro lugar.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={tournamentType === 'doubleElimination'}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" disabled={isLoading || isSaving} className="w-full">
-                {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                 {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Nova Categoria'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+            <Button type="submit" disabled={isLoading || isSaving} className="w-full">
+              {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+               {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar Nova Categoria'}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   )
 }
