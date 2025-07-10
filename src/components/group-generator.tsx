@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy, Clock, Trash2 } from "lucide-react"
 
 import { generateGroupsAction, getTournaments, saveTournament, deleteTournament } from "@/app/actions"
-import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet } from "@/lib/types"
+import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -46,10 +46,6 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-
-type PlayoffBracket = {
-  [round: string]: PlayoffMatch[];
-};
 
 const roundNames: { [key: number]: string } = {
   2: 'Final',
@@ -338,88 +334,84 @@ Olavo e Dudu`,
     }, [getTeamPlaceholder]);
 
     const initializeDoubleEliminationBracket = useCallback((values: TournamentFormValues, initialUpperBracket: PlayoffBracket): PlayoffBracketSet => {
-        const numTeams = values.numberOfTeams;
         const lowerBracket: PlayoffBracket = {};
         const grandFinal: PlayoffBracket = {};
     
-        const upperRounds = Object.keys(initialUpperBracket).sort((a,b) => (initialUpperBracket[b][0]?.roundOrder || 0) - (initialUpperBracket[a][0]?.roundOrder || 0));
+        const upperRounds = Object.keys(initialUpperBracket).sort((a, b) => (initialUpperBracket[b][0]?.roundOrder || 0) - (initialUpperBracket[a][0]?.roundOrder || 0));
         
-        // Let's create lower bracket rounds
         let lowerRoundCounter = 1;
-        let lowerRoundOrder = (Math.log2(numTeams) -1) * 2;
-    
-        for(let i = 0; i < upperRounds.length - 1; i++) {
+        
+        // Generate initial lower rounds from upper bracket losers
+        for (let i = 0; i < upperRounds.length; i++) {
             const upperRoundName = upperRounds[i];
-            const nextUpperRoundName = upperRounds[i+1];
-            const upperMatches = initialUpperBracket[upperRoundName];
-            
-            // First lower round: losers from upper round 1 drop down
-            const lowerRound1Name = `Lower Rodada ${lowerRoundCounter}`;
-            lowerBracket[lowerRound1Name] = [];
-            for(let j=0; j < upperMatches.length / 2; j++) {
-                lowerBracket[lowerRound1Name].push({
-                    id: `L${lowerRoundCounter}-${j+1}`,
-                    name: `L${lowerRoundCounter}-${j+1}`,
-                    team1Placeholder: `Perdedor ${upperMatches[j*2].name}`,
-                    team2Placeholder: `Perdedor ${upperMatches[j*2+1].name}`,
-                    time: '',
-                    roundOrder: lowerRoundOrder,
-                });
-            }
-            lowerRoundCounter++;
-            lowerRoundOrder--;
+            const upperRoundMatches = initialUpperBracket[upperRoundName];
+            if (!upperRoundMatches || upperRoundMatches.length === 0) continue;
     
-            // Second lower round: winners from previous lower round play against losers from next upper round
-            if (nextUpperRoundName && initialUpperBracket[nextUpperRoundName]) {
-                 const lowerRound2Name = `Lower Rodada ${lowerRoundCounter}`;
-                 lowerBracket[lowerRound2Name] = [];
-                 const nextUpperRoundLosers = initialUpperBracket[nextUpperRoundName].map(m => `Perdedor ${m.name}`);
-                 const prevLowerRoundWinners = lowerBracket[lowerRound1Name].map(m => `Vencedor ${m.name}`);
-
-                 for(let j=0; j < nextUpperRoundLosers.length; j++) {
-                    lowerBracket[lowerRound2Name].push({
-                        id: `L${lowerRoundCounter}-${j+1}`,
-                        name: `L${lowerRoundCounter}-${j+1}`,
-                        team1Placeholder: nextUpperRoundLosers[j],
-                        team2Placeholder: prevLowerRoundWinners[j],
+            // Losers from this upper round drop down
+            const losers = upperRoundMatches.map(m => `Perdedor ${m.name}`);
+            
+            // First lower round only takes from first upper round
+            if (i === 0) {
+                const roundName = `Lower Rodada ${lowerRoundCounter}`;
+                lowerBracket[roundName] = [];
+                for(let j=0; j < losers.length; j+=2) {
+                    lowerBracket[roundName].push({
+                        id: `L${lowerRoundCounter}-${j/2 + 1}`,
+                        name: `Lower Rodada ${lowerRoundCounter} Jogo ${j/2 + 1}`,
+                        team1Placeholder: losers[j],
+                        team2Placeholder: losers[j+1],
                         time: '',
-                        roundOrder: lowerRoundOrder,
+                        roundOrder: 99 - lowerRoundCounter * 2
                     });
                 }
                 lowerRoundCounter++;
-                lowerRoundOrder--;
+            } else {
+                // Subsequent lower rounds merge losers with previous lower round winners
+                const prevLowerRoundName = `Lower Rodada ${lowerRoundCounter-1}`;
+                const prevLowerWinners = lowerBracket[prevLowerRoundName]?.map(m => `Vencedor ${m.name}`) || [];
+    
+                const teamsForNextLowerRound = [...losers, ...prevLowerWinners].filter(Boolean);
+                const roundName = `Lower Rodada ${lowerRoundCounter}`;
+                lowerBracket[roundName] = [];
+
+                for(let j=0; j < teamsForNextLowerRound.length; j+=2) {
+                     lowerBracket[roundName].push({
+                        id: `L${lowerRoundCounter}-${j/2 + 1}`,
+                        name: `Lower Rodada ${lowerRoundCounter} Jogo ${j/2 + 1}`,
+                        team1Placeholder: teamsForNextLowerRound[j],
+                        team2Placeholder: teamsForNextLowerRound[j+1],
+                        time: '',
+                        roundOrder: 99 - lowerRoundCounter * 2
+                    });
+                }
+                 lowerRoundCounter++;
             }
         }
     
-        // Stitch together remaining lower bracket rounds
-        let teamsInLower = lowerBracket[`Lower Rodada ${lowerRoundCounter-1}`].length;
-        let currentLowerTeams = lowerBracket[`Lower Rodada ${lowerRoundCounter-1}`].map(m => `Vencedor ${m.name}`);
+        // Consolidate remaining lower bracket rounds until one winner remains
+        let lastLowerRoundName = `Lower Rodada ${lowerRoundCounter - 1}`;
+        while (lowerBracket[lastLowerRoundName] && lowerBracket[lastLowerRoundName].length > 1) {
+            const currentRoundWinners = lowerBracket[lastLowerRoundName].map(m => `Vencedor ${m.name}`);
+            const newLowerRoundName = `Lower Rodada ${lowerRoundCounter}`;
+            lowerBracket[newLowerRoundName] = [];
     
-        while(teamsInLower > 1) {
-            const roundName = `Lower Rodada ${lowerRoundCounter}`;
-            lowerBracket[roundName] = [];
-            const nextRoundTeams = [];
-            for(let i=0; i < teamsInLower / 2; i++) {
-                const matchId = `L${lowerRoundCounter}-${i + 1}`;
-                lowerBracket[roundName].push({
-                    id: matchId,
-                    name: matchId,
-                    team1Placeholder: currentLowerTeams[i*2],
-                    team2Placeholder: currentLowerTeams[i*2 + 1],
+            for (let i = 0; i < currentRoundWinners.length; i += 2) {
+                lowerBracket[newLowerRoundName].push({
+                    id: `L${lowerRoundCounter}-${i/2 + 1}`,
+                    name: `Lower Final ${i/2 + 1}`,
+                    team1Placeholder: currentRoundWinners[i],
+                    team2Placeholder: currentRoundWinners[i+1],
                     time: '',
-                    roundOrder: lowerRoundOrder,
-                })
-                nextRoundTeams.push(`Vencedor ${matchId}`);
+                    roundOrder: 99 - lowerRoundCounter * 2
+                });
             }
-            currentLowerTeams = nextRoundTeams;
-            teamsInLower /= 2;
+            lastLowerRoundName = newLowerRoundName;
             lowerRoundCounter++;
-            lowerRoundOrder--;
         }
     
         // Grand Final
-        const upperFinalWinner = `Vencedor ${initialUpperBracket['Final'][0].name}`;
-        const lowerFinalWinner = `Vencedor ${currentLowerTeams[0]}`;
+        const upperFinalWinner = `Vencedor ${initialUpperBracket['Final']?.[0].name || 'Final'}`;
+        const lowerFinalWinner = `Vencedor ${lowerBracket[lastLowerRoundName]?.[0].name || 'Lower Final'}`;
         grandFinal['Grande Final'] = [{
             id: 'grand-final-1',
             name: 'Grande Final',
@@ -430,7 +422,6 @@ Olavo e Dudu`,
         }];
     
         return { upper: initialUpperBracket, lower: lowerBracket, grandFinal };
-    
     }, []);
 
 
@@ -1248,30 +1239,30 @@ Olavo e Dudu`,
 
                                 {formValues.tournamentType === 'doubleElimination' && playoffs && (
                                     <div className="space-y-6">
-                                        <Card>
+                                        {Object.keys(upperBracket).length > 0 && <Card>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary" />Chave Superior (Winners)</CardTitle>
                                             </CardHeader>
                                             <CardContent>
                                                 <Bracket playoffs={upperBracket} bracketKey="upper" />
                                             </CardContent>
-                                        </Card>
-                                         <Card>
+                                        </Card>}
+                                         {Object.keys(lowerBracket).length > 0 && <Card>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-accent" />Chave Inferior (Losers)</CardTitle>
                                             </CardHeader>
                                             <CardContent>
                                                 <Bracket playoffs={lowerBracket} bracketKey="lower"/>
                                             </CardContent>
-                                        </Card>
-                                         <Card>
+                                        </Card>}
+                                         {Object.keys(grandFinal).length > 0 && <Card>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-yellow-500" />Grande Final</CardTitle>
                                             </CardHeader>
                                             <CardContent>
                                                 <Bracket playoffs={grandFinal} bracketKey="grandFinal"/>
                                             </CardContent>
-                                        </Card>
+                                        </Card>}
                                     </div>
                                 )}
 
@@ -1309,3 +1300,5 @@ Olavo e Dudu`,
     </div>
   )
 }
+
+    
