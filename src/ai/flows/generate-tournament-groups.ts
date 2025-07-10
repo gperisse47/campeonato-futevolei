@@ -32,7 +32,7 @@ const GenerateTournamentGroupsInputSchema = z.object({
     ),
   teams: z.array(TeamSchema).describe('The teams participating in the tournament, with their players.'),
   category: z.string().describe('The category of the tournament (e.g., Masculino, Misto).'),
-  tournamentType: z.enum(['groups', 'singleElimination']).describe('The type of tournament to generate.'),
+  tournamentType: z.enum(['groups', 'singleElimination', 'doubleElimination']).describe('The type of tournament to generate.'),
 });
 export type GenerateTournamentGroupsInput = z.infer<typeof GenerateTournamentGroupsInputSchema>;
 
@@ -44,7 +44,7 @@ const GenerateTournamentGroupsOutputSchema = z.object({
       matches: z.array(MatchSchema).describe('The matches to be played in this group (round-robin).'),
     })
   ).describe('The generated tournament groups and their matches. This will be empty if tournamentType is not "groups".'),
-  playoffMatches: z.array(MatchSchema).optional().describe('The generated playoff matches for a single elimination tournament.'),
+  playoffMatches: z.array(MatchSchema).optional().describe('The generated first-round playoff matches for a single or double elimination tournament.'),
 });
 export type GenerateTournamentGroupsOutput = z.infer<typeof GenerateTournamentGroupsOutputSchema>;
 
@@ -74,10 +74,17 @@ First, generate the groups, ensuring that each team is assigned to one group. Co
 After forming the groups, generate a round-robin match schedule for each group, where every team plays against every other team in its group exactly once.
 The final output should contain the groups, the teams within each group, and the list of matches for each group. The playoffMatches field should be empty.
 {{/if}}
+
 {{#if isSingleElimination}}
 You need to create the first round of a single elimination (mata-mata) tournament.
 Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'balanced', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
 The output should contain the matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
+{{/if}}
+
+{{#if isDoubleElimination}}
+You need to create the first round of the upper bracket for a double elimination tournament.
+Seed the teams based on the '{{{groupFormationStrategy}}}' strategy. If it's 'balanced', the top seed plays the bottom seed, 2nd plays 2nd-to-last, and so on. If it's 'random', create the matches randomly.
+The output should contain the first-round matches in the 'playoffMatches' field. The 'groups' field should be an empty array.
 {{/if}}
 `,
 });
@@ -94,7 +101,8 @@ const generateTournamentGroupsFlow = ai.defineFlow(
     const augmentedInput = {
       ...input,
       isGroupTournament: input.tournamentType === 'groups',
-      isSingleElimination: input.tournamentType === 'singleElimination'
+      isSingleElimination: input.tournamentType === 'singleElimination',
+      isDoubleElimination: input.tournamentType === 'doubleElimination',
     };
     
     const {output} = await generateTournamentGroupsPrompt(augmentedInput as any);

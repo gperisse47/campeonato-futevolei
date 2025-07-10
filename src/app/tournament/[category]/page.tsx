@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2, Trophy } from "lucide-react";
 import type { CategoryData, PlayoffBracket, PlayoffMatch, Team, GroupWithScores } from "@/lib/types";
 
-const roundNames: { [key: number]: string } = {
+const roundNames: { [key: string]: string } = {
     2: 'Final',
     4: 'Semifinal',
     8: 'Quartas de Final',
@@ -65,61 +65,47 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
     );
 };
 
-const Bracket = ({ playoffs }: { playoffs: PlayoffBracket }) => {
-    const roundOrder = Object.keys(roundNames)
-        .map(Number)
-        .sort((a, b) => b - a)
-        .map(key => roundNames[key])
-        .filter(roundName => playoffs[roundName] && roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar');
+const Bracket = ({ playoffs, title }: { playoffs: PlayoffBracket, title?: string }) => {
+    const roundOrder = Object.keys(playoffs).sort((a,b) => (playoffs[b][0]?.roundOrder || 0) - (playoffs[a][0]?.roundOrder || 0));
 
+    // Special handling for Grand Final in double elimination
+    if (playoffs['Grande Final']) {
+        const grandFinalIndex = roundOrder.indexOf('Grande Final');
+        if (grandFinalIndex > -1) {
+            roundOrder.splice(grandFinalIndex, 1);
+            roundOrder.push('Grande Final');
+        }
+    }
+    
     return (
-        <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
-            {roundOrder.map(roundName => (
-                <Card key={roundName} className="w-full max-w-xl">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-8 w-full">
-                        {playoffs[roundName].map((match) => (
-                            <PlayoffMatchCard
-                                key={match.id}
-                                match={match}
-                                roundName={roundName}
-                                isFinalRound={false}
-                            />
-                        ))}
-                    </CardContent>
-                </Card>
-            ))}
-            {playoffs['Final'] && (
-                <Card className="w-full max-w-xl">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-bold text-primary">Final</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <PlayoffMatchCard
-                            match={playoffs['Final'][0]}
-                            roundName="Final"
-                            isFinalRound={true}
-                        />
-                    </CardContent>
-                </Card>
-            )}
-            {playoffs['Disputa de 3º Lugar'] && (
-                <Card className="w-full max-w-xl">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-bold text-primary">Disputa de 3º Lugar</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <PlayoffMatchCard
-                            match={playoffs['Disputa de 3º Lugar'][0]}
-                            roundName="Disputa de 3º Lugar"
-                            isFinalRound={true}
-                        />
-                    </CardContent>
-                </Card>
-            )}
-        </div>
+        <Card className="w-full">
+            <CardHeader>
+                <CardTitle className="flex items-center">
+                    {title && <Trophy className="mr-2 h-6 w-6 text-primary" />}
+                    {title || 'Chaveamento'}
+                </CardTitle>
+                {!title && <CardDescription>Chaveamento com base nos resultados.</CardDescription>}
+            </CardHeader>
+            <CardContent className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
+                 {roundOrder.map(roundName => (
+                    <Card key={roundName} className="w-full max-w-xl">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-8 w-full">
+                            {playoffs[roundName].map((match) => (
+                                <PlayoffMatchCard
+                                    key={match.id}
+                                    match={match}
+                                    roundName={roundName}
+                                    isFinalRound={roundName.includes('Final')}
+                                />
+                            ))}
+                        </CardContent>
+                    </Card>
+                ))}
+            </CardContent>
+        </Card>
     );
 };
 
@@ -244,6 +230,19 @@ export default function TournamentPage() {
     const categoryName = decodeURIComponent(category || '');
     const isGroupTournament = formValues.tournamentType === 'groups';
 
+    const getBracketRounds = (bracket: PlayoffBracket | undefined) => {
+        if (!bracket) return {};
+        return Object.keys(bracket).reduce((acc, key) => {
+            if(bracket[key].length > 0) acc[key] = bracket[key];
+            return acc;
+        }, {} as PlayoffBracket);
+    }
+
+    const upperBracket = getBracketRounds(playoffs?.upper);
+    const lowerBracket = getBracketRounds(playoffs?.lower);
+    const grandFinal = getBracketRounds(playoffs?.grandFinal);
+
+
     return (
         <div className="container mx-auto p-4 space-y-8">
             <div className="text-center">
@@ -265,21 +264,17 @@ export default function TournamentPage() {
                 </Card>
             )}
 
-            {playoffs && Object.keys(playoffs).length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center"><Trophy className="mr-2 h-6 w-6 text-primary" />Playoffs - Mata-Mata</CardTitle>
-                        <CardDescription>
-                            {isGroupTournament ? 'Chaveamento com base na classificação dos grupos.' : 'Chaveamento inicial do torneio.'}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Bracket playoffs={playoffs} />
-                    </CardContent>
-                </Card>
+            {formValues.tournamentType === 'singleElimination' && playoffs && Object.keys(playoffs).length > 0 && (
+                 <Bracket playoffs={playoffs} title="Playoffs - Mata-Mata" />
+            )}
+
+            {formValues.tournamentType === 'doubleElimination' && (
+                <div className="space-y-8">
+                   {Object.keys(upperBracket).length > 0 && <Bracket playoffs={upperBracket} title="Chave Superior (Winners)" />}
+                   {Object.keys(lowerBracket).length > 0 && <Bracket playoffs={lowerBracket} title="Chave Inferior (Losers)" />}
+                   {Object.keys(grandFinal).length > 0 && <Bracket playoffs={grandFinal} title="Grande Final" />}
+                </div>
             )}
         </div>
     );
 }
-
-    

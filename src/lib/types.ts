@@ -27,7 +27,7 @@ export type Team = z.infer<typeof teamSchema>;
 export const formSchema = z
   .object({
     category: z.string().min(1, "A categoria é obrigatória."),
-    tournamentType: z.enum(['groups', 'singleElimination']),
+    tournamentType: z.enum(['groups', 'singleElimination', 'doubleElimination']),
     numberOfTeams: z.coerce
       .number({ invalid_type_error: "Deve ser um número." })
       .int("Deve ser um número inteiro.")
@@ -101,12 +101,12 @@ export const formSchema = z
   )
    .refine(
     (data) => {
-        if (data.tournamentType !== 'singleElimination') return true;
+        if (data.tournamentType === 'groups') return true;
         const numTeams = data.numberOfTeams;
         return numTeams > 1 && (numTeams & (numTeams - 1)) === 0;
     },
     {
-        message: "Para mata-mata simples, o número de duplas deve ser uma potência de 2 (4, 8, 16...).",
+        message: "Para este tipo de torneio, o número de duplas deve ser uma potência de 2 (4, 8, 16...).",
         path: ["numberOfTeams"],
     }
    )
@@ -125,7 +125,18 @@ export const formSchema = z
       message: "Existem jogadores duplicados na lista. Cada pessoa só pode fazer parte de uma dupla.",
       path: ["teams"],
     }
-  );
+  )
+   .refine(
+    (data) => {
+        if(data.tournamentType === 'doubleElimination') {
+            return data.includeThirdPlace === false;
+        }
+        return true;
+    }, {
+        message: 'A disputa de 3º lugar não se aplica a torneios de dupla eliminação.',
+        path: ['includeThirdPlace']
+    }
+   );
 
 export type TournamentFormValues = z.infer<typeof formSchema>;
 
@@ -163,15 +174,24 @@ export type PlayoffMatch = {
   score1?: number;
   score2?: number;
   time?: string;
+  roundOrder: number; // Used for sorting rounds
 };
 
 export type PlayoffBracket = {
   [round: string]: PlayoffMatch[];
 };
 
+export type PlayoffBracketSet = {
+    upper?: PlayoffBracket;
+    lower?: PlayoffBracket;
+    grandFinal?: PlayoffBracket;
+    [key: string]: any; // For single elimination compatibility
+} | PlayoffBracket;
+
+
 export type CategoryData = {
   tournamentData: TournamentData | null;
-  playoffs: PlayoffBracket | null;
+  playoffs: PlayoffBracketSet | null;
   formValues: TournamentFormValues;
 }
 
