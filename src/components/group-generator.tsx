@@ -49,7 +49,7 @@ export function GroupGenerator() {
       teamsPerGroupToAdvance: 2,
       teams: "Ana e Bia\nCarla e Dani\nElena e Fernanda\nGabi e Helo\nIsis e Julia\nKarla e Laura\nMaria e Nina\nOlivia e Paula",
       groupFormationStrategy: "balanced",
-      includeThirdPlace: false,
+      includeThirdPlace: true,
     },
   })
 
