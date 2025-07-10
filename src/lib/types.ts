@@ -29,7 +29,6 @@ export type TimeSlot = z.infer<typeof timeSlotSchema>;
 export const courtSchema = z.object({
     name: z.string().min(1, "O nome da quadra é obrigatório."),
     slots: z.array(timeSlotSchema).min(1, "Deve haver pelo menos um horário disponível para a quadra."),
-    priority: z.coerce.number().int().optional(),
 });
 export type Court = z.infer<typeof courtSchema>;
 
@@ -109,24 +108,23 @@ export const formSchema = z
   )
   .refine(
     (data) => {
-      if (data.tournamentType !== 'groups') return true;
-      if (!data.numberOfGroups || !data.teamsPerGroupToAdvance) return false;
-      if (data.numberOfTeams <= 0 || data.numberOfGroups <= 0) return true; // Avoid division by zero if other validations fail
-      
-      const numGroups = data.numberOfGroups;
-      const teamsPerGroup = Math.floor(data.numberOfTeams / numGroups);
-      
-      if (teamsPerGroup === 0) return false; // Not enough teams for the groups
+        if (data.tournamentType !== 'groups') return true;
+        if (!data.numberOfGroups || !data.teamsPerGroupToAdvance) return false;
+        
+        const numTeams = data.numberOfTeams;
+        const numGroups = data.numberOfGroups;
+        if (numTeams <= 0 || numGroups <= 0) return true; // Avoid division by zero, let other validators handle it.
 
-      // The smallest group will have teamsPerGroup teams.
-      // If teamsPerGroupToAdvance is equal or greater, it's invalid.
-      return data.teamsPerGroupToAdvance < teamsPerGroup;
+        const minTeamsPerGroup = Math.floor(numTeams / numGroups);
+
+        // This check ensures that you can't advance more teams than there are in the smallest possible group.
+        return data.teamsPerGroupToAdvance < minTeamsPerGroup;
     },
     {
-        message: "O número de classificados deve ser menor que o número de duplas em qualquer grupo.",
+        message: "O número de classificados deve ser menor que o número de duplas no menor grupo.",
         path: ["teamsPerGroupToAdvance"],
     }
-  )
+)
   .refine(
     (data) => {
         if (data.tournamentType !== 'singleElimination') return true;

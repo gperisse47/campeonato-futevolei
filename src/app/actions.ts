@@ -42,7 +42,7 @@ async function readDb(): Promise<TournamentsState> {
       data._globalSettings = {
         startTime: "08:00",
         estimatedMatchDuration: 20,
-        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
+        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
       };
     }
     return data;
@@ -52,7 +52,7 @@ async function readDb(): Promise<TournamentsState> {
         _globalSettings: {
             startTime: "08:00",
             estimatedMatchDuration: 20,
-            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
+            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
         }
       };
       await writeDb(defaultData);
@@ -173,10 +173,8 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         });
 
         const courtAvailability = _globalSettings.courts
-            .sort((a, b) => (a.priority || 99) - (b.priority || 99))
             .map(court => ({
                 name: court.name,
-                priority: court.priority || 99,
                 slots: court.slots.map(slot => ({
                     start: parseTime(slot.startTime),
                     end: parseTime(slot.endTime)
