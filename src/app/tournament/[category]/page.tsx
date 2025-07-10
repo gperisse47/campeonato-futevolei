@@ -9,7 +9,7 @@ import { getTournamentByCategory } from "@/app/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Trophy, Clock } from "lucide-react";
+import { Loader2, Trophy, Clock, MapPin } from "lucide-react";
 import type { CategoryData, PlayoffBracket, PlayoffMatch, Team, GroupWithScores, PlayoffBracketSet, MatchWithScore } from "@/lib/types";
 
 const roundNames: { [key: string]: string } = {
@@ -42,7 +42,15 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
 
     return (
         <div className="flex flex-col gap-2 w-full">
-            {showMatchName && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4>}
+            <div className="flex flex-col items-center justify-center text-center gap-2">
+              {showMatchName && <h4 className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{match.name}</h4>}
+               {(match.time || match.court) && (
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
+                      {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
+                  </div>
+              )}
+            </div>
             <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-xl' : 'max-w-sm'} w-full mx-auto`}>
                {scoresDefined ? (
                  <>
@@ -152,18 +160,26 @@ const GroupCard = ({ group, teamsPerGroupToAdvance }: { group: GroupWithScores, 
                 <h4 className="mb-2 font-semibold">Jogos</h4>
                 <div className="space-y-2">
                     {group.matches.map((match, matchIndex) => (
-                        <div key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
-                            <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
-                            {match.score1 !== undefined && match.score2 !== undefined ? (
-                                <div className="flex items-center gap-1 font-bold">
-                                    <span>{match.score1}</span>
-                                    <span className="text-muted-foreground">x</span>
-                                    <span>{match.score2}</span>
+                        <div key={matchIndex} className="flex flex-col gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                            {(match.time || match.court) && (
+                                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                                    {match.time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {match.time}</span>}
+                                    {match.court && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {match.court}</span>}
                                 </div>
-                            ) : (
-                                <span className="text-muted-foreground font-bold text-xs">vs</span>
                             )}
-                            <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
+                                {match.score1 !== undefined && match.score2 !== undefined ? (
+                                    <div className="flex items-center gap-1 font-bold">
+                                        <span>{match.score1}</span>
+                                        <span className="text-muted-foreground">x</span>
+                                        <span>{match.score2}</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-muted-foreground font-bold text-xs">vs</span>
+                                )}
+                                <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -318,3 +334,5 @@ export default function TournamentPage() {
         </div>
     );
 }
+
+    

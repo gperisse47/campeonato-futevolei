@@ -75,7 +75,8 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -86,7 +87,8 @@
                 "player1": "Gabe",
                 "player2": "Yan"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -97,7 +99,8 @@
                 "player1": "Carelli",
                 "player2": "Hantaro"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "GP3"
             },
             {
               "team1": {
@@ -108,7 +111,8 @@
                 "player1": "Gabe",
                 "player2": "Yan"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "HD1"
             },
             {
               "team1": {
@@ -119,7 +123,8 @@
                 "player1": "Carelli",
                 "player2": "Hantaro"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "HD2"
             },
             {
               "team1": {
@@ -130,7 +135,8 @@
                 "player1": "Carelli",
                 "player2": "Hantaro"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "GP1"
             }
           ],
           "name": "Group A",
@@ -206,7 +212,8 @@
                 "player1": "Sartoratto",
                 "player2": "Poppe"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -217,7 +224,8 @@
                 "player1": "Brenner",
                 "player2": "Py"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "GP3"
             },
             {
               "team1": {
@@ -228,7 +236,8 @@
                 "player1": "Rodrigo",
                 "player2": "Paulinho"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "HD1"
             },
             {
               "team1": {
@@ -239,7 +248,8 @@
                 "player1": "Brenner",
                 "player2": "Py"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "HD2"
             },
             {
               "team1": {
@@ -250,7 +260,8 @@
                 "player1": "Rodrigo",
                 "player2": "Paulinho"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -261,7 +272,8 @@
                 "player1": "Rodrigo",
                 "player2": "Paulinho"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "GP2"
             }
           ],
           "name": "Group B",
@@ -337,7 +349,8 @@
                 "player1": "James",
                 "player2": "Fabio"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "GP3"
             },
             {
               "team1": {
@@ -348,7 +361,8 @@
                 "player1": "Carril",
                 "player2": "Leandro"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "HD1"
             },
             {
               "team1": {
@@ -359,7 +373,8 @@
                 "player1": "Felipe M.",
                 "player2": "Rapha B."
               },
-              "time": ""
+              "time": "09:40",
+              "court": "HD2"
             },
             {
               "team1": {
@@ -370,7 +385,8 @@
                 "player1": "Carril",
                 "player2": "Leandro"
               },
-              "time": ""
+              "time": "10:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -381,7 +397,8 @@
                 "player1": "Felipe M.",
                 "player2": "Rapha B."
               },
-              "time": ""
+              "time": "10:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -392,7 +409,8 @@
                 "player1": "Felipe M.",
                 "player2": "Rapha B."
               },
-              "time": ""
+              "time": "10:00",
+              "court": "GP3"
             }
           ],
           "name": "Group C",
@@ -468,7 +486,8 @@
                 "player1": "Russo",
                 "player2": "Maki"
               },
-              "time": ""
+              "time": "10:00",
+              "court": "HD1"
             },
             {
               "team1": {
@@ -479,7 +498,8 @@
                 "player1": "Gustavo",
                 "player2": "Marcus"
               },
-              "time": ""
+              "time": "10:00",
+              "court": "HD2"
             },
             {
               "team1": {
@@ -490,7 +510,8 @@
                 "player1": "Neves",
                 "player2": "Caze"
               },
-              "time": ""
+              "time": "10:20",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -501,7 +522,8 @@
                 "player1": "Gustavo",
                 "player2": "Marcus"
               },
-              "time": ""
+              "time": "10:20",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -512,7 +534,8 @@
                 "player1": "Neves",
                 "player2": "Caze"
               },
-              "time": ""
+              "time": "10:20",
+              "court": "GP3"
             },
             {
               "team1": {
@@ -523,7 +546,8 @@
                 "player1": "Neves",
                 "player2": "Caze"
               },
-              "time": ""
+              "time": "10:20",
+              "court": "HD1"
             }
           ],
           "name": "Group D",
@@ -597,32 +621,36 @@
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
-          "time": "",
-          "roundOrder": 3
+          "time": "10:40",
+          "roundOrder": 3,
+          "court": "HD1"
         },
         {
           "id": "QuartasdeFinal-2",
           "name": "Quartas de Final 2",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
-          "time": "",
-          "roundOrder": 3
+          "time": "10:40",
+          "roundOrder": 3,
+          "court": "HD2"
         },
         {
           "id": "QuartasdeFinal-3",
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
-          "time": "",
-          "roundOrder": 3
+          "time": "11:00",
+          "roundOrder": 3,
+          "court": "GP1"
         },
         {
           "id": "QuartasdeFinal-4",
           "name": "Quartas de Final 4",
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
-          "time": "",
-          "roundOrder": 3
+          "time": "11:00",
+          "roundOrder": 3,
+          "court": "GP2"
         }
       ],
       "Semifinal": [
@@ -631,16 +659,18 @@
           "name": "Semifinal 1",
           "team1Placeholder": "Vencedor Quartas de Final 1",
           "team2Placeholder": "Vencedor Quartas de Final 4",
-          "time": "",
-          "roundOrder": 2
+          "time": "10:40",
+          "roundOrder": 2,
+          "court": "GP2"
         },
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
           "team1Placeholder": "Vencedor Quartas de Final 2",
           "team2Placeholder": "Vencedor Quartas de Final 3",
-          "time": "",
-          "roundOrder": 2
+          "time": "10:40",
+          "roundOrder": 2,
+          "court": "GP3"
         }
       ],
       "Final": [
@@ -649,8 +679,9 @@
           "name": "Final 1",
           "team1Placeholder": "Vencedor Semifinal 1",
           "team2Placeholder": "Vencedor Semifinal 2",
-          "time": "",
-          "roundOrder": 1
+          "time": "10:40",
+          "roundOrder": 1,
+          "court": "GP1"
         }
       ],
       "Disputa de 3º Lugar": [
@@ -659,8 +690,9 @@
           "name": "Disputa de 3º Lugar",
           "team1Placeholder": "Perdedor Semifinal 1",
           "team2Placeholder": "Perdedor Semifinal 2",
-          "time": "",
-          "roundOrder": 0
+          "time": "10:20",
+          "roundOrder": 0,
+          "court": "HD2"
         }
       ]
     },
@@ -691,7 +723,8 @@
                 "player1": "Ingrid",
                 "player2": "Yan"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -702,7 +735,8 @@
                 "player1": "Ju",
                 "player2": "Russo"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -713,7 +747,8 @@
                 "player1": "Stella",
                 "player2": "Caslu"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "GP3"
             },
             {
               "team1": {
@@ -724,7 +759,8 @@
                 "player1": "Ju",
                 "player2": "Russo"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "HD1"
             },
             {
               "team1": {
@@ -735,7 +771,8 @@
                 "player1": "Stella",
                 "player2": "Caslu"
               },
-              "time": ""
+              "time": "09:00",
+              "court": "HD2"
             },
             {
               "team1": {
@@ -746,7 +783,8 @@
                 "player1": "Stella",
                 "player2": "Caslu"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "GP1"
             }
           ],
           "name": "Group A",
@@ -822,7 +860,8 @@
                 "player1": "Clara",
                 "player2": "Peri"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -833,7 +872,8 @@
                 "player1": "Gabe",
                 "player2": "Bia"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "GP3"
             },
             {
               "team1": {
@@ -844,7 +884,8 @@
                 "player1": "Sartoratto",
                 "player2": "Rebeca"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "HD1"
             },
             {
               "team1": {
@@ -855,7 +896,8 @@
                 "player1": "Gabe",
                 "player2": "Bia"
               },
-              "time": ""
+              "time": "09:20",
+              "court": "HD2"
             },
             {
               "team1": {
@@ -866,7 +908,8 @@
                 "player1": "Sartoratto",
                 "player2": "Rebeca"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -877,7 +920,8 @@
                 "player1": "Sartoratto",
                 "player2": "Rebeca"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "GP2"
             }
           ],
           "name": "Group B",
@@ -953,8 +997,9 @@
                 "player1": "Isa L.",
                 "player2": "Carelli"
               },
-              "time": "",
-              "score1": 0
+              "time": "09:40",
+              "score1": 0,
+              "court": "GP3"
             },
             {
               "team1": {
@@ -965,7 +1010,8 @@
                 "player1": "Fabi",
                 "player2": "Alex"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "HD1"
             },
             {
               "team1": {
@@ -976,7 +1022,8 @@
                 "player1": "Marina",
                 "player2": "Henrique"
               },
-              "time": ""
+              "time": "09:40",
+              "court": "HD2"
             },
             {
               "team1": {
@@ -987,7 +1034,8 @@
                 "player1": "Fabi",
                 "player2": "Alex"
               },
-              "time": ""
+              "time": "10:00",
+              "court": "GP1"
             },
             {
               "team1": {
@@ -998,7 +1046,8 @@
                 "player1": "Marina",
                 "player2": "Henrique"
               },
-              "time": ""
+              "time": "10:00",
+              "court": "GP2"
             },
             {
               "team1": {
@@ -1009,7 +1058,8 @@
                 "player1": "Marina",
                 "player2": "Henrique"
               },
-              "time": ""
+              "time": "10:00",
+              "court": "GP3"
             }
           ],
           "name": "Group C",
@@ -1083,32 +1133,36 @@
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
-          "time": "",
-          "roundOrder": 3
+          "time": "10:20",
+          "roundOrder": 3,
+          "court": "GP3"
         },
         {
           "id": "QuartasdeFinal-2",
           "name": "Quartas de Final 2",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
-          "time": "",
-          "roundOrder": 3
+          "time": "10:20",
+          "roundOrder": 3,
+          "court": "HD1"
         },
         {
           "id": "QuartasdeFinal-3",
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
-          "time": "",
-          "roundOrder": 3
+          "time": "10:20",
+          "roundOrder": 3,
+          "court": "HD2"
         },
         {
           "id": "QuartasdeFinal-4",
           "name": "Quartas de Final 4",
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
-          "time": "",
-          "roundOrder": 3
+          "time": "10:40",
+          "roundOrder": 3,
+          "court": "GP1"
         }
       ],
       "Semifinal": [
@@ -1117,16 +1171,18 @@
           "name": "Semifinal 1",
           "team1Placeholder": "Vencedor Quartas de Final 1",
           "team2Placeholder": "Vencedor Quartas de Final 4",
-          "time": "",
-          "roundOrder": 2
+          "time": "10:20",
+          "roundOrder": 2,
+          "court": "GP1"
         },
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
           "team1Placeholder": "Vencedor Quartas de Final 2",
           "team2Placeholder": "Vencedor Quartas de Final 3",
-          "time": "",
-          "roundOrder": 2
+          "time": "10:20",
+          "roundOrder": 2,
+          "court": "GP2"
         }
       ],
       "Final": [
@@ -1135,8 +1191,9 @@
           "name": "Final 1",
           "team1Placeholder": "Vencedor Semifinal 1",
           "team2Placeholder": "Vencedor Semifinal 2",
-          "time": "",
-          "roundOrder": 1
+          "time": "10:00",
+          "roundOrder": 1,
+          "court": "HD2"
         }
       ],
       "Disputa de 3º Lugar": [
@@ -1145,8 +1202,9 @@
           "name": "Disputa de 3º Lugar",
           "team1Placeholder": "Perdedor Semifinal 1",
           "team2Placeholder": "Perdedor Semifinal 2",
-          "time": "",
-          "roundOrder": 0
+          "time": "10:00",
+          "roundOrder": 0,
+          "court": "HD1"
         }
       ]
     },
