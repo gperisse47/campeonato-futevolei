@@ -122,6 +122,7 @@ export type TeamStanding = {
 };
 
 export type PlayoffMatch = {
+  id: string;
   team1Placeholder: string;
   team2Placeholder: string;
   team1?: Team;
