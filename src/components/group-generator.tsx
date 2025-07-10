@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Swords, Trophy } from "lucide-react"
 
 import { generateGroupsAction } from "@/app/actions"
-import type { TournamentData, TeamStanding, PlayoffMatch, MatchWithScore, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput } from "@/lib/types"
+import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -333,36 +333,8 @@ export function GroupGenerator() {
                           <CardTitle className="text-primary">{group.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-1 flex-col space-y-4">
-                          <div>
-                            <h4 className="mb-2 font-semibold">Duplas</h4>
-                            <ul className="space-y-1">
-                              {group.teams.map((team, index) => (
-                                <li key={`${team.player1}-${index}`} className="rounded-md bg-secondary/50 p-2 text-sm text-secondary-foreground">
-                                  {team.player1} / {team.player2}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <Separator/>
-                          <div>
-                            <h4 className="mb-2 font-semibold">Jogos</h4>
-                            <ul className="space-y-2">
-                                {group.matches.map((match, matchIndex) => (
-                                    <li key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm text-secondary-foreground">
-                                        <span className="text-right flex-1">{match.team1.player1}/{match.team1.player2}</span>
-                                        <div className="flex items-center gap-1">
-                                          <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
-                                          <Swords className="h-4 w-4 text-primary"/>
-                                          <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
-                                        </div>
-                                        <span className="text-left flex-1">{match.team2.player1}/{match.team2.player2}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                          </div>
+                          
                           {group.standings && (
-                            <>
-                              <Separator/>
                               <div>
                                 <h4 className="mb-2 font-semibold">Classificação</h4>
                                 <Table>
@@ -388,8 +360,33 @@ export function GroupGenerator() {
                                   </TableBody>
                                 </Table>
                               </div>
-                            </>
                           )}
+                          
+                          <Separator/>
+
+                          <div>
+                            <h4 className="mb-2 font-semibold">Jogos</h4>
+                            <div className="space-y-2">
+                                {group.matches.map((match, matchIndex) => (
+                                    <div key={matchIndex} className="rounded-md bg-secondary/50 p-3">
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span>{match.team1.player1}/{match.team1.player2}</span>
+                                        <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
+                                      </div>
+                                      <div className="my-2 flex items-center justify-center">
+                                        <div className="flex-grow border-t border-dashed"></div>
+                                        <Swords className="h-4 w-4 text-primary mx-2"/>
+                                        <div className="flex-grow border-t border-dashed"></div>
+                                      </div>
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span>{match.team2.player1}/{match.team2.player2}</span>
+                                        <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
+                                      </div>
+                                    </div>
+                                ))}
+                            </div>
+                          </div>
+                          
                         </CardContent>
                       </Card>
                     ))}
