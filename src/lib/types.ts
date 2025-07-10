@@ -116,6 +116,7 @@ export type TournamentFormValues = z.infer<typeof formSchema>;
 export type MatchWithScore = AIGenerateTournamentGroupsOutput['groups'][0]['matches'][0] & {
   score1?: number;
   score2?: number;
+  time?: string;
 };
 
 export type GroupWithScores = Omit<AIGenerateTournamentGroupsOutput['groups'][0], 'matches'> & {
@@ -131,9 +132,7 @@ export type TeamStanding = {
   team: Team;
   played: number;
   wins: number;
-  losses: number;
   setsWon: number;
-  setsLost: number;
   setDifference: number;
 };
 
@@ -146,6 +145,7 @@ export type PlayoffMatch = {
   team2?: Team;
   score1?: number;
   score2?: number;
+  time?: string;
 };
 
 export type PlayoffBracket = {
@@ -169,4 +169,5 @@ export type ConsolidatedMatch = {
     team2: string;
     score1?: number;
     score2?: number;
+    time?: string;
 };

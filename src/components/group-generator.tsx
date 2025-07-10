@@ -5,7 +5,7 @@ import * as React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Trophy, ExternalLink } from "lucide-react"
+import { Loader2, Trophy, ExternalLink, Clock } from "lucide-react"
 
 import { generateGroupsAction, getTournaments, saveTournament } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData } from "@/lib/types"
@@ -79,7 +79,7 @@ export function GroupGenerator() {
       }
     };
     fetchInitialData();
-  }, []);
+  }, [toast]);
 
   const saveData = async (categoryName: string, data: CategoryData) => {
     setIsSaving(true);
@@ -121,12 +121,12 @@ export function GroupGenerator() {
       const standings: Record<string, Omit<TeamStanding, 'points'>> = {}
       group.teams.forEach(team => {
         const teamKey = teamToKey(team)
-        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
+        standings[teamKey] = { team, played: 0, wins: 0, setsWon: 0, setDifference: 0 }
       })
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
       return {
         ...group,
-        matches: group.matches.map(match => ({ ...match, score1: undefined, score2: undefined })),
+        matches: group.matches.map(match => ({ ...match, score1: undefined, score2: undefined, time: '' })),
         standings: sortedStandings
       }
     })
@@ -201,7 +201,8 @@ export function GroupGenerator() {
                 id: matchId,
                 name: `${roundNameSingle} ${i + 1}`,
                 team1Placeholder: match.team1Placeholder,
-                team2Placeholder: match.team2Placeholder
+                team2Placeholder: match.team2Placeholder,
+                time: '',
             });
             nextRoundTeams.push(`Vencedor ${roundNameSingle} ${i + 1}`);
         }
@@ -213,7 +214,7 @@ export function GroupGenerator() {
     if (includeThirdPlace && bracket['Semifinal']) {
         const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.name}`);
         bracket['Disputa de 3º Lugar'] = [
-            { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1] }
+            { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '' }
         ];
     }
   
@@ -378,11 +379,11 @@ export function GroupGenerator() {
         delete newTournaments[categoryName];
         return newTournaments;
       });
-      if (Object.keys(tournaments).length === 0) {
-        setActiveTab(null);
+      const remainingKeys = Object.keys(tournaments).filter(k => k !== categoryName);
+      if (remainingKeys.length > 0) {
+        setActiveTab(remainingKeys[0]);
       } else {
-        const remainingKeys = Object.keys(tournaments).filter(k => k !== categoryName);
-        setActiveTab(remainingKeys.length > 0 ? remainingKeys[0] : null);
+        setActiveTab(null);
       }
       toast({
         variant: "destructive",
@@ -399,7 +400,7 @@ export function GroupGenerator() {
 
       group.teams.forEach(team => {
         const teamKey = teamToKey(team);
-        standings[teamKey] = { team, played: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0, setDifference: 0 }
+        standings[teamKey] = { team, played: 0, wins: 0, setsWon: 0, setDifference: 0 }
       })
 
       group.matches.forEach(match => {
@@ -414,22 +415,33 @@ export function GroupGenerator() {
 
         if (score1 > score2) {
           standings[team1Key].wins++
-          standings[team2Key].losses++
         } else {
           standings[team2Key].wins++
-          standings[team1Key].losses++
         }
 
         standings[team1Key].setsWon += score1
-        standings[team1Key].setsLost += score2
         standings[team2Key].setsWon += score2
-        standings[team2Key].setsLost += score1
       })
 
-      const sortedStandings = Object.values(standings).map(s => ({
-        ...s,
-        setDifference: s.setsWon - s.setsLost
-      })).sort((a, b) => {
+      const sortedStandings = Object.values(standings).map(s => {
+          const matchingGroup = currentTournamentData.groups.find(g => g.teams.some(t => teamToKey(t) === teamToKey(s.team)));
+          let setsLost = 0;
+          if (matchingGroup) {
+              matchingGroup.matches.forEach(m => {
+                  if(m.score1 === undefined || m.score2 === undefined) return;
+                  if (teamToKey(m.team1) === teamToKey(s.team)) {
+                      setsLost += m.score2;
+                  }
+                  if (teamToKey(m.team2) === teamToKey(s.team)) {
+                      setsLost += m.score1;
+                  }
+              });
+          }
+          return {
+            ...s,
+            setDifference: s.setsWon - setsLost
+          }
+      }).sort((a, b) => {
         if (b.wins !== a.wins) return b.wins - a.wins
         if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference
         return b.setsWon - a.setsWon
@@ -441,15 +453,17 @@ export function GroupGenerator() {
     return { groups: newGroups }
   }
 
-  const handleScoreChange = (groupIndex: number, matchIndex: number, team: 'team1' | 'team2', value: string) => {
+  const handleGroupMatchChange = (groupIndex: number, matchIndex: number, field: 'score1' | 'score2' | 'time', value: string) => {
     if (!activeTab || !activeTournamentData) return;
     let newTournamentData = JSON.parse(JSON.stringify(activeTournamentData));
-    const score = value === '' ? undefined : parseInt(value, 10);
-    if (team === 'team1') {
-      newTournamentData.groups[groupIndex].matches[matchIndex].score1 = isNaN(score!) ? undefined : score;
+    
+    if (field === 'time') {
+      newTournamentData.groups[groupIndex].matches[matchIndex].time = value;
     } else {
-      newTournamentData.groups[groupIndex].matches[matchIndex].score2 = isNaN(score!) ? undefined : score;
+      const score = value === '' ? undefined : parseInt(value, 10);
+      newTournamentData.groups[groupIndex].matches[matchIndex][field] = isNaN(score!) ? undefined : score;
     }
+
     const updatedDataWithStandings = calculateStandings(newTournamentData);
     const updatedCategoryData = {
       ...activeCategoryData!,
@@ -464,15 +478,15 @@ export function GroupGenerator() {
     saveData(activeTab, updatedCategoryData);
   }
 
-  const handlePlayoffScoreChange = (roundName: string, matchIndex: number, team: 'team1' | 'team2', value: string) => {
+  const handlePlayoffMatchChange = (roundName: string, matchIndex: number, field: 'score1' | 'score2' | 'time', value: string) => {
     if (!activeTab || !activePlayoffs) return;
     let newPlayoffs = JSON.parse(JSON.stringify(activePlayoffs));
-    const score = value === '' ? undefined : parseInt(value, 10);
 
-    if (team === 'team1') {
-      newPlayoffs[roundName][matchIndex].score1 = isNaN(score!) ? undefined : score;
+    if (field === 'time') {
+      newPlayoffs[roundName][matchIndex].time = value;
     } else {
-      newPlayoffs[roundName][matchIndex].score2 = isNaN(score!) ? undefined : score;
+      const score = value === '' ? undefined : parseInt(value, 10);
+      newPlayoffs[roundName][matchIndex][field] = isNaN(score!) ? undefined : score;
     }
     
     const updatedCategoryData = {
@@ -511,28 +525,41 @@ export function GroupGenerator() {
     return (
       <div className="flex flex-col gap-2 w-full">
           {(!isFinalRound && roundName !== 'Quartas de Final') && <h4 className="text-sm font-semibold text-center text-muted-foreground whitespace-nowrap">{match.name}</h4> }
-          <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
-              <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
-                  <Input
-                      type="number"
-                      className="h-8 w-14 shrink-0 text-center"
-                      value={match.score1 ?? ''}
-                      onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team1', e.target.value)}
-                      disabled={!match.team1 || !match.team2}
-                  />
-              </div>
-              <div className="text-muted-foreground text-xs text-center py-1">vs</div>
-              <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
-                  <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
-                  <Input
-                      type="number"
-                      className="h-8 w-14 shrink-0 text-center"
-                      value={match.score2 ?? ''}
-                      onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team2', e.target.value)}
-                      disabled={!match.team1 || !match.team2}
-                  />
-              </div>
+          <div className="relative">
+            <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
+                <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                    <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
+                    <Input
+                        type="number"
+                        className="h-8 w-14 shrink-0 text-center"
+                        value={match.score1 ?? ''}
+                        onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'score1', e.target.value)}
+                        disabled={!match.team1 || !match.team2}
+                    />
+                </div>
+                <div className="text-muted-foreground text-xs text-center py-1">vs</div>
+                <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
+                    <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
+                    <Input
+                        type="number"
+                        className="h-8 w-14 shrink-0 text-center"
+                        value={match.score2 ?? ''}
+                        onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'score2', e.target.value)}
+                        disabled={!match.team1 || !match.team2}
+                    />
+                </div>
+            </div>
+            <div className="absolute top-1/2 -translate-y-1/2 -right-4 flex items-center">
+              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+              <Input 
+                type="text" 
+                className="h-8 w-24 text-center" 
+                placeholder="00:00"
+                value={match.time ?? ''}
+                onChange={(e) => handlePlayoffMatchChange(roundName, matchIndex, 'time', e.target.value)}
+                disabled={!match.team1 && !match.team2}
+              />
+            </div>
           </div>
       </div>
   )};
@@ -548,7 +575,7 @@ export function GroupGenerator() {
     return (
       <div className="flex flex-col items-center w-full overflow-x-auto p-4 gap-8">
         {regularRounds.map(roundName => (
-          <Card key={roundName} className="w-full max-w-lg">
+          <Card key={roundName} className="w-full max-w-xl">
             <CardHeader>
               <CardTitle className="text-lg font-bold text-primary">{roundName}</CardTitle>
             </CardHeader>
@@ -566,7 +593,7 @@ export function GroupGenerator() {
         ))}
 
         {playoffs['Final'] && (
-             <Card className="w-full max-w-lg">
+             <Card className="w-full max-w-xl">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">Final</CardTitle>
                 </CardHeader>
@@ -580,7 +607,7 @@ export function GroupGenerator() {
              </Card>
         )}
         {playoffs['Disputa de 3º Lugar'] && (
-             <Card className="w-full max-w-lg">
+             <Card className="w-full max-w-xl">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">Disputa de 3º Lugar</CardTitle>
                 </CardHeader>
@@ -764,13 +791,13 @@ export function GroupGenerator() {
           {Object.keys(tournaments).length > 0 && activeTab ? (
              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <div className="flex items-center justify-between gap-4">
-                <TabsList>
+                <TabsList className="hidden sm:inline-flex">
                     {Object.keys(tournaments).map(cat => (
                         <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>
                     ))}
                 </TabsList>
-                 <div className="flex items-center gap-2">
-                     <div className="w-48 hidden sm:block">
+                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between">
+                     <div className="w-48 sm:hidden">
                        <Select value={activeTab} onValueChange={handleTabChange}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecionar categoria..." />
@@ -860,14 +887,23 @@ export function GroupGenerator() {
                                         <h4 className="mb-2 font-semibold">Jogos</h4>
                                         <div className="space-y-2">
                                           {group.matches.map((match, matchIndex) => (
-                                            <div key={matchIndex} className="flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                            <div key={matchIndex} className="relative flex items-center justify-between gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                                               <span className="flex-1 text-right truncate">{teamToKey(match.team1)}</span>
                                               <div className="flex items-center gap-1">
-                                                <Input type="number" className="h-7 w-14 text-center" value={match.score1 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team1', e.target.value)} />
+                                                <Input type="number" className="h-7 w-12 text-center" value={match.score1 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score1', e.target.value)} />
                                                 <span className="text-muted-foreground">x</span>
-                                                <Input type="number" className="h-7 w-14 text-center" value={match.score2 ?? ''} onChange={(e) => handleScoreChange(groupIndex, matchIndex, 'team2', e.target.value)} />
+                                                <Input type="number" className="h-7 w-12 text-center" value={match.score2 ?? ''} onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'score2', e.target.value)} />
                                               </div>
                                               <span className="flex-1 text-left truncate">{teamToKey(match.team2)}</span>
+                                              <div className="absolute top-1/2 -translate-y-1/2 right-full mr-2 flex items-center">
+                                                <Input
+                                                    type="text"
+                                                    className="h-7 w-20 text-center"
+                                                    placeholder="00:00"
+                                                    value={match.time ?? ''}
+                                                    onChange={(e) => handleGroupMatchChange(groupIndex, matchIndex, 'time', e.target.value)}
+                                                />
+                                              </div>
                                             </div>
                                           ))}
                                         </div>

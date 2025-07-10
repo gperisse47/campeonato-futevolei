@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Swords } from "lucide-react";
-import type { ConsolidatedMatch, TournamentsState } from "@/lib/types";
+import type { ConsolidatedMatch } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
 
 export default function MatchesPage() {
@@ -39,6 +39,7 @@ export default function MatchesPage() {
                     team2: teamToKey(match.team2),
                     score1: match.score1,
                     score2: match.score2,
+                    time: match.time,
                   });
                 });
               });
@@ -56,6 +57,7 @@ export default function MatchesPage() {
                             team2: match.team2 ? teamToKey(match.team2) : match.team2Placeholder,
                             score1: match.score1,
                             score2: match.score2,
+                            time: match.time,
                         });
                     });
                 }
@@ -71,6 +73,10 @@ export default function MatchesPage() {
     };
     
     loadMatches();
+
+    const intervalId = setInterval(loadMatches, 5000);
+    return () => clearInterval(intervalId);
+
   }, []);
 
   return (
@@ -101,6 +107,7 @@ export default function MatchesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Horário</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead className="text-right">Dupla 1</TableHead>
                   <TableHead className="text-center">Placar</TableHead>
@@ -111,6 +118,7 @@ export default function MatchesPage() {
                 {matches.map((match, index) => (
                   <TableRow key={`${match.category}-${match.stage}-${index}`}>
                     <TableCell className="font-medium">{match.category}</TableCell>
+                    <TableCell>{match.time || ''}</TableCell>
                     <TableCell>{match.stage}</TableCell>
                     <TableCell className="text-right">{match.team1}</TableCell>
                     <TableCell className="text-center font-bold">
