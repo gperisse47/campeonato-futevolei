@@ -62,13 +62,15 @@ export function SidebarNav() {
                     strokeLinejoin="round"
                     className="h-6 w-6"
                 >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 2a10 10 0 0 0-10 10" />
-                    <path d="M12 22a10 10 0 0 1-10-10" />
-                    <path d="M2 12a10 10 0 0 1 10-10" />
-                    <path d="M22 12a10 10 0 0 0-10-10" />
-                    <path d="M6.2 5.3a10 10 0 0 1 11.6 0" />
-                    <path d="M6.2 18.7a10 10 0 0 0 11.6 0" />
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                    <path d="M4 22h16"/>
+                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21A2.5 2.5 0 0 1 9 22H8a2.5 2.5 0 0 1-2.5-2.5V17c0-1.66 1.34-3 3-3h0c.35 0 .69.07 1 .18"/>
+                    <path d="M14 14.66V17c0 .55.47.98.97 1.21A2.5 2.5 0 0 0 15 22h1a2.5 2.5 0 0 0 2.5-2.5V17c0-1.66-1.34-3-3-3h0c-.35 0-.69.07-1 .18"/>
+                    <path d="M9 4h6"/>
+                    <path d="M12 4v8"/>
+                    <path d="M6 11H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h2"/>
+                    <path d="M18 11h2a2 2 0 0 1 2 2v2c0 1.1-.9 2-2 2h-2"/>
                 </svg>
             </div>
             <h2 className="text-lg font-semibold tracking-tight">Campeonato Amigos do Peri</h2>
