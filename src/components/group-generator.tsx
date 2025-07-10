@@ -523,7 +523,7 @@ export function GroupGenerator() {
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
                       value={match.score1 ?? ''}
-                      placeholder="0"
+                      placeholder="-"
                       onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team1', e.target.value)}
                       disabled={!match.team1 || !match.team2}
                   />
@@ -535,7 +535,7 @@ export function GroupGenerator() {
                       type="number"
                       className="h-8 w-14 shrink-0 text-center"
                       value={match.score2 ?? ''}
-                      placeholder="0"
+                      placeholder="-"
                       onChange={(e) => handlePlayoffScoreChange(roundName, matchIndex, 'team2', e.target.value)}
                       disabled={!match.team1 || !match.team2}
                   />

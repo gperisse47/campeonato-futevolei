@@ -40,12 +40,12 @@ const PlayoffMatchCard = ({ match, roundName, isFinalRound }: { match: PlayoffMa
             <div className={`p-2 rounded-md space-y-2 ${isFinalRound ? 'max-w-md' : 'max-w-sm'} w-full mx-auto`}>
                 <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team1Key && winnerKey === team1Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
                     <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team1 ? teamToKey(match.team1) : placeholder1}</span>
-                    <span className="h-8 w-14 shrink-0 text-center font-bold flex items-center justify-center">{match.score1 ?? '0'}</span>
+                    <span className="h-8 w-14 shrink-0 text-center font-bold flex items-center justify-center">{match.score1 ?? '-'}</span>
                 </div>
                 <div className="text-muted-foreground text-xs text-center py-1">vs</div>
                 <div className={`flex items-center w-full p-2 rounded-md ${winnerKey && team2Key && winnerKey === team2Key ? 'bg-green-100 dark:bg-green-900/30' : 'bg-secondary/50'}`}>
                     <span className={`text-left truncate pr-2 text-sm ${isFinalRound ? 'w-full' : 'flex-1'}`}>{match.team2 ? teamToKey(match.team2) : placeholder2}</span>
-                    <span className="h-8 w-14 shrink-0 text-center font-bold flex items-center justify-center">{match.score2 ?? '0'}</span>
+                    <span className="h-8 w-14 shrink-0 text-center font-bold flex items-center justify-center">{match.score2 ?? '-'}</span>
                 </div>
             </div>
         </div>
