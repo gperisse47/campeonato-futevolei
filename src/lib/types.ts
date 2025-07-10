@@ -4,10 +4,9 @@ import type {
 } from "@/ai/flows/generate-tournament-groups"
 import { z } from "zod"
 
-export type GenerateTournamentGroupsOutput = AIGenerateTournamentGroupsOutput;
-export type GenerateTournamentGroupsInput = AIGenerateTournamentGroupsInput;
+export type { GenerateTournamentGroupsOutput, GenerateTournamentGroupsInput };
 
-const teamSchema = z.object({
+export const teamSchema = z.object({
   player1: z.string(),
   player2: z.string(),
 });
@@ -57,3 +56,33 @@ export const formSchema = z
   );
 
 export type TournamentFormValues = z.infer<typeof formSchema>;
+
+// Types for state management within the component
+export type MatchWithScore = AIGenerateTournamentGroupsOutput['groups'][0]['matches'][0] & {
+  score1?: number;
+  score2?: number;
+};
+
+export type GroupWithScores = Omit<AIGenerateTournamentGroupsOutput['groups'][0], 'matches'> & {
+  matches: MatchWithScore[];
+  standings?: TeamStanding[];
+};
+
+export type TournamentData = {
+  groups: GroupWithScores[];
+};
+
+export type TeamStanding = {
+  team: Team;
+  played: number;
+  wins: number;
+  losses: number;
+  setsWon: number;
+  setsLost: number;
+  setDifference: number;
+};
+
+export type PlayoffMatch = {
+  team1Placeholder: string;
+  team2Placeholder: string;
+};
