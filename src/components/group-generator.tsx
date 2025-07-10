@@ -103,11 +103,11 @@ export function GroupGenerator() {
       setPlayoffs(null);
       return;
     }
-
+  
     let bracket: PlayoffBracket = {};
     const placeholders = generatePlayoffPlaceholders(totalQualifiers);
     const teamPlaceholders = Object.keys(placeholders);
-
+  
     let round = 1;
     let teamsInRound = totalQualifiers;
     const roundNames: { [key: number]: string } = {
@@ -116,26 +116,27 @@ export function GroupGenerator() {
       8: 'Quartas de Final',
       16: 'Oitavas de Final'
     };
-
+  
     let currentRoundTeams = [...teamPlaceholders];
     while (teamsInRound >= 2) {
       const roundName = roundNames[teamsInRound] || `Rodada ${round}`;
       bracket[roundName] = [];
       const nextRoundTeams = [];
-
-      for (let i = 0; i < teamsInRound / 2; i++) {
+  
+      for (let i = 0; i < currentRoundTeams.length / 2; i++) {
+        const matchIndex = bracket[roundName].length;
         bracket[roundName].push({
-          team1Placeholder: currentRoundTeams[i],
-          team2Placeholder: currentRoundTeams[teamsInRound - 1 - i],
+          team1Placeholder: currentRoundTeams[i*2],
+          team2Placeholder: currentRoundTeams[i*2 + 1],
         });
-        nextRoundTeams.push(`Vencedor ${roundName.slice(0, -1)} ${i + 1}`);
+        nextRoundTeams.push(`Vencedor ${roundName} ${matchIndex + 1}`);
       }
-
+  
       currentRoundTeams = nextRoundTeams;
       teamsInRound /= 2;
       round++;
     }
-
+  
     if (includeThirdPlace && bracket['Semifinais']) {
       bracket['Disputa de 3º Lugar'] = [
         { team1Placeholder: "Perdedor Semifinal 1", team2Placeholder: "Perdedor Semifinal 2" }
@@ -147,70 +148,74 @@ export function GroupGenerator() {
 
   const updatePlayoffs = useCallback(() => {
     if (!tournamentData || !playoffs) return;
-
+  
     let allGroupMatchesPlayed = tournamentData.groups.every(g => g.matches.every(m => m.score1 !== undefined && m.score2 !== undefined));
     let qualifiedTeams: { [placeholder: string]: Team } = {};
-
+  
     if (allGroupMatchesPlayed) {
       tournamentData.groups.forEach((group, groupIndex) => {
-        group.standings.slice(0, teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-          const placeholder = getTeamPlaceholder(groupIndex, standingIndex + 1);
-          qualifiedTeams[placeholder] = standing.team;
+        // Correct seeding (1A vs 2B, 1B vs 2A, ...)
+        const groupQualifiers = group.standings.slice(0, teamsPerGroupToAdvance);
+        groupQualifiers.forEach((standing, standingIndex) => {
+            const placeholder = getTeamPlaceholder(groupIndex, standingIndex + 1);
+            qualifiedTeams[placeholder] = standing.team;
         });
       });
     }
+  
+    const newPlayoffs = JSON.parse(JSON.stringify(playoffs)) as PlayoffBracket;
+    let losers: { [roundName: string]: { [matchIndex: number]: Team } } = { 'Semifinais': {} };
 
-    const newPlayoffs = { ...playoffs };
-    let losers: { [roundName: string]: Team[] } = { 'Semifinais': [] };
+    const roundOrder = Object.keys(roundNames)
+        .map(Number)
+        .sort((a,b) => b-a)
+        .map(key => roundNames[key])
+        .filter(name => newPlayoffs[name]);
 
-    Object.entries(newPlayoffs).forEach(([roundName, matches], roundIndex) => {
-      if (roundName === 'Disputa de 3º Lugar') return;
+    if (newPlayoffs['Disputa de 3º Lugar']) {
+        roundOrder.push('Disputa de 3º Lugar');
+    }
 
-      matches.forEach((match, matchIndex) => {
-        // Assign teams for the first round
-        if (roundIndex === 0) {
-          if (qualifiedTeams[match.team1Placeholder]) {
-            match.team1 = qualifiedTeams[match.team1Placeholder];
-          }
-          if (qualifiedTeams[match.team2Placeholder]) {
-            match.team2 = qualifiedTeams[match.team2Placeholder];
-          }
-        }
+    let previousRoundName: string | null = null;
+    
+    roundOrder.forEach(roundName => {
+        if (roundName === 'Disputa de 3º Lugar') return;
 
-        // Determine winner and advance to next round
-        if (match.team1 && match.team2 && match.score1 !== undefined && match.score2 !== undefined) {
-          const winner = match.score1 > match.score2 ? match.team1 : match.team2;
-          const loser = match.score1 < match.score2 ? match.team1 : match.team2;
-          
-          if (roundName === 'Semifinais') {
-             losers['Semifinais'].push(loser);
-          }
-
-          const nextRoundNameKey = Object.keys(newPlayoffs)[roundIndex + 1];
-          if (nextRoundNameKey && nextRoundNameKey !== 'Disputa de 3º Lugar') {
-             const nextRoundMatches = newPlayoffs[nextRoundNameKey];
-             if (nextRoundMatches) {
-                const nextMatchIndex = Math.floor(matchIndex / 2);
-                const nextMatch = nextRoundMatches[nextMatchIndex];
-                if (nextMatch) {
-                    if (matchIndex % 2 === 0) {
-                        nextMatch.team1 = winner;
-                    } else {
-                        nextMatch.team2 = winner;
-                    }
+        const matches = newPlayoffs[roundName];
+        matches.forEach((match, matchIndex) => {
+            // Assign teams for the first round from group stage
+            if (!previousRoundName) {
+                if (qualifiedTeams[match.team1Placeholder]) match.team1 = qualifiedTeams[match.team1Placeholder];
+                if (qualifiedTeams[match.team2Placeholder]) match.team2 = qualifiedTeams[match.team2Placeholder];
+            } else { // Assign teams from previous playoff round
+                const prevRoundMatches = newPlayoffs[previousRoundName];
+                
+                const team1WinnerMatch = prevRoundMatches[matchIndex * 2];
+                if (team1WinnerMatch?.score1 !== undefined && team1WinnerMatch?.score2 !== undefined) {
+                    match.team1 = team1WinnerMatch.score1 > team1WinnerMatch.score2 ? team1WinnerMatch.team1 : team1WinnerMatch.team2;
                 }
-             }
-          }
-        }
-      });
-    });
 
+                const team2WinnerMatch = prevRoundMatches[matchIndex * 2 + 1];
+                 if (team2WinnerMatch?.score1 !== undefined && team2WinnerMatch?.score2 !== undefined) {
+                    match.team2 = team2WinnerMatch.score1 > team2WinnerMatch.score2 ? team2WinnerMatch.team2 : team2WinnerMatch.team1;
+                }
+            }
+
+            // Store losers from semifinals for 3rd place match
+            if (roundName === 'Semifinais' && match.team1 && match.team2 && match.score1 !== undefined && match.score2 !== undefined) {
+                const loser = match.score1 < match.score2 ? match.team1 : match.team2;
+                losers['Semifinais'][matchIndex] = loser;
+            }
+        });
+        previousRoundName = roundName;
+    });
+  
     // Handle 3rd place match
-    if (newPlayoffs['Disputa de 3º Lugar'] && losers['Semifinais'].length === 2) {
+    if (newPlayoffs['Disputa de 3º Lugar'] && losers['Semifinais'][0] && losers['Semifinais'][1]) {
         newPlayoffs['Disputa de 3º Lugar'][0].team1 = losers['Semifinais'][0];
         newPlayoffs['Disputa de 3º Lugar'][0].team2 = losers['Semifinais'][1];
     }
-
+  
     setPlayoffs(newPlayoffs);
   }, [tournamentData, playoffs, teamsPerGroupToAdvance, getTeamPlaceholder]);
 
@@ -345,7 +350,8 @@ export function GroupGenerator() {
   useEffect(() => {
     updatePlayoffs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournamentData]);
+  }, [tournamentData, JSON.stringify(playoffs?.['Quartas de Final']), JSON.stringify(playoffs?.['Semifinais'])]
+);
   
   const PlayoffMatchCard = ({ match, roundName, matchIndex }: { match: PlayoffMatch, roundName: string, matchIndex: number }) => (
       <div className="flex flex-col items-center justify-center gap-2 w-full">
@@ -622,7 +628,6 @@ export function GroupGenerator() {
                          <CardDescription>Chaveamento gerado com base na classificação dos grupos.</CardDescription>
                        </CardHeader>
                        <CardContent className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12 p-6 overflow-x-auto">
-
                          {Object.entries(playoffs).map(([roundName, matches]) => (
                             <div key={roundName} className="flex flex-col items-center gap-6">
                                 <h4 className="text-lg font-semibold text-center text-primary whitespace-nowrap">{roundName}</h4>
@@ -633,7 +638,6 @@ export function GroupGenerator() {
                                 </div>
                             </div>
                          ))}
-
                        </CardContent>
                      </Card>
                   )}
@@ -651,3 +655,5 @@ export function GroupGenerator() {
     </div>
   )
 }
+
+    
