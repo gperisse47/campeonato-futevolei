@@ -11,7 +11,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutGrid, Users, Trophy, Loader2, Swords } from "lucide-react"
+import { LayoutGrid, Users, Trophy, Loader2, Swords, Home } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { getTournaments } from "@/app/actions"
@@ -54,7 +54,7 @@ export function SidebarNav() {
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
                     height="24"
-                    viewBox="0 0 24 24"
+                    viewBox="0 0 24"
                     fill="none"
                     stroke="hsl(var(--primary-foreground))"
                     strokeWidth="2"
@@ -76,11 +76,19 @@ export function SidebarNav() {
       <SidebarContent>
         <ScrollArea className="h-full">
             <SidebarMenu>
-              <SidebarMenuItem>
+               <SidebarMenuItem>
                 <Link href="/" passHref>
-                    <SidebarMenuButton isActive={pathname === '/'} tooltip="Página do Administrador">
+                    <SidebarMenuButton isActive={pathname === '/'} tooltip="Página Inicial">
+                      <Home />
+                      <span>Página Inicial</span>
+                    </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/admin" passHref>
+                    <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Página do Administrador">
                       <LayoutGrid />
-                      <span>Página do Administrador</span>
+                      <span>Administrador</span>
                     </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
