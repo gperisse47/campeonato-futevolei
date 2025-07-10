@@ -1398,14 +1398,6 @@
             "team2Placeholder": "Vencedor Lower Rodada 2 Jogo 4",
             "time": "",
             "roundOrder": -3
-          },
-          {
-            "id": "L-R3-3",
-            "name": "Lower Rodada 3 Jogo 3",
-            "team1Placeholder": "Perdedor Upper Rodada 3 Jogo 1",
-            "team2Placeholder": "Perdedor Upper Rodada 3 Jogo 2",
-            "time": "",
-            "roundOrder": -3
           }
         ],
         "Lower Rodada 4": [
@@ -1420,8 +1412,8 @@
           {
             "id": "L-R4-2",
             "name": "Lower Rodada 4 Jogo 2",
-            "team1Placeholder": "Vencedor Lower Rodada 3 Jogo 3",
-            "team2Placeholder": "Perdedor Upper Rodada 4 Jogo 1",
+            "team1Placeholder": "Perdedor Upper Rodada 3 Jogo 1",
+            "team2Placeholder": "Perdedor Upper Rodada 3 Jogo 2",
             "time": "",
             "roundOrder": -4
           }
@@ -1436,14 +1428,23 @@
             "roundOrder": -5
           }
         ],
+        "Lower Rodada 6": [
+          {
+            "id": "L-R6-1",
+            "name": "Lower Rodada 6 Jogo 1",
+            "team1Placeholder": "Vencedor Lower Rodada 5 Jogo 1",
+            "team2Placeholder": "Perdedor Upper Rodada 4 Jogo 1",
+            "time": "",
+            "roundOrder": -6
+          }
+        ],
         "Final da Chave Inferior": [
           {
             "id": "LB-Final-1",
             "name": "Final da Chave Inferior",
-            "team1Placeholder": "Vencedor Lower Rodada 5 Jogo 1",
-            "team2Placeholder": "Perdedor Lower Rodada 5 Jogo 1",
+            "team1Placeholder": "Vencedor Lower Rodada 6 Jogo 1",
             "time": "",
-            "roundOrder": -6
+            "roundOrder": -7
           }
         ]
       },

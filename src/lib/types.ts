@@ -101,11 +101,8 @@ export const formSchema = z
   )
   .refine(
     (data) => {
-        if (data.tournamentType === 'groups') return true;
+        if (data.tournamentType === 'groups' || data.tournamentType === 'doubleElimination') return true;
         const numTeams = data.numberOfTeams;
-        // For elimination brackets, we need a power of 2.
-        // This validation is now relaxed for double elimination.
-        if (data.tournamentType === 'doubleElimination') return true;
         return numTeams > 1 && (numTeams & (numTeams - 1)) === 0;
     },
     {
@@ -200,6 +197,7 @@ export type ConsolidatedMatch = {
     score2?: number;
     time?: string;
 };
+
 
 
 
