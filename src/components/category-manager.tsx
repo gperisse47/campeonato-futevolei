@@ -223,6 +223,24 @@ export function CategoryManager() {
         });
         teamsArray.forEach(t => teamNameMap[teamToKey(t)] = t);
     }
+    
+    // Function to find a match in any bracket structure
+    const findMatchById = (bracket: any, matchId: string): PlayoffMatch | undefined => {
+        if (!bracket) return undefined;
+
+        if (Array.isArray(bracket)) {
+            return bracket.find((m: PlayoffMatch) => m.id === matchId);
+        }
+        
+        if (typeof bracket === 'object') {
+             for (const key in bracket) {
+                const found = findMatchById(bracket[key], matchId);
+                if (found) return found;
+            }
+        }
+        return undefined;
+    };
+
 
     const processBracket = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
         if (!bracket) return;
@@ -871,5 +889,3 @@ export function CategoryManager() {
     </div>
   )
 }
-
-    

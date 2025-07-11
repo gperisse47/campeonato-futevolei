@@ -390,7 +390,7 @@ export function TournamentCreator() {
                 for (let i = 0; i < nextRoundPlaceholders.length / 2; i++) {
                     const matchName = `${roundName} ${i + 1}`;
                     nextRoundMatches.push({
-                        id: `${roundNameKey.replace(/\s/g, '')}-R${upperRound}-Jogo${i + 1}`,
+                        id: `${roundNameKey}-R${upperRound}-Jogo${i + 1}`,
                         name: matchName,
                         team1Placeholder: nextRoundPlaceholders[i*2],
                         team2Placeholder: nextRoundPlaceholders[i*2 + 1],
@@ -456,7 +456,7 @@ export function TournamentCreator() {
 
                 for (let i = 0; i < currentMatchups.length; i++) {
                     const match = currentMatchups[i];
-                    const matchId = `${roundName.replace(/\s/g, '')}-${i + 1}`;
+                    const matchId = `${roundName}-${i + 1}`;
                      bracket[roundName].push({
                         id: matchId,
                         name: `${roundName} ${i + 1}`,

@@ -629,7 +629,15 @@
           "team2Placeholder": "2º do Grupo D",
           "time": "",
           "court": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "team1": {
+            "player1": "Peri",
+            "player2": "Gularte"
+          },
+          "team2": {
+            "player1": "Felipe M.",
+            "player2": "Rapha B."
+          }
         },
         {
           "id": "QuartasdeFinal-2",
@@ -638,7 +646,15 @@
           "team2Placeholder": "1º do Grupo D",
           "time": "",
           "court": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "team1": {
+            "player1": "Gustavo",
+            "player2": "Marcus"
+          },
+          "team2": {
+            "player1": "Alex",
+            "player2": "Lage"
+          }
         },
         {
           "id": "QuartasdeFinal-3",
@@ -647,7 +663,15 @@
           "team2Placeholder": "2º do Grupo C",
           "time": "",
           "court": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "team1": {
+            "player1": "Fabinho",
+            "player2": "Bergallo"
+          },
+          "team2": {
+            "player1": "Rodrigo",
+            "player2": "Paulinho"
+          }
         },
         {
           "id": "QuartasdeFinal-4",
@@ -656,7 +680,15 @@
           "team2Placeholder": "1º do Grupo C",
           "time": "",
           "court": "",
-          "roundOrder": 3
+          "roundOrder": 3,
+          "team1": {
+            "player1": "Carelli",
+            "player2": "Hantaro"
+          },
+          "team2": {
+            "player1": "Caslu",
+            "player2": "Leo"
+          }
         }
       ],
       "Semifinal": [
