@@ -1,4 +1,6 @@
 
+"use client";
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
@@ -6,11 +8,6 @@ import { SidebarNav } from '@/components/sidebar-nav';
 import { Header } from '@/components/header';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/context/AuthContext';
-
-export const metadata: Metadata = {
-  title: 'Campeonato de Futevôlei Amigos do Peri',
-  description: 'Sistema de gerenciamento de campeonatos de futevôlei',
-};
 
 export default function RootLayout({
   children,
@@ -20,6 +17,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>Campeonato de Futevôlei Amigos do Peri</title>
+        <meta name="description" content="Sistema de gerenciamento de campeonatos de futevôlei" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />

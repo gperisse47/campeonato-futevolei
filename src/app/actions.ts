@@ -183,7 +183,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         const courtAvailability: { [courtName: string]: Date } = {};
         sortedCourts.forEach(c => courtAvailability[c.name] = parseTime(_globalSettings.startTime));
 
-        const restDuration = matchDuration; 
+        const restDuration = 0; // No extra rest time
 
         let unscheduledMatches = allMatches.filter(m => !m.original.time);
         let loopGuard = 0;
@@ -198,7 +198,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             let scheduledSomethingInCycle = false;
 
             for (const court of sortedCourts) {
-                const earliestCourtTime = courtAvailability[court.name] || parseTime(_globalSettings.startTime);
+                const earliestCourtTime = courtAvailability[court.name];
                 
                 // Find all schedulable matches for this court at the earliest possible time
                 const schedulableMatches = unscheduledMatches
@@ -230,51 +230,44 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                         return catAStartTime.getTime() - catBStartTime.getTime();
                     });
 
-                    // Schedule the best match from the sorted list
-                    const { matchWrapper, index: originalIndex } = schedulableMatches[0];
-                    const [scheduledMatchWrapper] = unscheduledMatches.splice(originalIndex, 1);
-                    
-                    const players = getPlayers(scheduledMatchWrapper.original.team1, scheduledMatchWrapper.original.team2);
-                    const playersReadyTime = new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
-                    const categoryStartTime = parseTime((db[scheduledMatchWrapper.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime);
+                    // Iterate through the sorted schedulable matches and schedule the first one that is valid
+                    for (const { matchWrapper, index: originalIndex } of schedulableMatches) {
+                         const players = getPlayers(matchWrapper.original.team1, matchWrapper.original.team2);
+                         const playersReadyTime = new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
+                         const categoryStartTime = parseTime((db[matchWrapper.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime);
 
-                    const scheduleTime = new Date(Math.max(earliestCourtTime.getTime(), playersReadyTime.getTime(), categoryStartTime.getTime()));
+                         const scheduleTime = new Date(Math.max(earliestCourtTime.getTime(), playersReadyTime.getTime(), categoryStartTime.getTime()));
 
-                    scheduledMatchWrapper.original.time = format(scheduleTime, 'HH:mm');
-                    scheduledMatchWrapper.original.court = court.name;
-                    scheduledSomethingInCycle = true;
-                    
-                    const restEndTime = addMinutes(scheduleTime, matchDuration + restDuration);
-                    players.forEach(p => { playerAvailability[p] = restEndTime; });
-                    courtAvailability[court.name] = addMinutes(scheduleTime, matchDuration);
+                         // Re-check player availability at the actual scheduleTime, as another match might have been scheduled in this cycle
+                         const allPlayersAvailable = players.every(p => (playerAvailability[p] || new Date(0)) <= scheduleTime);
+
+                         if (allPlayersAvailable) {
+                            // Find the correct index in the current `unscheduledMatches` array
+                            const currentIndexOfMatch = unscheduledMatches.findIndex(m => m.original === matchWrapper.original);
+                            if (currentIndexOfMatch === -1) continue; // Match was already scheduled in this cycle
+
+                            const [scheduledMatchWrapper] = unscheduledMatches.splice(currentIndexOfMatch, 1);
+                            
+                            scheduledMatchWrapper.original.time = format(scheduleTime, 'HH:mm');
+                            scheduledMatchWrapper.original.court = court.name;
+                            scheduledSomethingInCycle = true;
+                            
+                            const restEndTime = addMinutes(scheduleTime, matchDuration + restDuration);
+                            players.forEach(p => { playerAvailability[p] = restEndTime; });
+                            courtAvailability[court.name] = addMinutes(scheduleTime, matchDuration);
+                            
+                            // Break from the inner loop since we've scheduled a match for this court
+                            break; 
+                         }
+                    }
                 }
             }
              
             if (!scheduledSomethingInCycle && unscheduledMatches.length > 0) {
-                // Find the next time a court is available
+                 // Find the next time a court is available
                 const nextCourtAvailableTime = new Date(Math.min(...Object.values(courtAvailability).map(t => t.getTime())));
-
-                // Find the next time a player from an unscheduled match is ready
-                const nextPlayerReadyTimes = unscheduledMatches.map(m => {
-                    const players = getPlayers(m.original.team1, m.original.team2);
-                    if (players.length === 0) return new Date(8640000000000000); // Far future if no players
-                    return new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
-                });
-                const nextPlayerAvailableTime = new Date(Math.min(...nextPlayerReadyTimes.map(t => t.getTime())));
-                
-                // The next time we can potentially schedule is the max of these two
-                const nextAvailableSlot = new Date(Math.max(nextCourtAvailableTime.getTime(), nextPlayerAvailableTime.getTime()));
-                
-                // Find the court that will be free first and advance it to the next available slot
-                // This prevents getting stuck if all players are resting
                 const courtToAdvance = Object.keys(courtAvailability).reduce((a, b) => courtAvailability[a] < courtAvailability[b] ? a : b);
-                
-                if (isBefore(courtAvailability[courtToAdvance], nextAvailableSlot)) {
-                    courtAvailability[courtToAdvance] = nextAvailableSlot;
-                } else {
-                    // If the court is already past the next available slot, just increment slightly to avoid infinite loops
-                     courtAvailability[courtToAdvance] = addMinutes(courtAvailability[courtToAdvance], 1);
-                }
+                courtAvailability[courtToAdvance] = addMinutes(nextCourtAvailableTime, 1);
             }
         }
         
