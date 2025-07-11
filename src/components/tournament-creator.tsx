@@ -103,7 +103,7 @@ export function TournamentCreator() {
 
   useEffect(() => {
     if (tournamentType === 'doubleElimination') {
-      form.setValue('includeThirdPlace', true, { shouldValidate: true });
+      form.setValue('includeThirdPlace', false, { shouldValidate: true });
     }
   }, [form, tournamentType]);
     

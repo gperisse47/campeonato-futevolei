@@ -45,7 +45,14 @@ export async function initializeStandings(groups: GenerateTournamentGroupsOutput
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
       return {
         ...group,
-        matches: group.matches.map(match => ({ ...match, score1: undefined, score2: undefined, time: '', court: '' })),
+        matches: group.matches.map((match, i) => ({ 
+            ...match,
+            id: `${group.name}-match-${i+1}`, 
+            score1: undefined, 
+            score2: undefined, 
+            time: '', 
+            court: '' 
+        })),
         standings: sortedStandings
       }
     })
@@ -251,7 +258,7 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
             let roundOrder = Math.log2(teamsInRound);
             
             let currentRoundMatches: PlayoffMatch[] = aiResult.playoffMatches.map((match, i) => ({
-                id: `Rodada 1-Jogo${i + 1}`,
+                id: `Rodada1-Jogo${i + 1}`,
                 name: `Rodada 1 Jogo ${i + 1}`,
                 team1: match.team1,
                 team2: match.team2,
@@ -301,14 +308,8 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
             }
             
             if (values.includeThirdPlace && bracket['Semifinal']) {
-                const semiFinalWinners = bracket['Semifinal'].map(m => `Vencedor ${m.name}`);
-                const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.name}`);
+                const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
                 
-                if (bracket['Final']?.[0]) {
-                    bracket['Final'][0].team1Placeholder = semiFinalWinners[0];
-                    bracket['Final'][0].team2Placeholder = semiFinalWinners[1];
-                }
-
                 bracket['Disputa de 3º Lugar'] = [
                     { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];
@@ -412,14 +413,8 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
             }
             
             if (includeThirdPlace && bracket['Semifinal']) {
-                const semiFinalWinners = bracket['Semifinal'].map(m => `Vencedor ${m.name}`);
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.name}`);
                 
-                if (bracket['Final']?.[0]) {
-                    bracket['Final'][0].team1Placeholder = semiFinalWinners[0];
-                    bracket['Final'][0].team2Placeholder = semiFinalWinners[1];
-                }
-
                 bracket['Disputa de 3º Lugar'] = [
                     { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];

@@ -100,7 +100,7 @@ export function SidebarNav() {
                     <Link href="/admin" passHref>
                         <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Criar/Atualizar Categoria">
                             <PlusCircle />
-                            <span>Criar/Atualizar Categoria</span>
+                            <span>Criar/Atualizar</span>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
@@ -108,7 +108,7 @@ export function SidebarNav() {
                     <Link href="/admin/teams" passHref>
                         <SidebarMenuButton isActive={pathname === '/admin/teams'} tooltip="Gerenciador de Duplas">
                             <Users/>
-                            <span>Gerenciador de Duplas</span>
+                            <span>Duplas</span>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
@@ -116,7 +116,15 @@ export function SidebarNav() {
                     <Link href="/admin/gerenciador" passHref>
                         <SidebarMenuButton isActive={pathname === '/admin/gerenciador'} tooltip="Gerenciador de Categorias">
                             <LayoutGrid />
-                            <span>Gerenciador de Categorias</span>
+                            <span>Categorias</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <Link href="/admin/matches" passHref>
+                        <SidebarMenuButton isActive={pathname === '/admin/matches'} tooltip="Gerenciador de Jogos">
+                            <Swords />
+                            <span>Jogos</span>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>

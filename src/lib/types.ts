@@ -171,11 +171,13 @@ type AIOutputGroup = {
     matches: {
         team1: Team;
         team2: Team;
+        id?: string;
     }[];
 };
 
 // Types for state management within the component
 export type MatchWithScore = AIOutputGroup['matches'][0] & {
+  id?: string;
   score1?: number;
   score2?: number;
   time?: string;
@@ -239,6 +241,7 @@ export type TournamentsState = {
 }
 
 export type ConsolidatedMatch = {
+    id: string | undefined;
     category: string;
     stage: string;
     team1: string;

@@ -35,6 +35,7 @@ export default function MatchesPage() {
               if (Array.isArray(roundMatches)) {
                 roundMatches.forEach(match => {
                   allMatchesData.push({
+                    id: match.id,
                     category: categoryName,
                     stage: match.name,
                     team1: match.team1 ? teamToKey(match.team1) : match.team1Placeholder,
@@ -59,6 +60,7 @@ export default function MatchesPage() {
               categoryData.tournamentData.groups.forEach(group => {
                 group.matches.forEach(match => {
                   allMatchesData.push({
+                    id: match.id,
                     category: categoryName,
                     stage: group.name,
                     team1: teamToKey(match.team1),
@@ -164,8 +166,8 @@ export default function MatchesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMatches.map((match, index) => (
-                  <TableRow key={`${match.category}-${match.stage}-${index}`}>
+                {filteredMatches.map((match) => (
+                  <TableRow key={match.id}>
                     <TableCell>{match.time || ''}</TableCell>
                     <TableCell>{match.court || ''}</TableCell>
                     <TableCell className="font-medium">{match.category}</TableCell>

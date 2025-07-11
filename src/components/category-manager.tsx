@@ -631,7 +631,7 @@ export function CategoryManager() {
                   <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full min-h-[400px]">
                       <LayoutGrid className="h-12 w-12 text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold">Nenhuma Categoria Gerada</h3>
-                      <p className="text-muted-foreground">Vá para o painel do administrador para criar a sua primeira categoria.</p>
+                      <p className="text-muted-foreground">Vá para o painel de criação para criar sua primeira categoria.</p>
                       <Button asChild className="mt-4">
                           <Link href="/admin">Criar Categoria</Link>
                       </Button>
@@ -870,7 +870,7 @@ export function CategoryManager() {
                                         <h4 className="mb-2 font-semibold">Jogos</h4>
                                         <div className="space-y-2">
                                         {group.matches.map((match, matchIndex) => (
-                                            <div key={matchIndex} className="flex flex-col gap-2 rounded-md bg-secondary/50 p-2 text-sm">
+                                            <div key={match.id || matchIndex} className="flex flex-col gap-2 rounded-md bg-secondary/50 p-2 text-sm">
                                                 {(match.time || match.court) && (
                                                     <div className="flex items-center justify-center gap-4 text-sm font-bold text-primary">
                                                         {match.time && <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {match.time}</span>}
