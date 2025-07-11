@@ -223,14 +223,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     });
                 
                 if (schedulableMatches.length > 0) {
-                    // Sort schedulable matches to prioritize categories that start earlier
-                    schedulableMatches.sort((a, b) => {
-                        const catAStartTime = parseTime((db[a.matchWrapper.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime);
-                        const catBStartTime = parseTime((db[b.matchWrapper.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime);
-                        return catAStartTime.getTime() - catBStartTime.getTime();
-                    });
-
-                    // Iterate through the sorted schedulable matches and schedule the first one that is valid
+                    // Iterate through the schedulable matches and schedule the first one that is valid
                     for (const { matchWrapper, index: originalIndex } of schedulableMatches) {
                          const players = getPlayers(matchWrapper.original.team1, matchWrapper.original.team2);
                          const playersReadyTime = new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
@@ -238,7 +231,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
                          const scheduleTime = new Date(Math.max(earliestCourtTime.getTime(), playersReadyTime.getTime(), categoryStartTime.getTime()));
 
-                         // Re-check player availability at the actual scheduleTime, as another match might have been scheduled in this cycle
+                         // Re-check player availability at the actual scheduleTime, as another match might have been scheduled in this cycle for other players
                          const allPlayersAvailable = players.every(p => (playerAvailability[p] || new Date(0)) <= scheduleTime);
 
                          if (allPlayersAvailable) {
@@ -264,7 +257,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             }
              
             if (!scheduledSomethingInCycle && unscheduledMatches.length > 0) {
-                 // Find the next time a court is available
+                // If nothing was scheduled, advance the time of the earliest available court
                 const nextCourtAvailableTime = new Date(Math.min(...Object.values(courtAvailability).map(t => t.getTime())));
                 const courtToAdvance = Object.keys(courtAvailability).reduce((a, b) => courtAvailability[a] < courtAvailability[b] ? a : b);
                 courtAvailability[courtToAdvance] = addMinutes(nextCourtAvailableTime, 1);
@@ -610,3 +603,5 @@ export async function regenerateCategory(categoryName: string, newFormValues?: T
 
 
       
+
+    
