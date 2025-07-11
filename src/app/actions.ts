@@ -129,7 +129,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
         const matchDuration = _globalSettings.estimatedMatchDuration;
         const sortedCourts = [..._globalSettings.courts].sort((a, b) => (a.priority || 99) - (b.priority || 99));
-
+        
         const getPlayers = (team1?: Team, team2?: Team): string[] => {
             const players: string[] = [];
             if (team1?.player1) players.push(team1.player1);
@@ -140,13 +140,13 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         };
         
         let unscheduledMatches: { original: MatchWithScore | PlayoffMatch; categoryName: string }[] = [];
-        const categoryNames = Object.keys(db).filter(k => k !== '_globalSettings');
-        
         const categoryStartTimeMap = new Map<string, Date>();
         
+        const categoryNames = Object.keys(db).filter(k => k !== '_globalSettings');
         categoryNames.forEach(catName => {
             const catData = db[catName] as CategoryData;
-            categoryStartTimeMap.set(catName, parseTime(catData.formValues.startTime || _globalSettings.startTime));
+            const startTime = catData.formValues.startTime || _globalSettings.startTime;
+            categoryStartTimeMap.set(catName, parseTime(startTime));
 
             const processMatches = (matches: (MatchWithScore | PlayoffMatch)[]) => {
                 matches.forEach(match => {
@@ -160,95 +160,111 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 processMatches(catData.tournamentData.groups.flatMap(g => g.matches));
             }
             if (catData.playoffs) {
-                const processBracket = (bracket?: PlayoffBracket) => {
-                    if (bracket) processMatches(Object.values(bracket).flat());
-                };
                 const bracketSet = catData.playoffs as PlayoffBracketSet;
                 if(bracketSet.upper || bracketSet.lower || bracketSet.playoffs) {
-                    processBracket(bracketSet.upper);
-                    processBracket(bracketSet.lower);
-                    processBracket(bracketSet.playoffs);
+                    processBracket(bracketSet.upper, processMatches);
+                    processBracket(bracketSet.lower, processMatches);
+                    processBracket(bracketSet.playoffs, processMatches);
                 } else {
-                    processBracket(bracketSet as PlayoffBracket);
+                    processBracket(bracketSet as PlayoffBracket, processMatches);
                 }
             }
         });
 
-        // Pre-calculate players for each match
-        const matchPlayerMap = new Map<(MatchWithScore | PlayoffMatch), string[]>();
-        unscheduledMatches.forEach(m => {
-            matchPlayerMap.set(m.original, getPlayers(m.original.team1, m.original.team2));
-        });
+        function processBracket(bracket: PlayoffBracket | undefined, callback: (matches: (MatchWithScore | PlayoffMatch)[]) => void) {
+            if (bracket) callback(Object.values(bracket).flat());
+        }
 
-        const playerLastPlayed = new Map<string, Date>();
+        const playerAvailability = new Map<string, Date>();
+        const courtAvailability = new Map<string, Date>();
+        sortedCourts.forEach(c => courtAvailability.set(c.name, parseTime(_globalSettings.startTime)));
+
         let currentTime = parseTime(_globalSettings.startTime);
 
         while (unscheduledMatches.length > 0) {
-            let scheduledInThisSlot = false;
-            const playersScheduledThisSlot = new Set<string>();
+            let scheduledInSlot = false;
+            
+            // Find available courts for the current time
+            const availableCourts = sortedCourts.filter(court => {
+                const availableTime = courtAvailability.get(court.name) || new Date(0);
+                const isAvailableNow = !isBefore(currentTime, availableTime);
+                if (!isAvailableNow) return false;
 
-            // Sort available matches by category start time, then by player rest time
-            unscheduledMatches.sort((a, b) => {
-                const catStartTimeA = categoryStartTimeMap.get(a.categoryName)!.getTime();
-                const catStartTimeB = categoryStartTimeMap.get(b.categoryName)!.getTime();
-                if (catStartTimeA !== catStartTimeB) {
-                    return catStartTimeA - catStartTimeB;
-                }
-
-                const playersA = matchPlayerMap.get(a.original)!;
-                const playersB = matchPlayerMap.get(b.original)!;
-
-                const worstRestTimeA = Math.min(...playersA.map(p => (playerLastPlayed.get(p) || new Date(0)).getTime()));
-                const worstRestTimeB = Math.min(...playersB.map(p => (playerLastPlayed.get(p) || new Date(0)).getTime()));
-                
-                return worstRestTimeB - worstRestTimeA; // Prioritize those who have rested longer
+                return court.slots.some(slot => 
+                    !isBefore(currentTime, parseTime(slot.startTime)) &&
+                    !isBefore(addMinutes(currentTime, matchDuration), addMinutes(parseTime(slot.endTime), 1))
+                );
             });
 
-            for (const court of sortedCourts) {
-                // Find a valid match for this court at currentTime
-                const matchIndexToSchedule = unscheduledMatches.findIndex(matchWrapper => {
-                    const players = matchPlayerMap.get(matchWrapper.original)!;
-                    if (players.length === 0 || players.some(p => playersScheduledThisSlot.has(p))) {
-                        return false;
-                    }
-
-                    const categoryStartTime = categoryStartTimeMap.get(matchWrapper.categoryName)!;
-                    const canPlayTime = addMinutes(categoryStartTime, 0); // Ensure we're comparing date objects
-                    if (isBefore(currentTime, canPlayTime)) {
-                        return false;
-                    }
+            if (availableCourts.length > 0) {
+                // Find all possible matches for this time slot
+                let possibleMatches = unscheduledMatches.filter(matchWrapper => {
+                    const players = getPlayers(matchWrapper.original.team1, matchWrapper.original.team2);
+                    if (players.length === 0) return false;
                     
-                    const isCourtAvailable = court.slots.some(slot => 
-                        !isBefore(currentTime, parseTime(slot.startTime)) && 
-                        !isBefore(parseTime(slot.endTime), addMinutes(currentTime, matchDuration))
-                    );
-
-                    if (!isCourtAvailable) return false;
+                    const categoryStartTime = categoryStartTimeMap.get(matchWrapper.categoryName)!;
+                    if (isBefore(currentTime, categoryStartTime)) return false;
 
                     return players.every(p => {
-                        const lastPlayedEnd = playerLastPlayed.get(p);
-                        return !lastPlayedEnd || !isBefore(currentTime, lastPlayedEnd);
+                        const lastPlayedEnd = playerAvailability.get(p) || new Date(0);
+                        return !isBefore(currentTime, lastPlayedEnd);
                     });
                 });
+                
+                // Sort possible matches by player rest time
+                possibleMatches.sort((a, b) => {
+                    const playersA = getPlayers(a.original.team1, a.original.team2);
+                    const playersB = getPlayers(b.original.team1, b.original.team2);
 
-                if (matchIndexToSchedule !== -1) {
-                    const [matchToSchedule] = unscheduledMatches.splice(matchIndexToSchedule, 1);
-                    const players = matchPlayerMap.get(matchToSchedule.original)!;
+                    const worstRestA = Math.min(...playersA.map(p => (playerAvailability.get(p) || new Date(0)).getTime()));
+                    const worstRestB = Math.min(...playersB.map(p => (playerAvailability.get(p) || new Date(0)).getTime()));
                     
-                    matchToSchedule.original.time = format(currentTime, 'HH:mm');
-                    matchToSchedule.original.court = court.name;
-                    scheduledInThisSlot = true;
+                    return worstRestB - worstRestA;
+                });
+                
+                const playersScheduledThisSlot = new Set<string>();
 
-                    const matchEndTime = addMinutes(currentTime, matchDuration);
-                    players.forEach(p => {
-                        playerLastPlayed.set(p, matchEndTime);
-                        playersScheduledThisSlot.add(p);
+                for (const court of availableCourts) {
+                    const matchIndexToSchedule = possibleMatches.findIndex(matchWrapper => {
+                        const players = getPlayers(matchWrapper.original.team1, matchWrapper.original.team2);
+                        return players.every(p => !playersScheduledThisSlot.has(p));
                     });
+
+                    if (matchIndexToSchedule !== -1) {
+                        const [matchToSchedule] = possibleMatches.splice(matchIndexToSchedule, 1);
+                        const players = getPlayers(matchToSchedule.original.team1, matchToSchedule.original.team2);
+                        
+                        // Schedule the match
+                        matchToSchedule.original.time = format(currentTime, 'HH:mm');
+                        matchToSchedule.original.court = court.name;
+                        scheduledInSlot = true;
+
+                        // Update availability
+                        const matchEndTime = addMinutes(currentTime, matchDuration);
+                        players.forEach(p => {
+                            playerAvailability.set(p, matchEndTime);
+                            playersScheduledThisSlot.add(p);
+                        });
+                        courtAvailability.set(court.name, matchEndTime);
+                        
+                        // Remove from unscheduled list
+                        unscheduledMatches = unscheduledMatches.filter(m => m.original !== matchToSchedule.original);
+                    }
                 }
             }
             
-            if (!scheduledInThisSlot) {
-                currentTime = addMinutes(currentTime, matchDuration);
+            if (!scheduledInSlot) {
+                // If no games were scheduled, find the next available time and advance
+                const nextCourtTimes = Array.from(courtAvailability.values());
+                const nextPlayerTimes = Array.from(playerAvailability.values());
+                
+                const allTimes = [...nextCourtTimes, ...nextPlayerTimes].filter(d => isBefore(currentTime, d));
+
+                if (allTimes.length > 0) {
+                    currentTime = new Date(Math.min(...allTimes.map(d => d.getTime())));
+                } else {
+                    currentTime = addMinutes(currentTime, matchDuration);
+                }
             }
         }
         
@@ -590,3 +606,4 @@ export async function regenerateCategory(categoryName: string, newFormValues?: T
     
 
     
+
