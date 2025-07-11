@@ -133,37 +133,6 @@ type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
     players: string[];
 };
 
-function findMatchInDb(db: TournamentsState, categoryName: string, matchId: string): MatchWithScore | PlayoffMatch | undefined {
-    const categoryData = db[categoryName] as CategoryData;
-    if (!categoryData) return undefined;
-
-    if (categoryData.tournamentData?.groups) {
-        for (const group of categoryData.tournamentData.groups) {
-            const match = group.matches.find(m => m.id === matchId);
-            if (match) return match;
-        }
-    }
-
-    if (categoryData.playoffs) {
-        const findInBracket = (bracket: PlayoffBracket | undefined): PlayoffMatch | undefined => {
-            if (!bracket) return undefined;
-            for (const round of Object.values(bracket)) {
-                const match = round.find(m => m.id === matchId);
-                if (match) return match;
-            }
-            return undefined;
-        };
-        const bracketSet = categoryData.playoffs as PlayoffBracketSet;
-        if (bracketSet.upper || bracketSet.lower || bracketSet.playoffs) {
-            return findInBracket(bracketSet.upper) || findInBracket(bracketSet.lower) || findInBracket(bracketSet.playoffs);
-        } else {
-            return findInBracket(bracketSet as PlayoffBracket);
-        }
-    }
-    return undefined;
-}
-
-
 function getPlayersFromMatch(match: MatchWithScore | PlayoffMatch): string[] {
     const players = new Set<string>();
     const addTeamPlayers = (team?: Team) => {
@@ -769,3 +738,48 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
     }
 }
 
+
+export async function clearAllSchedules(): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+
+        const resetSchedule = (match: MatchWithScore | PlayoffMatch) => {
+            match.time = '';
+            match.court = '';
+        };
+
+        const resetBracketSchedules = (bracket?: PlayoffBracket) => {
+            if (!bracket) return;
+            Object.values(bracket).flat().forEach(resetSchedule);
+        };
+
+        for (const categoryName in db) {
+            if (categoryName === '_globalSettings') continue;
+            const category = db[categoryName] as CategoryData;
+
+            // Reset group matches
+            category.tournamentData?.groups.forEach(group => {
+                group.matches.forEach(resetSchedule);
+            });
+
+            // Reset playoff matches
+            if (category.playoffs) {
+                const playoffs = category.playoffs as PlayoffBracketSet;
+                if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
+                    resetBracketSchedules(playoffs.upper);
+                    resetBracketSchedules(playoffs.lower);
+                    resetBracketSchedules(playoffs.playoffs);
+                } else {
+                    resetBracketSchedules(playoffs as PlayoffBracket);
+                }
+            }
+        }
+
+        await writeDb(db);
+        return { success: true };
+
+    } catch (e: any) {
+        console.error("Erro ao limpar agendamento:", e);
+        return { success: false, error: e.message || "Erro inesperado ao limpar agendamento." };
+    }
+}

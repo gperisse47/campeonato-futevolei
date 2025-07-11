@@ -21,9 +21,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw } from "lucide-react";
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw, Trash2 } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
-import { getTournaments, updateMatch, updateMultipleMatches, importScheduleFromCSV } from "@/app/actions";
+import { getTournaments, updateMatch, updateMultipleMatches, importScheduleFromCSV, clearAllSchedules } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
@@ -53,6 +53,7 @@ export default function AdminMatchesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingAll, setIsSavingAll] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
   const [globalStartTime, setGlobalStartTime] = useState<string>('08:00');
@@ -315,7 +316,7 @@ export default function AdminMatchesPage() {
   };
   
   const handleResetAllChanges = () => {
-      const resetMatches = filteredMatches.map(m => {
+      const resetMatches = allMatches.map(m => {
           if (m.isDirty) {
               return {
                   ...m,
@@ -333,6 +334,25 @@ export default function AdminMatchesPage() {
           description: "Todas as mudanças não salvas foram revertidas."
       });
   };
+
+  const handleClearAllSchedules = async () => {
+    setIsClearing(true);
+    const result = await clearAllSchedules();
+    if(result.success) {
+        toast({
+            title: "Agendamento Limpo!",
+            description: "Todos os horários e quadras foram removidos."
+        });
+        await loadMatchesAndSettings();
+    } else {
+         toast({
+            variant: "destructive",
+            title: "Erro ao Limpar",
+            description: result.error || "Não foi possível limpar o agendamento.",
+        });
+    }
+    setIsClearing(false);
+  }
 
   const handleExportCSV = () => {
     const csvData = Papa.unparse(
@@ -443,7 +463,7 @@ export default function AdminMatchesPage() {
             />
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button disabled={!hasDirtyMatches || isSavingAll}>
+                    <Button variant="outline" disabled={!hasDirtyMatches || isSavingAll}>
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Resetar Alterações
                     </Button>
@@ -465,6 +485,26 @@ export default function AdminMatchesPage() {
               {isSavingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Salvar Tudo
             </Button>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isClearing}>
+                        {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Limpar Agendamento
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Limpar todo o agendamento?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação removerá TODOS os horários e quadras de TODAS as partidas. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearAllSchedules} className="bg-destructive hover:bg-destructive/90">Confirmar Limpeza</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardHeader>
         <CardContent>
