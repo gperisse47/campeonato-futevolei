@@ -26,9 +26,9 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Criar Nova Categoria</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Criar/Atualizar Categoria</h1>
         <p className="text-muted-foreground">
-          Use as opções abaixo para configurar e gerar uma nova categoria para o torneio.
+          Use as opções abaixo para configurar e gerar uma nova categoria ou carregar uma existente para atualizar.
         </p>
       </div>
       <TournamentCreator />

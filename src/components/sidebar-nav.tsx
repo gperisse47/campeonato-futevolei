@@ -98,9 +98,9 @@ export function SidebarNav() {
                 </SidebarMenuItem>
                  <SidebarMenuItem>
                     <Link href="/admin" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Criar Nova Categoria">
+                        <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Criar/Atualizar Categoria">
                             <PlusCircle />
-                            <span>Criar Categoria</span>
+                            <span>Criar/Atualizar Categoria</span>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
