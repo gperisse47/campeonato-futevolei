@@ -398,7 +398,7 @@ export default function AdminMatchesPage() {
                   {filteredMatches.map((match, index) => {
                     const isSaving = savingStates[match.id];
                     return (
-                    <TableRow key={match.id || `match-${index}`}>
+                    <TableRow key={`${match.category}-${match.id}-${index}`}>
                       <TableCell>
                         <Input
                           type="time"
