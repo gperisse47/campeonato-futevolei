@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Trash2, Upload, Download } from "lucide-react";
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
 import { getTournaments, updateMatch, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
