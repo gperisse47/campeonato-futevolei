@@ -90,9 +90,9 @@ export function SidebarNav() {
                  <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider">ADMINISTRAÇÃO</div>
                  <SidebarMenuItem>
                     <Link href="/admin/settings" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/settings'} tooltip="Configurações Globais">
+                        <SidebarMenuButton isActive={pathname === '/admin/settings'} tooltip="Configurações do Campeonato">
                             <Settings />
-                            <span>Configurações</span>
+                            <span>Configurações do Campeonato</span>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
