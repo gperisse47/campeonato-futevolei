@@ -443,7 +443,7 @@ export default function AdminMatchesPage() {
             />
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="outline" disabled={!hasDirtyMatches || isSavingAll}>
+                    <Button disabled={!hasDirtyMatches || isSavingAll}>
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Resetar Alterações
                     </Button>
@@ -547,4 +547,3 @@ export default function AdminMatchesPage() {
     </div>
   );
 }
-
