@@ -217,15 +217,22 @@ export default function AdminMatchesPage() {
 
   const handleFieldChange = (matchId: string, field: 'time' | 'court', value: string) => {
     setFilteredMatches(prev => {
-        const newMatches = prev.map(m => {
-            if (m.id === matchId) {
-                const updatedMatch = { ...m, [field]: value, isDirty: true };
-                updatedMatch.validationError = validateChange(updatedMatch, prev);
-                return updatedMatch;
-            }
-            return m;
-        });
-        return newMatches;
+      // Create a temporary updated list to run validations against
+      let tempMatches = [...prev];
+      let matchIndex = tempMatches.findIndex(m => m.id === matchId);
+      if (matchIndex === -1) return prev; // Should not happen
+
+      // Update the specific match that changed
+      tempMatches[matchIndex] = { ...tempMatches[matchIndex], [field]: value, isDirty: true };
+      
+      // Now, re-validate all matches based on this temporary state
+      // This is necessary because a change in one match can create or resolve a conflict in another.
+      const validatedMatches = tempMatches.map(m => ({
+          ...m,
+          validationError: validateChange(m, tempMatches)
+      }));
+
+      return validatedMatches;
     });
   };
   
@@ -420,5 +427,3 @@ export default function AdminMatchesPage() {
     </div>
   );
 }
-
-    
