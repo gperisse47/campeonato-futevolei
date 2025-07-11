@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -167,7 +166,7 @@ export default function MatchesPage() {
               </TableHeader>
               <TableBody>
                 {filteredMatches.map((match, index) => (
-                  <TableRow key={match.id || `match-${index}`}>
+                  <TableRow key={`${match.category}-${match.id || `match-${index}`}`}>
                     <TableCell>{match.time || ''}</TableCell>
                     <TableCell>{match.court || ''}</TableCell>
                     <TableCell className="font-medium">{match.category}</TableCell>
