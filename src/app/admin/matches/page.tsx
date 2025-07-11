@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
+import Papa from "papaparse";
 import { LoginPage } from "@/components/login-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,9 +21,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Trash2 } from "lucide-react";
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Trash2, Upload, Download } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
-import { getTournaments, updateMatch, resetAllSchedules, rescheduleAllTournaments } from "@/app/actions";
+import { getTournaments, updateMatch, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
@@ -50,12 +51,12 @@ export default function AdminMatchesPage() {
   const [filteredMatches, setFilteredMatches] = useState<EditableMatch[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isResetting, setIsResetting] = useState(false);
-  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const teamToKey = (team: any): string => {
     if (!team) return '';
@@ -270,43 +271,58 @@ export default function AdminMatchesPage() {
     setSavingStates(prev => ({ ...prev, [match.id]: false }));
   };
 
-  const handleResetSchedules = async () => {
-    setIsResetting(true);
-    const result = await resetAllSchedules();
-    if (result.success) {
+  const handleExportCSV = () => {
+    const csvData = Papa.unparse(
+      allMatches.map(m => ({
+        matchId: m.id,
+        category: m.category,
+        stage: m.stage,
+        team1: m.team1,
+        team2: m.team2,
+        time: m.time,
+        court: m.court,
+      }))
+    );
+
+    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "horarios.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const csvData = e.target?.result as string;
+      const result = await importScheduleFromCSV(csvData);
+
+      if (result.success) {
         toast({
-            title: "Horários Resetados",
-            description: "Todos os horários de jogos foram limpos."
+          title: "Importação Concluída!",
+          description: "Os horários e quadras foram atualizados com sucesso.",
         });
         await loadMatchesAndSettings();
-    } else {
+      } else {
         toast({
-            variant: "destructive",
-            title: "Erro ao Resetar",
-            description: result.error || "Não foi possível limpar os horários."
+          variant: "destructive",
+          title: "Erro na Importação",
+          description: result.error || "Não foi possível importar o arquivo.",
         });
-    }
-    setIsResetting(false);
-  }
-
-  const handleRescheduleAll = async () => {
-    setIsRescheduling(true);
-    const result = await rescheduleAllTournaments();
-    if (result.success) {
-      toast({
-        title: "Torneio Reagendado!",
-        description: "Todos os jogos foram recalculados com sucesso.",
-      });
-      await loadMatchesAndSettings();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Erro ao Reagendar",
-        description: result.error || "Não foi possível reagendar o torneio.",
-      });
-    }
-    setIsRescheduling(false);
-  }
+      }
+      setIsImporting(false);
+      // Reset file input
+      if(fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.readAsText(file);
+  };
 
   if (isAuthLoading) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -331,7 +347,7 @@ export default function AdminMatchesPage() {
         <CardHeader>
           <CardTitle>Todos os Jogos</CardTitle>
           <CardDescription>
-            Ajuste os horários e quadras e clique em salvar para cada linha. As alterações são validadas em tempo real.
+            Ajuste os horários e quadras e clique em salvar para cada linha, ou use a importação/exportação de CSV.
           </CardDescription>
           <div className="flex flex-col sm:flex-row gap-2 mt-4">
             <div className="relative flex-1">
@@ -344,34 +360,21 @@ export default function AdminMatchesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-             <Button onClick={handleRescheduleAll} disabled={isRescheduling || isResetting}>
-                {isRescheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
-                Recalcular Horários
+             <Button onClick={handleExportCSV} variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar para CSV
              </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={isResetting || isRescheduling}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Resetar Horários
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação removerá todos os horários e quadras de TODOS os jogos. 
-                    Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetSchedules} className="bg-destructive hover:bg-destructive/90">
-                    {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Sim, resetar horários
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+              {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                Importar de CSV
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept=".csv"
+              onChange={handleFileChange}
+            />
           </div>
         </CardHeader>
         <CardContent>
