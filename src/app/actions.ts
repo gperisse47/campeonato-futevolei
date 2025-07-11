@@ -42,7 +42,7 @@ async function readDb(): Promise<TournamentsState> {
       data._globalSettings = {
         startTime: "08:00",
         estimatedMatchDuration: 20,
-        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
+        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
       };
     }
     return data;
@@ -52,7 +52,7 @@ async function readDb(): Promise<TournamentsState> {
         _globalSettings: {
             startTime: "08:00",
             estimatedMatchDuration: 20,
-            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}] }]
+            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
         }
       };
       await writeDb(defaultData);
@@ -179,90 +179,82 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         
         const sortedCourts = [..._globalSettings.courts].sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
-        let currentTime = parseTime(_globalSettings.startTime);
         const playerAvailability: { [playerName: string]: Date } = {};
         const courtAvailability: { [courtName: string]: Date } = {};
+        sortedCourts.forEach(c => courtAvailability[c.name] = parseTime(_globalSettings.startTime));
+
         const restDuration = matchDuration; 
 
         let unscheduledMatches = allMatches.filter(m => !m.original.time);
-        let loopGuard = 0; // To prevent infinite loops in development
+        let loopGuard = 0;
 
         while (unscheduledMatches.length > 0) {
             loopGuard++;
-            if (loopGuard > 10000) {
+            if (loopGuard > 20000) { 
                 console.error("Scheduler stuck in a loop. Aborting.");
                 break;
             }
 
-            let scheduledInThisSlot = false;
-            
+            let scheduledSomethingInCycle = false;
+
             for (const court of sortedCourts) {
-                const courtReadyTime = courtAvailability[court.name] || new Date(0);
-                const effectiveCurrentTime = isBefore(currentTime, courtReadyTime) ? courtReadyTime : currentTime;
-
-                const matchEndTime = addMinutes(effectiveCurrentTime, matchDuration);
-                const isCourtAvailableInSlot = court.slots.some(slot => {
-                    const slotStart = parseTime(slot.startTime);
-                    const slotEnd = parseTime(slot.endTime);
-                    return !isBefore(effectiveCurrentTime, slotStart) && !isBefore(slotEnd, matchEndTime);
-                });
-
-                if (!isCourtAvailableInSlot) continue;
-
+                const earliestCourtTime = courtAvailability[court.name] || parseTime(_globalSettings.startTime);
+                
                 const matchToScheduleIndex = unscheduledMatches.findIndex(matchWrapper => {
                     const { original: match, categoryName } = matchWrapper;
                     const players = getPlayers(match.team1, match.team2);
                     
-                    if (players.length === 0) {
-                        return false;
-                    }
+                    if (players.length === 0) return false;
                     
-                    const categoryStartTimeStr = (db[categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime;
-                    const categoryStartTime = parseTime(categoryStartTimeStr);
-                    if (isBefore(effectiveCurrentTime, categoryStartTime)) {
-                        return false;
-                    }
+                    const playersReadyTime = new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
+                    const categoryStartTime = parseTime((db[categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime);
 
-                    const playersAreRested = players.every(p => {
-                        const availableTime = playerAvailability[p] || new Date(0);
-                        return isEqual(effectiveCurrentTime, availableTime) || isBefore(availableTime, effectiveCurrentTime);
+                    const scheduleTime = new Date(Math.max(
+                        earliestCourtTime.getTime(), 
+                        playersReadyTime.getTime(),
+                        categoryStartTime.getTime()
+                    ));
+                    
+                    const matchEndTime = addMinutes(scheduleTime, matchDuration);
+                    const isCourtAvailableInSlot = court.slots.some(slot => {
+                        const slotStart = parseTime(slot.startTime);
+                        const slotEnd = parseTime(slot.endTime);
+                        return !isBefore(scheduleTime, slotStart) && !isBefore(slotEnd, matchEndTime);
                     });
-                    return playersAreRested;
+
+                    return isCourtAvailableInSlot;
                 });
                 
                 if (matchToScheduleIndex !== -1) {
                     const [matchWrapper] = unscheduledMatches.splice(matchToScheduleIndex, 1);
-                    
-                    matchWrapper.original.time = format(effectiveCurrentTime, 'HH:mm');
+                    const players = getPlayers(matchWrapper.original.team1, matchWrapper.original.team2);
+                    const playersReadyTime = new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
+                    const categoryStartTime = parseTime((db[matchWrapper.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime);
+
+                    const scheduleTime = new Date(Math.max(
+                        earliestCourtTime.getTime(), 
+                        playersReadyTime.getTime(),
+                        categoryStartTime.getTime()
+                    ));
+
+                    matchWrapper.original.time = format(scheduleTime, 'HH:mm');
                     matchWrapper.original.court = court.name;
-                    scheduledInThisSlot = true;
+                    scheduledSomethingInCycle = true;
                     
-                    const playersInMatch = getPlayers(matchWrapper.original.team1, matchWrapper.original.team2);
-                    const restEndTime = addMinutes(effectiveCurrentTime, matchDuration + restDuration);
-                    playersInMatch.forEach(p => {
-                        playerAvailability[p] = restEndTime;
-                    });
-                    courtAvailability[court.name] = addMinutes(effectiveCurrentTime, matchDuration);
+                    const restEndTime = addMinutes(scheduleTime, matchDuration + restDuration);
+                    players.forEach(p => { playerAvailability[p] = restEndTime; });
+                    courtAvailability[court.name] = addMinutes(scheduleTime, matchDuration);
                 }
             }
              
-            if (!scheduledInThisSlot) {
-                 const allNextAvailableTimes = [
-                    ...Object.values(courtAvailability),
-                    ...Object.values(playerAvailability)
-                ].filter(Boolean).filter(t => isBefore(currentTime, t));
+            if (!scheduledSomethingInCycle && unscheduledMatches.length > 0) {
+                 const nextCourtTime = new Date(Math.min(...Object.values(courtAvailability).map(t => t.getTime())));
+                 const nextPlayerTime = new Date(Math.min(...unscheduledMatches.flatMap(m => getPlayers(m.original.team1, m.original.team2)).map(p => (playerAvailability[p] || new Date(0)).getTime())));
+                 
+                 const nextTime = new Date(Math.max(nextCourtTime.getTime(), nextPlayerTime.getTime()));
 
-
-                if (allNextAvailableTimes.length > 0) {
-                    currentTime = new Date(Math.min(...allNextAvailableTimes.map(d => d.getTime())));
-                } else {
-                    currentTime = addMinutes(currentTime, 1);
-                }
-            }
-
-            if (isBefore(parseTime("23:59"), currentTime)) {
-                console.warn("Scheduler reached end of day, breaking loop.");
-                break;
+                 const courtToAdvance = Object.keys(courtAvailability).reduce((a, b) => courtAvailability[a] < courtAvailability[b] ? a : b);
+                 courtAvailability[courtToAdvance] = addMinutes(nextTime, 1);
             }
         }
         
