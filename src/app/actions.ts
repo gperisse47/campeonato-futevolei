@@ -10,7 +10,7 @@ import {
 } from "@/ai/flows/generate-tournament-groups"
 import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput, PlayoffMatch, MatchWithScore, Court, TournamentFormValues, GroupWithScores } from "@/lib/types"
 import { z } from 'zod';
-import { format, addMinutes, parse, isBefore, isEqual, startOfDay, isAfter } from 'date-fns';
+import { format, addMinutes, parse, isBefore, startOfDay, isAfter } from 'date-fns';
 import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from '@/lib/regeneration';
 
 
@@ -119,14 +119,7 @@ const parseTime = (timeStr: string): Date => {
     return date;
 };
 
-
-const teamToKey = (team?: Team) => {
-    if (!team || !team.player1 || !team.player2) return '';
-    return `${team.player1}-${team.player2}`.trim().toLowerCase();
-};
-
-
-const getPlayersFromMatch = (match: MatchWithScore | PlayoffMatch): string[] => {
+const getPlayersFromMatch = (match: SchedulableMatch): string[] => {
     const players = new Set<string>();
     if (match.team1?.player1) players.add(match.team1.player1);
     if (match.team1?.player2) players.add(match.team1.player2);
@@ -144,11 +137,19 @@ const extractDependencies = (placeholder: string): string[] => {
     if (loserMatch && loserMatch[1]) {
         return [loserMatch[1].trim()];
     }
-    const groupMatches = placeholder.match(/\d+º do (Grupo \w)/);
+    const groupMatches = placeholder.match(/\d+º do (Group \w)/);
     if(groupMatches && groupMatches[1]){
         return [`${groupMatches[1].trim()}-finished`];
     }
     return [];
+};
+
+
+// A unique identifier for a match object
+const getMatchId = (match: SchedulableMatch): string => {
+    if ('id' in match) return match.id;
+    // For group matches, create a stable ID based on teams and category/group
+    return `${match.category}-${match.groupName}-${teamToKey(match.team1)}-vs-${teamToKey(match.team2)}`;
 };
 
 type SchedulableMatch = (MatchWithScore & { category: string, groupName?: string }) | (PlayoffMatch & { category: string });
@@ -163,47 +164,51 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
         const matchDuration = _globalSettings.estimatedMatchDuration;
         const sortedCourts = [..._globalSettings.courts].sort((a, b) => (a.priority || 99) - (b.priority || 99));
-        
+
         // --- 1. Data Preparation ---
         let allMatchesToSchedule: SchedulableMatch[] = [];
         const categoryStartTimeMap = new Map<string, Date>();
-        const groupMatchCounts = new Map<string, number>(); // <groupName, totalMatches>
-        const groupFinishedMatchCounts = new Map<string, number>(); // <groupName, finishedMatches>
-        
+        const matchPlayerMap = new Map<string, string[]>();
+        const matchDependencyMap = new Map<string, string[]>();
+        const groupMatchCounts = new Map<string, number>();
+
         Object.keys(db).filter(k => k !== '_globalSettings').forEach(catName => {
             const catData = db[catName] as CategoryData;
             categoryStartTimeMap.set(catName, parseTime(catData.formValues.startTime || _globalSettings.startTime));
-
-            const clearSchedule = (match: any) => {
-                match.time = '';
-                match.court = '';
-                return match;
-            };
+            
+            const clearSchedule = (match: any) => ({ ...match, time: '', court: '' });
 
             if (catData.tournamentData?.groups) {
                 catData.tournamentData.groups.forEach(g => {
-                    groupMatchCounts.set(g.name, g.matches.length);
-                    groupFinishedMatchCounts.set(g.name, 0);
+                    const groupKey = `${catName}-${g.name}`;
+                    groupMatchCounts.set(groupKey, g.matches.length);
                     g.matches.forEach(m => {
-                        allMatchesToSchedule.push({ ...clearSchedule(m), category: catName, groupName: g.name });
+                        const schedulableMatch: SchedulableMatch = { ...clearSchedule(m), category: catName, groupName: g.name };
+                        allMatchesToSchedule.push(schedulableMatch);
+                        matchPlayerMap.set(getMatchId(schedulableMatch), getPlayersFromMatch(schedulableMatch));
                     });
                 });
             }
+
             if (catData.playoffs) {
-                 const processBracket = (bracket: PlayoffBracket | undefined) => {
+                const processBracket = (bracket: PlayoffBracket | undefined) => {
                     if (!bracket) return;
                     Object.values(bracket).flat().forEach(m => {
-                       const deps = new Set<string>();
-                       extractDependencies(m.team1Placeholder).forEach(d => deps.add(d));
-                       extractDependencies(m.team2Placeholder).forEach(d => deps.add(d));
-                       const dependencies = Array.from(deps);
-                       allMatchesToSchedule.push({ ...clearSchedule(m), category: catName, dependencies });
+                        const schedulableMatch: SchedulableMatch = { ...clearSchedule(m), category: catName };
+                        allMatchesToSchedule.push(schedulableMatch);
+                        const players = getPlayersFromMatch(schedulableMatch);
+                        if(players.length > 0) matchPlayerMap.set(getMatchId(schedulableMatch), players);
+                        
+                        const deps = new Set<string>();
+                        extractDependencies(m.team1Placeholder).forEach(d => deps.add(d));
+                        extractDependencies(m.team2Placeholder).forEach(d => deps.add(d));
+                        if(deps.size > 0) matchDependencyMap.set(m.id, Array.from(deps));
                     });
                 };
                 const bracketSet = catData.playoffs as PlayoffBracketSet;
                 if (!bracketSet.upper && !bracketSet.lower) { // Single elimination
                     processBracket(bracketSet as PlayoffBracket);
-                } else {
+                } else { // Double elimination
                     processBracket(bracketSet.upper);
                     processBracket(bracketSet.lower);
                     processBracket(bracketSet.playoffs);
@@ -212,114 +217,104 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         });
 
         // --- 2. Scheduling Loop ---
-        const playerAvailability = new Map<string, Date>(); // <playerName, availableTime>
-        const courtAvailability = new Map<string, Date>(); // <courtName, availableTime>
+        const playerAvailability = new Map<string, Date>();
+        const courtAvailability = new Map<string, Date>();
         sortedCourts.forEach(c => courtAvailability.set(c.name, new Date(0)));
-        const dependencyFinishTimes = new Map<string, Date>(); // <dependencyId, finishTime>
+        const dependencyFinishTimes = new Map<string, Date>();
+        const groupFinishedMatchCounts = new Map<string, number>();
 
-        const unscheduledMatches = new Set(allMatchesToSchedule);
+        let unscheduledMatches = new Set(allMatchesToSchedule.map(m => getMatchId(m)));
         let currentTime = parseTime(_globalSettings.startTime);
-
+        
         while (unscheduledMatches.size > 0) {
             let scheduledSomethingInThisSlot = false;
-            
-            const freeCourts = sortedCourts.filter(c => !isAfter(courtAvailability.get(c.name)!, currentTime));
 
-            if (freeCourts.length > 0) {
-                let candidateMatches = Array.from(unscheduledMatches).filter(match => {
-                    // Check category start time
-                    if (isAfter(categoryStartTimeMap.get(match.category)!, currentTime)) {
-                        return false;
-                    }
+            const availableCourts = sortedCourts.filter(c => !isAfter(courtAvailability.get(c.name)!, currentTime));
 
-                    // Check playoff dependencies
-                    if ('dependencies' in match && match.dependencies) {
-                        for (const dep of match.dependencies) {
+            if (availableCourts.length > 0) {
+                let candidateMatches = allMatchesToSchedule.filter(m => unscheduledMatches.has(getMatchId(m)));
+
+                let schedulableNow = candidateMatches.filter(match => {
+                    if (isAfter(categoryStartTimeMap.get(match.category)!, currentTime)) return false;
+
+                    const deps = matchDependencyMap.get(getMatchId(match));
+                    if (deps) {
+                        for (const dep of deps) {
                             const finishTime = dependencyFinishTimes.get(dep);
-                            if (!finishTime || isAfter(finishTime, currentTime)) {
-                                return false; // Dependency not met yet
-                            }
+                            if (!finishTime || isAfter(finishTime, currentTime)) return false;
                         }
                     }
-                    
-                    // A match can't be a candidate if it doesn't have players yet
-                    if (!match.team1 || !match.team2) return false;
-                    
-                    // Check player availability
-                    const players = getPlayersFromMatch(match);
+
+                    const players = matchPlayerMap.get(getMatchId(match)) || [];
+                    if (players.length === 0 && 'dependencies' in match) return false;
                     return players.every(p => !isAfter(playerAvailability.get(p) || new Date(0), currentTime));
                 });
                 
-                // Sort by who has rested the most (among the players who rested the least)
-                candidateMatches.sort((a, b) => {
-                     const getWorstRestTime = (match: SchedulableMatch) => {
-                        const players = getPlayersFromMatch(match);
+                schedulableNow.sort((a, b) => {
+                    const getWorstRestTime = (match: SchedulableMatch) => {
+                        const players = matchPlayerMap.get(getMatchId(match)) || [];
                         if (players.length === 0) return new Date(0).getTime();
                         const lastPlayedTimes = players.map(p => (playerAvailability.get(p) || new Date(0)).getTime());
                         return Math.min(...lastPlayedTimes);
                     };
                     return getWorstRestTime(b) - getWorstRestTime(a);
                 });
-
+                
                 const playersScheduledInThisSlot = new Set<string>();
 
-                for (const court of freeCourts) {
+                for (const court of availableCourts) {
                     const isCourtOpen = court.slots.some(slot => 
                         !isBefore(currentTime, parseTime(slot.startTime)) &&
                         !isAfter(addMinutes(currentTime, matchDuration), parseTime(slot.endTime))
                     );
                     if (!isCourtOpen) continue;
 
-                    const matchToSchedule = candidateMatches.find(match => {
-                        const players = getPlayersFromMatch(match);
-                        // All players for this match must not be scheduled in this same time slot
+                    const matchToSchedule = schedulableNow.find(match => {
+                        const players = matchPlayerMap.get(getMatchId(match)) || [];
                         return players.every(p => !playersScheduledInThisSlot.has(p));
                     });
                     
                     if (matchToSchedule) {
+                        const matchId = getMatchId(matchToSchedule);
                         const matchEndTime = addMinutes(currentTime, matchDuration);
                         matchToSchedule.time = format(currentTime, 'HH:mm');
                         matchToSchedule.court = court.name;
                         
                         courtAvailability.set(court.name, matchEndTime);
                         
-                        const players = getPlayersFromMatch(matchToSchedule);
+                        const players = matchPlayerMap.get(matchId) || [];
                         players.forEach(p => {
                             playerAvailability.set(p, matchEndTime);
                             playersScheduledInThisSlot.add(p);
                         });
-
-                        // Update dependency finish times
-                        if ('id' in matchToSchedule) { // It's a playoff match
-                            dependencyFinishTimes.set(matchToSchedule.id, matchEndTime);
-                        }
-                        if ('groupName' in matchToSchedule && matchToSchedule.groupName) { // It's a group match
-                           const groupName = matchToSchedule.groupName;
-                           const newCount = (groupFinishedMatchCounts.get(groupName) || 0) + 1;
-                           groupFinishedMatchCounts.set(groupName, newCount);
-                           if (newCount === groupMatchCounts.get(groupName)) {
-                               // Last match of the group just finished
-                               dependencyFinishTimes.set(`${groupName}-finished`, matchEndTime);
+                        
+                        if ('id' in matchToSchedule) dependencyFinishTimes.set(matchToSchedule.id, matchEndTime);
+                        
+                        if ('groupName' in matchToSchedule && matchToSchedule.groupName) {
+                           const groupKey = `${matchToSchedule.category}-${matchToSchedule.groupName}`;
+                           const newCount = (groupFinishedMatchCounts.get(groupKey) || 0) + 1;
+                           groupFinishedMatchCounts.set(groupKey, newCount);
+                           if (newCount === groupMatchCounts.get(groupKey)) {
+                               dependencyFinishTimes.set(`${matchToSchedule.groupName}-finished`, matchEndTime);
                            }
                         }
 
-                        unscheduledMatches.delete(matchToSchedule);
+                        unscheduledMatches.delete(matchId);
+                        schedulableNow = schedulableNow.filter(m => getMatchId(m) !== matchId);
                         scheduledSomethingInThisSlot = true;
                     }
                 }
             }
 
             if (!scheduledSomethingInThisSlot) {
-                // If nothing was scheduled, advance time to the next available slot
                 const allNextAvailableTimes = [
                     ...Array.from(courtAvailability.values()),
-                    ...Array.from(playerAvailability.values())
-                ].filter(d => isAfter(d, currentTime)).map(d => d.getTime());
+                    ...Array.from(playerAvailability.values()),
+                ].filter(d => isAfter(d, currentTime));
 
                 if (allNextAvailableTimes.length > 0) {
-                     currentTime = new Date(Math.min(...allNextAvailableTimes));
+                     currentTime = new Date(Math.min(...allNextAvailableTimes.map(d => d.getTime())));
                 } else {
-                    // Should not happen if there are unscheduled matches, but as a fallback
                     currentTime = addMinutes(currentTime, matchDuration);
                 }
             }
@@ -342,6 +337,10 @@ function teamIsEqual(teamA?: Team, teamB?: Team) {
     return teamAPlayers[0] === teamBPlayers[0] && teamAPlayers[1] === teamBPlayers[1];
 }
 
+const teamToKey = (team?: Team) => {
+    if (!team || !team.player1 || !team.player2) return '';
+    return `${team.player1}-${team.player2}`.trim().toLowerCase();
+};
 
 export async function renameTournament(oldCategoryName: string, newCategoryName: string): Promise<{ success: boolean; error?: string }> {
     try {
@@ -408,7 +407,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groupsData: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groupsData: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
