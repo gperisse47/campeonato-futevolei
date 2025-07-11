@@ -1,5 +1,5 @@
 
-
+'use server';
 import type {
   GenerateTournamentGroupsInput as AIGenerateTournamentGroupsInput,
 } from "@/ai/flows/generate-tournament-groups"
@@ -29,6 +29,7 @@ export type TimeSlot = z.infer<typeof timeSlotSchema>;
 export const courtSchema = z.object({
     name: z.string().min(1, "O nome da quadra é obrigatório."),
     slots: z.array(timeSlotSchema).min(1, "Deve haver pelo menos um horário disponível para a quadra."),
+    priority: z.number().int().optional(),
 });
 export type Court = z.infer<typeof courtSchema>;
 
@@ -147,22 +148,6 @@ export const formSchema = z
     {
       message: "Dupla eliminação requer no mínimo 2 duplas.",
       path: ["numberOfTeams"],
-    }
-  )
-  .refine(
-    (data) => {
-      const players = data.teams
-        .split('\n')
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .flatMap((teamString) => teamString.split(/\s+e\s+/i).map((p) => p.trim()));
-
-      const uniquePlayers = new Set(players);
-      return players.length === uniquePlayers.size;
-    },
-    {
-      message: "Existem jogadores duplicados na lista. Cada pessoa só pode fazer parte de uma dupla.",
-      path: ["teams"],
     }
   );
 

@@ -614,7 +614,7 @@
           "id": "Quartas de Final-1",
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
-          "team2Placeholder": "1º do Grupo B",
+          "team2Placeholder": "2º do Grupo D",
           "time": "",
           "court": "",
           "roundOrder": 3
@@ -622,8 +622,8 @@
         {
           "id": "Quartas de Final-2",
           "name": "Quartas de Final 2",
-          "team1Placeholder": "2º do Grupo A",
-          "team2Placeholder": "2º do Grupo B",
+          "team1Placeholder": "2º do Grupo B",
+          "team2Placeholder": "1º do Grupo C",
           "time": "",
           "court": "",
           "roundOrder": 3
@@ -631,7 +631,7 @@
         {
           "id": "Quartas de Final-3",
           "name": "Quartas de Final 3",
-          "team1Placeholder": "2º do Grupo D",
+          "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
           "time": "",
           "court": "",
@@ -640,8 +640,8 @@
         {
           "id": "Quartas de Final-4",
           "name": "Quartas de Final 4",
-          "team1Placeholder": "1º do Grupo D",
-          "team2Placeholder": "1º do Grupo C",
+          "team1Placeholder": "2º do Grupo A",
+          "team2Placeholder": "1º do Grupo D",
           "time": "",
           "court": "",
           "roundOrder": 3
@@ -660,8 +660,8 @@
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor Quartas de Final 2",
-          "team2Placeholder": "Vencedor Quartas de Final 3",
+          "team1Placeholder": "Vencedor Quartas de Final 3",
+          "team2Placeholder": "Vencedor Quartas de Final 2",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -888,7 +888,7 @@
           "id": "Semifinal-1",
           "name": "Semifinal 1",
           "team1Placeholder": "1º do Grupo A",
-          "team2Placeholder": "1º do Grupo B",
+          "team2Placeholder": "2º do Grupo B",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -897,7 +897,7 @@
           "id": "Semifinal-2",
           "name": "Semifinal 2",
           "team1Placeholder": "2º do Grupo A",
-          "team2Placeholder": "2º do Grupo B",
+          "team2Placeholder": "1º do Grupo B",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -1298,7 +1298,7 @@
           "id": "Quartas de Final-1",
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
-          "team2Placeholder": "1º do Grupo B",
+          "team2Placeholder": "2º do Grupo D",
           "time": "",
           "court": "",
           "roundOrder": 3
@@ -1306,8 +1306,8 @@
         {
           "id": "Quartas de Final-2",
           "name": "Quartas de Final 2",
-          "team1Placeholder": "2º do Grupo A",
-          "team2Placeholder": "2º do Grupo B",
+          "team1Placeholder": "2º do Grupo B",
+          "team2Placeholder": "1º do Grupo C",
           "time": "",
           "court": "",
           "roundOrder": 3
@@ -1315,7 +1315,7 @@
         {
           "id": "Quartas de Final-3",
           "name": "Quartas de Final 3",
-          "team1Placeholder": "2º do Grupo D",
+          "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
           "time": "",
           "court": "",
@@ -1324,8 +1324,8 @@
         {
           "id": "Quartas de Final-4",
           "name": "Quartas de Final 4",
-          "team1Placeholder": "1º do Grupo D",
-          "team2Placeholder": "1º do Grupo C",
+          "team1Placeholder": "2º do Grupo A",
+          "team2Placeholder": "1º do Grupo D",
           "time": "",
           "court": "",
           "roundOrder": 3
@@ -1344,8 +1344,8 @@
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor Quartas de Final 2",
-          "team2Placeholder": "Vencedor Quartas de Final 3",
+          "team1Placeholder": "Vencedor Quartas de Final 3",
+          "team2Placeholder": "Vencedor Quartas de Final 2",
           "time": "",
           "court": "",
           "roundOrder": 2
