@@ -243,30 +243,19 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                         playerAvailability[p] = restEndTime;
                     });
                     courtAvailability[court.name] = addMinutes(effectiveCurrentTime, matchDuration);
-                    
-                    // Do not break here, try to fill other courts at the same time
                 }
             }
              
             if (!scheduledInThisSlot) {
-                // Find the earliest time a court OR a player becomes available
-                const nextAvailableCourtTimes = sortedCourts
-                    .map(c => courtAvailability[c.name])
-                    .filter(Boolean)
-                    .filter(t => isBefore(currentTime, t));
+                 const allNextAvailableTimes = [
+                    ...Object.values(courtAvailability),
+                    ...Object.values(playerAvailability)
+                ].filter(Boolean).filter(t => isBefore(currentTime, t));
 
-                const nextPlayerAvailableTimes = Object.values(playerAvailability)
-                    .filter(Boolean)
-                    .filter(t => isBefore(currentTime, t));
-
-                const allNextAvailableTimes = [...nextAvailableCourtTimes, ...nextPlayerAvailableTimes];
 
                 if (allNextAvailableTimes.length > 0) {
-                     // Jump to the next available slot
                     currentTime = new Date(Math.min(...allNextAvailableTimes.map(d => d.getTime())));
                 } else {
-                    // If nothing is scheduled and no future availability, something is wrong.
-                    // Let's just increment time to prevent infinite loops.
                     currentTime = addMinutes(currentTime, 1);
                 }
             }
@@ -365,7 +354,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
@@ -613,5 +602,3 @@ export async function regenerateCategory(categoryName: string, newFormValues?: T
         return { success: false, error: e.message || "Ocorreu um erro desconhecido ao regenerar a categoria." };
     }
 }
-
-    
