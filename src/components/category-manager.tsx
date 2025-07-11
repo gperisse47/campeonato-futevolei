@@ -333,9 +333,11 @@ export function CategoryManager() {
                     if (!match.team1 && match.team1Placeholder) {
                         const placeholder = match.team1Placeholder;
                         if (placeholder.startsWith('Vencedor ')) {
-                            match.team1 = winners[placeholder.replace('Vencedor ', '')];
+                            const dependencyId = placeholder.replace('Vencedor ', '').trim();
+                            match.team1 = winners[dependencyId];
                         } else if (placeholder.startsWith('Perdedor ')) {
-                            match.team1 = losers[placeholder.replace('Perdedor ', '')];
+                             const dependencyId = placeholder.replace('Perdedor ', '').trim();
+                            match.team1 = losers[dependencyId];
                         } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
                             match.team1 = teamNameMap[placeholder];
                         } else if (formValues.tournamentType === 'groups' && tournamentData) {
@@ -355,10 +357,12 @@ export function CategoryManager() {
                     // Resolve team 2
                      if (!match.team2 && match.team2Placeholder) {
                         const placeholder = match.team2Placeholder;
-                        if (placeholder.startsWith('Vencedor ')) {
-                            match.team2 = winners[placeholder.replace('Vencedor ', '')];
+                         if (placeholder.startsWith('Vencedor ')) {
+                            const dependencyId = placeholder.replace('Vencedor ', '').trim();
+                            match.team2 = winners[dependencyId];
                         } else if (placeholder.startsWith('Perdedor ')) {
-                            match.team2 = losers[placeholder.replace('Perdedor ', '')];
+                             const dependencyId = placeholder.replace('Perdedor ', '').trim();
+                            match.team2 = losers[dependencyId];
                         } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
                             match.team2 = teamNameMap[placeholder];
                         } else if (formValues.tournamentType === 'groups' && tournamentData) {

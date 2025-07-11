@@ -297,7 +297,7 @@ export default function TournamentPage() {
                  {firstMatchTime && (
                     <div className="flex items-center justify-center gap-2 text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        <span>Hora de início da categoria: {firstMatchTime}</span>
+                        <span>Início dos jogos: {firstMatchTime}</span>
                     </div>
                 )}
             </div>

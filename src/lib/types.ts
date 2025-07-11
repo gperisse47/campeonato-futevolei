@@ -211,6 +211,7 @@ export type PlayoffMatch = {
   time?: string;
   court?: string;
   roundOrder: number; // Used for sorting rounds
+  dependencies?: string[];
 };
 
 export type PlayoffBracket = {
