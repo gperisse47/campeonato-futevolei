@@ -380,7 +380,7 @@ export default function AdminMatchesPage() {
   };
 
   const handleExportPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ orientation: "landscape" });
     const tableData = allMatches.map(m => [
       m.time || '',
       m.court || '',

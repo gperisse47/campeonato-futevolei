@@ -146,7 +146,7 @@ export default function MatchesPage() {
   };
 
   const handleExportPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ orientation: "landscape" });
     const tableData = allMatches.map(m => [
       m.time || '',
       m.court || '',
