@@ -651,8 +651,8 @@
         {
           "id": "Semifinal-1",
           "name": "Semifinal 1",
-          "team1Placeholder": "Vencedor Quartas de Final-1",
-          "team2Placeholder": "Vencedor Quartas de Final-4",
+          "team1Placeholder": "Vencedor undefined",
+          "team2Placeholder": "Vencedor undefined",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -660,8 +660,8 @@
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor Quartas de Final-2",
-          "team2Placeholder": "Vencedor Quartas de Final-3",
+          "team1Placeholder": "Vencedor undefined",
+          "team2Placeholder": "Vencedor undefined",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -671,8 +671,8 @@
         {
           "id": "Final-1",
           "name": "Final 1",
-          "team1Placeholder": "Vencedor Semifinal-1",
-          "team2Placeholder": "Vencedor Semifinal-2",
+          "team1Placeholder": "Vencedor Semifinal 1",
+          "team2Placeholder": "Vencedor Semifinal 2",
           "time": "",
           "court": "",
           "roundOrder": 1
@@ -682,8 +682,8 @@
         {
           "id": "terceiro-lugar-1",
           "name": "Disputa de 3º Lugar",
-          "team1Placeholder": "Perdedor Semifinal-1",
-          "team2Placeholder": "Perdedor Semifinal-2",
+          "team1Placeholder": "Perdedor Semifinal 1",
+          "team2Placeholder": "Perdedor Semifinal 2",
           "time": "",
           "court": "",
           "roundOrder": 0
@@ -907,8 +907,8 @@
         {
           "id": "Final-1",
           "name": "Final 1",
-          "team1Placeholder": "Vencedor Semifinal-1",
-          "team2Placeholder": "Vencedor Semifinal-2",
+          "team1Placeholder": "Vencedor Semifinal 1",
+          "team2Placeholder": "Vencedor Semifinal 2",
           "time": "",
           "court": "",
           "roundOrder": 1
@@ -918,8 +918,8 @@
         {
           "id": "terceiro-lugar-1",
           "name": "Disputa de 3º Lugar",
-          "team1Placeholder": "Perdedor Semifinal-1",
-          "team2Placeholder": "Perdedor Semifinal-2",
+          "team1Placeholder": "Perdedor Semifinal 1",
+          "team2Placeholder": "Perdedor Semifinal 2",
           "time": "",
           "court": "",
           "roundOrder": 0
@@ -1335,8 +1335,8 @@
         {
           "id": "Semifinal-1",
           "name": "Semifinal 1",
-          "team1Placeholder": "Vencedor Quartas de Final-1",
-          "team2Placeholder": "Vencedor Quartas de Final-4",
+          "team1Placeholder": "Vencedor undefined",
+          "team2Placeholder": "Vencedor undefined",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -1344,8 +1344,8 @@
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor Quartas de Final-2",
-          "team2Placeholder": "Vencedor Quartas de Final-3",
+          "team1Placeholder": "Vencedor undefined",
+          "team2Placeholder": "Vencedor undefined",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -1355,8 +1355,8 @@
         {
           "id": "Final-1",
           "name": "Final 1",
-          "team1Placeholder": "Vencedor Semifinal-1",
-          "team2Placeholder": "Vencedor Semifinal-2",
+          "team1Placeholder": "Vencedor Semifinal 1",
+          "team2Placeholder": "Vencedor Semifinal 2",
           "time": "",
           "court": "",
           "roundOrder": 1
@@ -1366,8 +1366,8 @@
         {
           "id": "terceiro-lugar-1",
           "name": "Disputa de 3º Lugar",
-          "team1Placeholder": "Perdedor Semifinal-1",
-          "team2Placeholder": "Perdedor Semifinal-2",
+          "team1Placeholder": "Perdedor Semifinal 1",
+          "team2Placeholder": "Perdedor Semifinal 2",
           "time": "",
           "court": "",
           "roundOrder": 0

@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 
-import { getTournaments, saveTournament, generateGroupsAction } from "@/app/actions"
+import { getTournaments, saveTournament, generateGroupsAction, regenerateCategory } from "@/app/actions"
 import type { TournamentData, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -383,14 +383,14 @@ export function TournamentCreator() {
                 const roundName = teamsInRound === 4 ? 'Semifinal' : (teamsInRound === 2 ? 'Final' : `Quartas de Final`);
                 const nextRoundPlaceholders = [];
                 for (let i = 0; i < currentRoundMatches.length; i++) {
-                     nextRoundPlaceholders.push(`Vencedor ${currentRoundMatches[i].id}`);
+                     nextRoundPlaceholders.push(`Vencedor ${currentRoundMatches[i].name}`);
                 }
                 
                 const nextRoundMatches: PlayoffMatch[] = [];
                 for (let i = 0; i < nextRoundPlaceholders.length / 2; i++) {
                     const matchName = `${roundName} ${i + 1}`;
                     nextRoundMatches.push({
-                        id: `${roundNameKey}-R${upperRound}-Jogo${i + 1}`,
+                        id: `${roundNameKey}-${i + 1}`,
                         name: matchName,
                         team1Placeholder: nextRoundPlaceholders[i*2],
                         team2Placeholder: nextRoundPlaceholders[i*2 + 1],
@@ -441,13 +441,27 @@ export function TournamentCreator() {
                     teamPlaceholders.push(getTeamPlaceholder(i, j));
                 }
             }
+            
+            // Re-order placeholders for standard bracket pairing (1st from A vs last from D, etc)
+            const groupAQualifiers = teamPlaceholders.filter(p => p.includes("Grupo A"));
+            const groupBQualifiers = teamPlaceholders.filter(p => p.includes("Grupo B"));
+            const groupCQualifiers = teamPlaceholders.filter(p => p.includes("Grupo C"));
+            const groupDQualifiers = teamPlaceholders.filter(p => p.includes("Grupo D"));
+            
+            const orderedPlaceholders = [
+                ...groupAQualifiers,
+                ...groupDQualifiers.reverse(),
+                ...groupCQualifiers,
+                ...groupBQualifiers.reverse()
+            ];
+
 
             const firstRoundMatchups = [];
             const half = teamPlaceholders.length / 2;
             for (let i = 0; i < half; i++) {
                 firstRoundMatchups.push({
-                    team1Placeholder: teamPlaceholders[i],
-                    team2Placeholder: teamPlaceholders[teamPlaceholders.length - 1 - i],
+                    team1Placeholder: orderedPlaceholders[i],
+                    team2Placeholder: orderedPlaceholders[orderedPlaceholders.length - 1 - i],
                 });
             }
 
@@ -463,27 +477,40 @@ export function TournamentCreator() {
 
                 for (let i = 0; i < currentMatchups.length; i++) {
                     const match = currentMatchups[i];
+                    const matchName = `${roundName} ${i + 1}`;
                     const matchId = `${roundName}-${i + 1}`;
                      bracket[roundName].push({
                         id: matchId,
-                        name: `${roundName} ${i + 1}`,
+                        name: matchName,
                         team1Placeholder: match.team1Placeholder,
                         team2Placeholder: match.team2Placeholder,
                         time: '',
                         court: '',
                         roundOrder
                     });
-                    nextRoundPlaceholders.push(`Vencedor ${match.name}`);
+                    nextRoundPlaceholders.push(`Vencedor ${matchName}`);
                 }
 
                 if(nextRoundPlaceholders.length < 2) break;
 
                 const nextMatchups = [];
-                for(let i=0; i < nextRoundPlaceholders.length / 2; i++) {
+                if (roundName === 'Quartas de Final') {
+                    // Specific pairing for semifinals
                     nextMatchups.push({
-                        team1Placeholder: nextRoundPlaceholders[i],
-                        team2Placeholder: nextRoundPlaceholders[nextRoundPlaceholders.length - 1 - i],
+                        team1Placeholder: nextRoundPlaceholders[0], // Vencedor QF1
+                        team2Placeholder: nextRoundPlaceholders[3]  // Vencedor QF4
                     });
+                     nextMatchups.push({
+                        team1Placeholder: nextRoundPlaceholders[1], // Vencedor QF2
+                        team2Placeholder: nextRoundPlaceholders[2]  // Vencedor QF3
+                    });
+                } else {
+                    for(let i=0; i < nextRoundPlaceholders.length / 2; i++) {
+                        nextMatchups.push({
+                            team1Placeholder: nextRoundPlaceholders[i],
+                            team2Placeholder: nextRoundPlaceholders[nextRoundPlaceholders.length - 1 - i],
+                        });
+                    }
                 }
                 currentMatchups = nextMatchups;
                 teamsInRound /= 2;
@@ -609,7 +636,7 @@ export function TournamentCreator() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Formulário da Categoria</CardTitle>
+        <CardTitle>Criar/Atualizar Categoria</CardTitle>
         <CardDescription>
           Insira os detalhes para a geração de uma nova categoria ou atualize uma existente.
         </CardDescription>
