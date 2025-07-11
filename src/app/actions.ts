@@ -205,7 +205,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             }
         });
 
-        let matchQueue: SchedulableMatch[] = allMatches.filter(m => !matchDependencyMap.has(m.id));
+        let matchQueue: SchedulableMatch[] = allMatches.filter(m => !matchDependencyMap.has(m.id!));
         const courtAvailability = new Map<string, Date>(sortedCourts.map(c => [c.name, new Date(0)]));
         const playerAvailability = new Map<string, Date>();
         const unscheduledMatches = new Set(allMatches.map(m => m.id));
