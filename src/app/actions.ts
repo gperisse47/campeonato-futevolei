@@ -184,8 +184,9 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     groupMatchCounts.set(groupKey, g.matches.length);
                     g.matches.forEach(m => {
                         const schedulableMatch: SchedulableMatch = { ...clearSchedule(m), category: catName, groupName: g.name };
+                        const matchId = getMatchId(schedulableMatch);
                         allMatchesToSchedule.push(schedulableMatch);
-                        matchPlayerMap.set(getMatchId(schedulableMatch), getPlayersFromMatch(schedulableMatch));
+                        matchPlayerMap.set(matchId, getPlayersFromMatch(schedulableMatch));
                     });
                 });
             }
@@ -196,9 +197,10 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     Object.values(bracket).flat().forEach(m => {
                         if (!m.id) return; // Skip matches without IDs
                         const schedulableMatch: SchedulableMatch = { ...clearSchedule(m), category: catName };
+                        const matchId = getMatchId(schedulableMatch);
                         allMatchesToSchedule.push(schedulableMatch);
                         const players = getPlayersFromMatch(schedulableMatch);
-                        if(players.length > 0) matchPlayerMap.set(getMatchId(schedulableMatch), players);
+                        if(players.length > 0) matchPlayerMap.set(matchId, players);
                         
                         const deps = new Set<string>();
                         extractDependencies(m.team1Placeholder).forEach(d => deps.add(d));
@@ -664,3 +666,6 @@ export async function regenerateCategory(categoryName: string, newFormValues?: T
     }
 }
 
+
+
+    
