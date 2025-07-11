@@ -599,6 +599,7 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
             const category = categoryData as CategoryData;
             
             const addMatchIds = (matches: (MatchWithScore | PlayoffMatch)[]) => {
+                if (!Array.isArray(matches)) return;
                 matches.forEach(m => m.id && allDbMatchIds.add(m.id));
             };
 
@@ -653,27 +654,33 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
         });
 
         // Iterate through the db object and update it directly
-        Object.values(db).forEach(categoryData => {
-            if (typeof categoryData !== 'object' || !categoryData || !('formValues' in categoryData)) return;
+        for (const categoryName in db) {
+            if (categoryName === '_globalSettings') continue;
+            const category = db[categoryName] as CategoryData;
 
-            const category = categoryData as CategoryData;
-
-            const updateMatchInArray = (matches: (MatchWithScore | PlayoffMatch)[]) => {
-                if (!Array.isArray(matches)) return;
-                matches.forEach(match => {
-                    const newSchedule = scheduleMap.get(match.id);
-                    if (newSchedule) {
+            // Update group matches
+            category.tournamentData?.groups.forEach(group => {
+                group.matches.forEach(match => {
+                    if (match.id && scheduleMap.has(match.id)) {
+                        const newSchedule = scheduleMap.get(match.id)!;
                         match.time = newSchedule.time;
                         match.court = newSchedule.court;
                     }
                 });
-            };
-            
-            category.tournamentData?.groups.forEach(g => updateMatchInArray(g.matches));
+            });
 
+            // Update playoff matches
             const updateBracket = (bracket?: PlayoffBracket) => {
                 if (!bracket) return;
-                Object.values(bracket).forEach(round => updateMatchInArray(round));
+                Object.values(bracket).forEach(round => {
+                    round.forEach(match => {
+                        if (match.id && scheduleMap.has(match.id)) {
+                            const newSchedule = scheduleMap.get(match.id)!;
+                            match.time = newSchedule.time;
+                            match.court = newSchedule.court;
+                        }
+                    });
+                });
             };
 
             if (category.playoffs) {
@@ -686,7 +693,8 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
                     updateBracket(playoffs as PlayoffBracket);
                 }
             }
-        });
+        }
+
 
         await writeDb(db);
         return { success: true };
