@@ -6,9 +6,9 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import { useForm, useFieldArray, useForm as useFormGlobal } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Settings, Trash2, RefreshCcw } from "lucide-react"
+import { Loader2, Settings, Trash2 } from "lucide-react"
 
-import { getTournaments, saveGlobalSettings, rescheduleAllTournaments } from "@/app/actions"
+import { getTournaments, saveGlobalSettings } from "@/app/actions"
 import type { GlobalSettings as GlobalSettingsType, TournamentsState } from "@/lib/types"
 import { globalSettingsSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -25,12 +25,10 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 
 
 export function GlobalSettings() {
   const [isSaving, setIsSaving] = useState(false);
-  const [isRescheduling, setIsRescheduling] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -87,24 +85,6 @@ export function GlobalSettings() {
         });
     }
     setIsSaving(false);
-  }
-
-  const handleRescheduleAll = async () => {
-    setIsRescheduling(true);
-    const result = await rescheduleAllTournaments();
-    if (result.success) {
-      toast({
-        title: "Torneio Reagendado!",
-        description: "Todos os jogos foram recalculados com sucesso.",
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Erro ao Reagendar",
-        description: result.error || "Não foi possível reagendar o torneio.",
-      });
-    }
-    setIsRescheduling(false);
   }
 
   if (!isLoaded) {
@@ -239,7 +219,7 @@ export function GlobalSettings() {
                           Adicionar Quadra
                       </Button>
                     </div>
-                    <Button type="submit" disabled={isSaving || isRescheduling} className="w-full">
+                    <Button type="submit" disabled={isSaving} className="w-full">
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Salvar Configurações
                     </Button>
@@ -247,34 +227,6 @@ export function GlobalSettings() {
             </Form>
         </CardContent>
     </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center"><RefreshCcw className="mr-2 h-5 w-5"/>Ações Globais</CardTitle>
-          <CardDescription>
-            Use estas ações para gerenciar todo o torneio de uma vez.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label>Recalcular Horários</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Recalcula todos os horários de todos os jogos, em todas as categorias. Esta ação considera conflitos de jogadores que participam de múltiplas categorias. Use após cadastrar todas as categorias e duplas.
-              </p>
-            </div>
-            {isRescheduling && (
-                <div className="space-y-2">
-                    <Progress value={100} className="h-2 animate-pulse" />
-                    <p className="text-sm text-muted-foreground text-center">Aguarde, recalculando horários...</p>
-                </div>
-            )}
-            <Button onClick={handleRescheduleAll} disabled={isSaving || isRescheduling} className="w-full">
-              {(isSaving || isRescheduling) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isRescheduling ? 'Recalculando...' : 'Recalcular Horários de Todo o Torneio'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

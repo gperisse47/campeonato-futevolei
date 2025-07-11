@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
-import { getTournaments, updateMatch, resetAllSchedules } from "@/app/actions";
+import { getTournaments, updateMatch, resetAllSchedules, rescheduleAllTournaments } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
@@ -51,6 +51,7 @@ export default function AdminMatchesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -222,15 +223,18 @@ export default function AdminMatchesPage() {
       let matchIndex = tempMatches.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return prev; // Should not happen
 
-      // Update the specific match that changed
-      tempMatches[matchIndex] = { ...tempMatches[matchIndex], [field]: value, isDirty: true };
+      const originalMatch = tempMatches[matchIndex];
+      const updatedMatch = { ...originalMatch, [field]: value, isDirty: true };
       
-      // Now, re-validate all matches based on this temporary state
-      // This is necessary because a change in one match can create or resolve a conflict in another.
-      const validatedMatches = tempMatches.map(m => ({
-          ...m,
-          validationError: validateChange(m, tempMatches)
-      }));
+      const validatedMatches = tempMatches.map(m => {
+          // Re-validate the match that was just changed
+          if (m.id === matchId) {
+              return { ...updatedMatch, validationError: validateChange(updatedMatch, tempMatches) };
+          }
+          // Also re-validate any other match to see if this change created a new conflict elsewhere
+          // This is a simplified approach; for more complex scenarios, you might need a more targeted re-validation
+          return { ...m, validationError: validateChange(m, tempMatches) };
+      });
 
       return validatedMatches;
     });
@@ -250,7 +254,6 @@ export default function AdminMatchesPage() {
         title: "Jogo Atualizado!",
         description: "O horário e/ou quadra do jogo foram salvos.",
       });
-      // After a successful save, reload all data to get the fresh state from the server
       await loadMatchesAndSettings();
     } else {
       toast({
@@ -258,11 +261,7 @@ export default function AdminMatchesPage() {
         title: "Erro ao Salvar",
         description: result.error || "Não foi possível atualizar o jogo.",
       });
-       // Revert the visual change on error by remapping from the original `allMatches` state
-      setFilteredMatches(prev => {
-          const originalMatchState = allMatches.find(am => am.id === match.id);
-          return prev.map(m => m.id === match.id ? (originalMatchState || m) : m);
-      });
+      await loadMatchesAndSettings();
     }
     setSavingStates(prev => ({ ...prev, [match.id]: false }));
   };
@@ -284,6 +283,25 @@ export default function AdminMatchesPage() {
         });
     }
     setIsResetting(false);
+  }
+
+  const handleRescheduleAll = async () => {
+    setIsRescheduling(true);
+    const result = await rescheduleAllTournaments();
+    if (result.success) {
+      toast({
+        title: "Torneio Reagendado!",
+        description: "Todos os jogos foram recalculados com sucesso.",
+      });
+      await loadMatchesAndSettings();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Reagendar",
+        description: result.error || "Não foi possível reagendar o torneio.",
+      });
+    }
+    setIsRescheduling(false);
   }
 
   if (isAuthLoading) {
@@ -322,11 +340,15 @@ export default function AdminMatchesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+             <Button onClick={handleRescheduleAll} disabled={isRescheduling || isResetting}>
+                {isRescheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                Recalcular Horários
+             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={isResetting}>
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Resetar Todos os Horários
+                <Button variant="destructive" disabled={isResetting || isRescheduling}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Resetar Horários
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
