@@ -360,7 +360,7 @@ export default function AdminMatchesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-             <Button onClick={handleExportCSV} variant="outline">
+             <Button onClick={handleExportCSV}>
                 <Download className="mr-2 h-4 w-4" />
                 Exportar para CSV
              </Button>
