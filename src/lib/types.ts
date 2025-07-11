@@ -1,4 +1,5 @@
 
+
 import type {
   GenerateTournamentGroupsInput as AIGenerateTournamentGroupsInput,
 } from "@/ai/flows/generate-tournament-groups"
@@ -107,27 +108,20 @@ export const formSchema = z
   )
  .refine(
     (data) => {
-      if (data.tournamentType !== 'groups') return true;
-      if (!data.numberOfGroups || data.numberOfGroups <= 0) return false;
+        if (data.tournamentType !== 'groups') return true;
+        if (!data.numberOfGroups || data.numberOfGroups <= 0) return false;
+        if (!data.teamsPerGroupToAdvance || data.teamsPerGroupToAdvance <= 0) return false;
 
-      const numTeams = data.numberOfTeams;
-      const numGroups = data.numberOfGroups;
-      
-      const minTeamsPerGroup = Math.floor(numTeams / numGroups);
-      const maxTeamsPerGroup = Math.ceil(numTeams / numGroups);
-
-      if (maxTeamsPerGroup - minTeamsPerGroup > 1) {
-          // This case should ideally be prevented by UI logic, but it's a safeguard.
-          // It indicates an uneven distribution that's more than just one team difference.
-          return false;
-      }
-      
-      // The number of teams advancing must be less than the size of the smallest possible group.
-      return data.teamsPerGroupToAdvance! < minTeamsPerGroup;
+        const numTeams = data.numberOfTeams;
+        const numGroups = data.numberOfGroups;
+        
+        // At least one team must not advance from each group.
+        const minTeamsPerGroup = Math.floor(numTeams / numGroups);
+        return data.teamsPerGroupToAdvance < minTeamsPerGroup;
     },
     {
-      message: "O número de classificados deve ser menor que o número de duplas no menor grupo.",
-      path: ["teamsPerGroupToAdvance"],
+        message: "O número de classificados deve ser menor que o número de duplas no menor grupo.",
+        path: ["teamsPerGroupToAdvance"],
     }
 )
   .refine(

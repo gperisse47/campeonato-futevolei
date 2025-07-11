@@ -161,9 +161,13 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     });
                 };
                 const bracketSet = catData.playoffs as PlayoffBracketSet;
-                processBracket(bracketSet.upper);
-                processBracket(bracketSet.lower);
-                processBracket(bracketSet.playoffs);
+                if(bracketSet.upper || bracketSet.lower || bracketSet.playoffs) {
+                    processBracket(bracketSet.upper);
+                    processBracket(bracketSet.lower);
+                    processBracket(bracketSet.playoffs);
+                } else {
+                    processBracket(bracketSet as PlayoffBracket)
+                }
             }
         });
 
@@ -535,9 +539,13 @@ export async function updateTeamInTournament(
         };
         
         const bracketSet = categoryData.playoffs as PlayoffBracketSet;
-        updatePlayoffBracket(bracketSet.upper);
-        updatePlayoffBracket(bracketSet.lower);
-        updatePlayoffBracket(bracketSet.playoffs);
+        if(bracketSet.upper || bracketSet.lower || bracketSet.playoffs) {
+            updatePlayoffBracket(bracketSet.upper);
+            updatePlayoffBracket(bracketSet.lower);
+            updatePlayoffBracket(bracketSet.playoffs);
+        } else {
+             updatePlayoffBracket(bracketSet as PlayoffBracket)
+        }
     }
 
     await writeDb(db);
