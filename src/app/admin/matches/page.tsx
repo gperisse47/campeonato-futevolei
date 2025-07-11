@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw } from "lucide-react";
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Trash2 } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
 import { getTournaments, updateMatch, resetAllSchedules, rescheduleAllTournaments } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -219,21 +219,18 @@ export default function AdminMatchesPage() {
   const handleFieldChange = (matchId: string, field: 'time' | 'court', value: string) => {
     setFilteredMatches(prev => {
       // Create a temporary updated list to run validations against
-      let tempMatches = [...prev];
-      let matchIndex = tempMatches.findIndex(m => m.id === matchId);
+      const tempMatches = [...prev];
+      const matchIndex = tempMatches.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return prev; // Should not happen
 
       const originalMatch = tempMatches[matchIndex];
       const updatedMatch = { ...originalMatch, [field]: value, isDirty: true };
+      tempMatches[matchIndex] = updatedMatch;
       
       const validatedMatches = tempMatches.map(m => {
-          // Re-validate the match that was just changed
-          if (m.id === matchId) {
-              return { ...updatedMatch, validationError: validateChange(updatedMatch, tempMatches) };
-          }
-          // Also re-validate any other match to see if this change created a new conflict elsewhere
-          // This is a simplified approach; for more complex scenarios, you might need a more targeted re-validation
-          return { ...m, validationError: validateChange(m, tempMatches) };
+          // Re-validate the match that was just changed, and any matches it might now conflict with
+           const error = validateChange(m, tempMatches);
+           return { ...m, validationError: error };
       });
 
       return validatedMatches;
