@@ -542,17 +542,8 @@ export async function updateTeamInTournament(
   }
 }
 
-export async function regenerateCategory(categoryName: string): Promise<{ success: boolean; error?: string }> {
+async function createOrUpdateCategory(values: TournamentFormValues): Promise<{ success: boolean; error?: string }> {
     try {
-        const db = await readDb();
-        const existingCategory = db[categoryName] as CategoryData;
-
-        if (!existingCategory) {
-            return { success: false, error: "Categoria não encontrada." };
-        }
-
-        const values = existingCategory.formValues;
-
         let newCategoryData: CategoryData = {
             tournamentData: null,
             playoffs: null,
@@ -595,11 +586,29 @@ export async function regenerateCategory(categoryName: string): Promise<{ succes
         
         newCategoryData.totalMatches = await calculateTotalMatches(newCategoryData);
         
-        db[categoryName] = newCategoryData;
+        const db = await readDb();
+        db[values.category] = newCategoryData;
         await writeDb(db);
         
         return { success: true };
 
+    } catch (e: any) {
+        console.error("Error creating/updating category:", e);
+        return { success: false, error: e.message || "Ocorreu um erro desconhecido ao criar/atualizar a categoria." };
+    }
+}
+
+
+export async function regenerateCategory(categoryName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+        const existingCategory = db[categoryName] as CategoryData;
+
+        if (!existingCategory) {
+            return { success: false, error: "Categoria não encontrada." };
+        }
+
+        return await createOrUpdateCategory(existingCategory.formValues);
     } catch (e: any) {
         console.error("Error regenerating category:", e);
         return { success: false, error: e.message || "Ocorreu um erro desconhecido ao regenerar a categoria." };

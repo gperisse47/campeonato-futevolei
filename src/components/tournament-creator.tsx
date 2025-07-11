@@ -8,8 +8,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 
-import { getTournaments, saveTournament, generateGroupsAction } from "@/app/actions"
-import type { TournamentData, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, GenerateTournamentGroupsOutput, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings } from "@/lib/types"
+import { getTournaments, regenerateCategory } from "@/app/actions"
+import type { TournamentFormValues, TournamentsState } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -29,14 +29,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
-import { Separator } from "./ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from "@/lib/regeneration"
 
-const teamToKey = (team?: Team) => {
-    if (!team || !team.player1 || !team.player2) return '';
-    return `${team.player1} e ${team.player2}`;
-};
 
 const defaultFormValues: TournamentFormValues = {
   category: "",
@@ -53,7 +47,6 @@ const defaultFormValues: TournamentFormValues = {
 
 export function TournamentCreator() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentsState>({ _globalSettings: { startTime: "08:00", estimatedMatchDuration: 20, courts: [{ name: 'Quadra 1', slots: [{startTime: "09:00", endTime: "18:00"}] }] } })
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
@@ -113,84 +106,30 @@ export function TournamentCreator() {
       form.setValue('includeThirdPlace', true, { shouldValidate: true });
     }
   }, [form, tournamentType]);
-  
-  const saveData = async (categoryName: string, data: CategoryData) => {
-    setIsSaving(true);
-    const result = await saveTournament(categoryName, data);
-    if (!result.success) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao salvar",
-        description: result.error || "Não foi possível salvar as alterações.",
-      });
-    } else {
-       // Refresh tournaments state after saving
-       const savedTournaments = await getTournaments();
-       setTournaments(savedTournaments);
-    }
-    setIsSaving(false);
-  };
     
   async function onSubmit(values: TournamentFormValues) {
     setIsLoading(true);
     const categoryName = values.category;
     const isUpdate = !!tournaments[categoryName];
     
-    let newCategoryData: CategoryData = {
-        tournamentData: null,
-        playoffs: null,
-        formValues: values,
-    };
+    // The regenerateCategory action now handles both creation and update without scheduling.
+    const result = await regenerateCategory(categoryName);
 
-    if (values.tournamentType === 'doubleElimination') {
-        const finalPlayoffs = initializeDoubleEliminationBracket(values);
-        
-        newCategoryData.playoffs = finalPlayoffs;
+    if (result.success) {
+      toast({
+        title: isUpdate ? "Categoria Atualizada!" : "Categoria Gerada!",
+        description: `A categoria "${categoryName}" foi ${isUpdate ? 'atualizada' : 'criada'} com sucesso, sem agendamento de horários.`,
+      });
+      // Refresh tournaments state after saving
+      const savedTournaments = await getTournaments();
+      setTournaments(savedTournaments);
     } else {
-        const teamsArray: Team[] = values.teams
-          .split("\n")
-          .map((t) => t.trim())
-          .filter(Boolean)
-          .map((teamString) => {
-            const players = teamString.split(/\s+e\s+/i).map((p) => p.trim())
-            return { player1: players[0] || "", player2: players[1] || "" }
-          })
-
-        const result = await generateGroupsAction({
-          numberOfTeams: values.numberOfTeams,
-          numberOfGroups: values.numberOfGroups,
-          groupFormationStrategy: values.groupFormationStrategy,
-          teams: teamsArray,
-          category: values.category,
-          tournamentType: values.tournamentType,
-        })
-
-        if (!result.success || !result.data) {
-          toast({
-            variant: "destructive",
-            title: "Erro ao Gerar",
-            description: result.error || "Ocorreu um erro inesperado.",
-          })
-          setIsLoading(false);
-          return;
-        }
-
-        if (values.tournamentType === 'groups') {
-            newCategoryData.tournamentData = { groups: initializeStandings(result.data.groups) };
-            newCategoryData.playoffs = initializePlayoffs(values, result.data);
-        } else if (values.tournamentType === 'singleElimination') {
-            newCategoryData.playoffs = initializePlayoffs(values, result.data);
-        }
+       toast({
+        variant: "destructive",
+        title: "Erro ao Salvar",
+        description: result.error || "Não foi possível salvar as alterações.",
+      });
     }
-    
-    newCategoryData.totalMatches = calculateTotalMatches(newCategoryData);
-
-    await saveData(categoryName, newCategoryData);
-    
-    toast({
-      title: isUpdate ? "Categoria Atualizada!" : "Categoria Gerada!",
-      description: `A categoria "${categoryName}" foi ${isUpdate ? 'atualizada' : 'criada'} com sucesso.`,
-    });
     
     setIsLoading(false);
     form.reset(defaultFormValues);
@@ -425,9 +364,9 @@ export function TournamentCreator() {
             />
 
             <div className="flex flex-col gap-4">
-                <Button type="submit" disabled={isLoading || isSaving} className="w-full">
-                  {(isLoading || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isSaving ? 'Salvando...' : isLoading ? 'Gerando...' : 'Gerar / Atualizar Categoria'}
+                <Button type="submit" disabled={isLoading} className="w-full">
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading ? 'Gerando...' : 'Gerar / Atualizar Categoria'}
                 </Button>
             </div>
           </form>
