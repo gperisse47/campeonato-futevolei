@@ -6,12 +6,13 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import { useForm, useFieldArray, useForm as useFormGlobal } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Settings, Trash2 } from "lucide-react"
+import { Loader2, Settings, Trash2, Download } from "lucide-react"
 
 import { getTournaments, saveGlobalSettings } from "@/app/actions"
-import type { GlobalSettings as GlobalSettingsType, TournamentsState } from "@/lib/types"
+import type { GlobalSettings as GlobalSettingsType, TournamentsState, CategoryData } from "@/lib/types"
 import { globalSettingsSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import Papa from "papaparse"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -86,6 +87,74 @@ export function GlobalSettings() {
     }
     setIsSaving(false);
   }
+  
+  const handleExportParameters = async () => {
+    try {
+        const tournaments = await getTournaments();
+        const dataToExport = [];
+
+        // Global settings
+        const globalSettings = tournaments._globalSettings;
+        dataToExport.push({
+            parameter_type: 'global_setting',
+            parameter_name: 'startTime',
+            parameter_value: globalSettings.startTime
+        });
+        dataToExport.push({
+            parameter_type: 'global_setting',
+            parameter_name: 'estimatedMatchDuration',
+            parameter_value: globalSettings.estimatedMatchDuration
+        });
+        globalSettings.courts.forEach((court, courtIndex) => {
+            dataToExport.push({
+                parameter_type: 'global_setting',
+                parameter_name: `court_${courtIndex+1}_name`,
+                parameter_value: court.name
+            });
+            court.slots.forEach((slot, slotIndex) => {
+                 dataToExport.push({
+                    parameter_type: 'global_setting',
+                    parameter_name: `court_${courtIndex+1}_slot_${slotIndex+1}`,
+                    parameter_value: `${slot.startTime}-${slot.endTime}`
+                });
+            })
+        });
+
+        // Category settings
+        for (const categoryName in tournaments) {
+            if (categoryName === '_globalSettings') continue;
+            const category = tournaments[categoryName] as CategoryData;
+            const formValues = category.formValues;
+            
+            for(const key in formValues) {
+                 dataToExport.push({
+                    parameter_type: 'category_setting',
+                    parameter_name: `${categoryName}__${key}`,
+                    parameter_value: (formValues as any)[key]
+                });
+            }
+        }
+
+        const csv = Papa.unparse(dataToExport);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "parametros_campeonato.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error("Failed to export parameters:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro ao Exportar",
+            description: "Não foi possível exportar os parâmetros.",
+        });
+    }
+  };
+
 
   if (!isLoaded) {
     return (
@@ -219,10 +288,16 @@ export function GlobalSettings() {
                           Adicionar Quadra
                       </Button>
                     </div>
-                    <Button type="submit" disabled={isSaving} className="w-full">
-                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Salvar Configurações
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                        <Button type="submit" disabled={isSaving} className="w-full">
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Salvar Configurações
+                        </Button>
+                         <Button type="button" variant="secondary" onClick={handleExportParameters} className="w-full">
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar Parâmetros
+                        </Button>
+                    </div>
                 </form>
             </Form>
         </CardContent>
