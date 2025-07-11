@@ -435,18 +435,8 @@ export default function AdminMatchesPage() {
           <CardDescription>
             Ajuste os horários e quadras. Você pode salvar linha por linha ou todas as alterações de uma vez.
           </CardDescription>
-          <div className="flex flex-col sm:flex-row gap-2 mt-4 flex-wrap justify-between items-center">
-            <div className="relative flex-1 min-w-[250px] w-full sm:w-auto">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar por dupla, categoria, fase..."
-                className="pl-8 w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 justify-start sm:justify-end w-full sm:w-auto">
+          <div className="flex flex-col gap-4 mt-4">
+            <div className="flex flex-wrap gap-2 justify-start sm:justify-end w-full">
                 <div className="flex gap-2">
                     <Button onClick={handleExportCSV}>
                         <Download className="mr-2 h-4 w-4" />
@@ -510,6 +500,16 @@ export default function AdminMatchesPage() {
                         </AlertDialogContent>
                     </AlertDialog>
                 </div>
+            </div>
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por dupla, categoria, fase..."
+                className="pl-8 w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
         </CardHeader>
