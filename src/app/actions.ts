@@ -593,7 +593,6 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
     try {
         const db = await readDb();
 
-        // 1. Get all match IDs from the current database
         const allDbMatchIds = new Set<string>();
         Object.entries(db).forEach(([categoryName, categoryData]) => {
             if (categoryName === '_globalSettings') return;
@@ -622,7 +621,6 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
             }
         });
 
-        // 2. Parse CSV data
         const parsed = Papa.parse<CsvRow>(csvData.trim(), { header: true, skipEmptyLines: true });
         if (parsed.errors.length > 0) {
             console.error("CSV Parsing errors:", parsed.errors);
@@ -632,7 +630,6 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
         const csvRows = parsed.data;
         const csvMatchIds = new Set(csvRows.map(row => row.matchId));
 
-        // 3. Validation: Check if all DB match IDs are present in the CSV
         const missingIds: string[] = [];
         for (const dbId of allDbMatchIds) {
             if (!csvMatchIds.has(dbId)) {
@@ -647,18 +644,50 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
             };
         }
         
-        // 4. Update the DB with CSV data
-        for (const row of csvRows) {
-             if (row.matchId) {
-                const [categoryName] = row.matchId.split('-'); // Crude way to get category, assumes ID format
-                const matchInDb = findMatchInDb(db, categoryName, row.matchId);
-                if (matchInDb) {
-                    matchInDb.time = row.time || '';
-                    matchInDb.court = row.court || '';
+        // Create a map for quick lookups
+        const scheduleMap = new Map<string, { time: string, court: string }>();
+        csvRows.forEach(row => {
+            if (row.matchId) {
+                scheduleMap.set(row.matchId, { time: row.time || '', court: row.court || '' });
+            }
+        });
+
+        // Iterate through the db object and update it directly
+        Object.values(db).forEach(categoryData => {
+            if (typeof categoryData !== 'object' || !categoryData || !('formValues' in categoryData)) return;
+
+            const category = categoryData as CategoryData;
+
+            const updateMatchInArray = (matches: (MatchWithScore | PlayoffMatch)[]) => {
+                if (!Array.isArray(matches)) return;
+                matches.forEach(match => {
+                    const newSchedule = scheduleMap.get(match.id);
+                    if (newSchedule) {
+                        match.time = newSchedule.time;
+                        match.court = newSchedule.court;
+                    }
+                });
+            };
+            
+            category.tournamentData?.groups.forEach(g => updateMatchInArray(g.matches));
+
+            const updateBracket = (bracket?: PlayoffBracket) => {
+                if (!bracket) return;
+                Object.values(bracket).forEach(round => updateMatchInArray(round));
+            };
+
+            if (category.playoffs) {
+                const playoffs = category.playoffs as PlayoffBracketSet;
+                if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
+                    updateBracket(playoffs.upper);
+                    updateBracket(playoffs.lower);
+                    updateBracket(playoffs.playoffs);
+                } else {
+                    updateBracket(playoffs as PlayoffBracket);
                 }
-             }
-        }
-        
+            }
+        });
+
         await writeDb(db);
         return { success: true };
 
