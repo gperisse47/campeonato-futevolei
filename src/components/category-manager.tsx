@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from "react"
@@ -289,18 +288,13 @@ export function CategoryManager() {
                         } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
                             match.team1 = teamNameMap[placeholder];
                         } else if (formValues.tournamentType === 'groups' && tournamentData) {
-                             const groupsAreFinished = tournamentData.groups.every(g => 
-                                g.standings.every(s => s.played === (g.teams.length - 1))
-                            );
-                            if(groupsAreFinished) {
-                                const qualifiedTeams: { [p: string]: Team } = {};
-                                tournamentData.groups.forEach((group, groupIndex) => {
-                                    group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                        qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
-                                    });
+                            const qualifiedTeams: { [p: string]: Team } = {};
+                            tournamentData.groups.forEach((group, groupIndex) => {
+                                group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+                                    qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
                                 });
-                                match.team1 = qualifiedTeams[placeholder] || match.team1;
-                            }
+                            });
+                            match.team1 = qualifiedTeams[placeholder] || undefined;
                         }
                     }
                     // Resolve team 2
@@ -313,18 +307,13 @@ export function CategoryManager() {
                         } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
                             match.team2 = teamNameMap[placeholder];
                         } else if (formValues.tournamentType === 'groups' && tournamentData) {
-                             const groupsAreFinished = tournamentData.groups.every(g => 
-                                g.standings.every(s => s.played === (g.teams.length - 1))
-                            );
-                             if(groupsAreFinished) {
-                                const qualifiedTeams: { [p: string]: Team } = {};
-                                tournamentData.groups.forEach((group, groupIndex) => {
-                                    group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                        qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
-                                    });
+                            const qualifiedTeams: { [p: string]: Team } = {};
+                            tournamentData.groups.forEach((group, groupIndex) => {
+                                group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+                                    qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
                                 });
-                                match.team2 = qualifiedTeams[placeholder] || match.team2;
-                            }
+                            });
+                            match.team2 = qualifiedTeams[placeholder] || undefined;
                         }
                     }
                 });
@@ -882,3 +871,5 @@ export function CategoryManager() {
     </div>
   )
 }
+
+    
