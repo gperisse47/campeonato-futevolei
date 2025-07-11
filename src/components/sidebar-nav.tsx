@@ -11,7 +11,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutGrid, Users, Trophy, Loader2, Swords, Home, Settings, PlusCircle } from "lucide-react"
+import { LayoutGrid, Users, Trophy, Loader2, Swords, Home, Settings, PlusCircle, Lock } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { getTournaments } from "@/app/actions"
@@ -87,7 +87,10 @@ export function SidebarNav() {
             <SidebarSeparator className="my-4" />
             
             <SidebarMenu>
-                 <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider">ADMINISTRAÇÃO</div>
+                 <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider flex items-center justify-between">
+                    <span>ADMINISTRAÇÃO</span>
+                    <Lock className="h-3 w-3"/>
+                 </div>
                  <SidebarMenuItem>
                     <Link href="/admin/settings" passHref>
                         <SidebarMenuButton isActive={pathname === '/admin/settings'} tooltip="Configurações do Campeonato">
