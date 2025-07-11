@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Trophy, Clock, Trash2, Swords, RefreshCcw, LayoutGrid, Pencil, MapPin } from "lucide-react"
 
-import { getTournaments, saveTournament, deleteTournament, renameTournament } from "@/app/actions"
+import { getTournaments, saveTournament, deleteTournament, renameTournament, regenerateCategory } from "@/app/actions"
 import type { TournamentData, TeamStanding, PlayoffMatch, GroupWithScores, TournamentFormValues, Team, TournamentsState, CategoryData, PlayoffBracketSet, PlayoffBracket, GlobalSettings, MatchWithScore } from "@/lib/types"
 import { formSchema } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -196,6 +196,26 @@ export function CategoryManager() {
     }
     setIsLoading(false);
   };
+
+  const handleRegenerateCategory = async (categoryName: string) => {
+    setIsLoading(true);
+    const result = await regenerateCategory(categoryName);
+    if (result.success) {
+        toast({
+            title: "Categoria Regenerada!",
+            description: `A categoria "${categoryName}" foi recriada com sucesso.`,
+        });
+        const updatedTournaments = await getTournaments();
+        setTournaments(updatedTournaments);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Erro ao Regenerar",
+            description: result.error || "Não foi possível regenerar a categoria.",
+        });
+    }
+    setIsLoading(false);
+};
   
   const getTeamPlaceholder = useCallback((groupIndex: number, position: number) => {
     const groupLetter = String.fromCharCode(65 + groupIndex);
@@ -226,7 +246,8 @@ export function CategoryManager() {
     
     const finishedGroups = new Set<string>();
     if (tournamentData && tournamentData.groups) {
-        tournamentData.groups.forEach(group => {
+        const groupsToCheck = Array.isArray(tournamentData.groups) ? tournamentData.groups : Object.values(tournamentData.groups);
+        groupsToCheck.forEach(group => {
             const allMatchesFinished = group.matches.every(
                 m => typeof m.score1 === 'number' && typeof m.score2 === 'number'
             );
@@ -321,7 +342,8 @@ export function CategoryManager() {
                             const placeholderParts = placeholder.match(/(\d+)º do (Group \w)/);
                             if (placeholderParts && finishedGroups.has(placeholderParts[2])) {
                                 const qualifiedTeams: { [p: string]: Team } = {};
-                                tournamentData.groups.forEach((group, groupIndex) => {
+                                const groupsToProcess = Array.isArray(tournamentData.groups) ? tournamentData.groups : Object.values(tournamentData.groups);
+                                groupsToProcess.forEach((group, groupIndex) => {
                                     group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
                                         qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
                                     });
@@ -343,7 +365,8 @@ export function CategoryManager() {
                              const placeholderParts = placeholder.match(/(\d+)º do (Group \w)/);
                              if (placeholderParts && finishedGroups.has(placeholderParts[2])) {
                                 const qualifiedTeams: { [p: string]: Team } = {};
-                                tournamentData.groups.forEach((group, groupIndex) => {
+                                const groupsToProcess = Array.isArray(tournamentData.groups) ? tournamentData.groups : Object.values(tournamentData.groups);
+                                groupsToProcess.forEach((group, groupIndex) => {
                                     group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
                                         qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
                                     });
@@ -379,71 +402,79 @@ export function CategoryManager() {
 
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
-    const newGroups = currentTournamentData.groups.map(group => {
-      const standings: Record<string, TeamStanding> = {}
+    const groupsArray = Array.isArray(currentTournamentData.groups)
+        ? currentTournamentData.groups
+        : Object.values(currentTournamentData.groups);
 
-      group.teams.forEach(team => {
-        const teamKey = teamToKey(team);
-        standings[teamKey] = { team, played: 0, wins: 0, setsWon: 0, setDifference: 0 }
-      })
+    const newGroups = groupsArray.map(group => {
+        const standings: Record<string, TeamStanding> = {};
 
-      group.matches.forEach(match => {
-        const { team1, team2, score1, score2 } = match
-        if (score1 === undefined || score2 === undefined) return
+        group.teams.forEach(team => {
+            const teamKey = teamToKey(team);
+            standings[teamKey] = { team, played: 0, wins: 0, setsWon: 0, setDifference: 0 };
+        });
 
-        const team1Key = teamToKey(team1);
-        const team2Key = teamToKey(team2);
+        group.matches.forEach(match => {
+            const { team1, team2, score1, score2 } = match;
+            if (score1 === undefined || score2 === undefined) return;
 
-        standings[team1Key].played++
-        standings[team2Key].played++
+            const team1Key = teamToKey(team1);
+            const team2Key = teamToKey(team2);
 
-        if (score1 > score2) {
-          standings[team1Key].wins++
-        } else if (score2 > score1) {
-          standings[team2Key].wins++
-        }
+            if (standings[team1Key]) standings[team1Key].played++;
+            if (standings[team2Key]) standings[team2Key].played++;
 
-        standings[team1Key].setsWon += score1
-        standings[team2Key].setsWon += score2
-      })
+            if (score1 > score2) {
+                if (standings[team1Key]) standings[team1Key].wins++;
+            } else if (score2 > score1) {
+                if (standings[team2Key]) standings[team2Key].wins++;
+            }
 
-      const sortedStandings = Object.values(standings).map(s => {
-          const matchingGroup = currentTournamentData.groups.find(g => g.teams.some(t => teamToKey(t) === teamToKey(s.team)));
-          let setsLost = 0;
-          if (matchingGroup) {
-              matchingGroup.matches.forEach(m => {
-                  if(m.score1 === undefined || m.score2 === undefined) return;
-                  if (teamToKey(m.team1) === teamToKey(s.team)) {
-                      setsLost += m.score2;
-                  }
-                  if (teamToKey(m.team2) === teamToKey(s.team)) {
-                      setsLost += m.score1;
-                  }
-              });
-          }
-          return {
-            ...s,
-            setDifference: s.setsWon - setsLost
-          }
-      }).sort((a, b) => {
-        if (b.wins !== a.wins) return b.wins - a.wins
-        if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference
-        return b.setsWon - a.setsWon
-      })
+            if (standings[team1Key]) standings[team1Key].setsWon += score1;
+            if (standings[team2Key]) standings[team2Key].setsWon += score2;
+        });
+        
+        const sortedStandings = Object.values(standings).map(s => {
+            let setsLost = 0;
+            group.matches.forEach(m => {
+                if(m.score1 === undefined || m.score2 === undefined) return;
+                if (teamToKey(m.team1) === teamToKey(s.team)) {
+                    setsLost += m.score2;
+                }
+                if (teamToKey(m.team2) === teamToKey(s.team)) {
+                    setsLost += m.score1;
+                }
+            });
+            return {
+              ...s,
+              setDifference: s.setsWon - setsLost
+            }
+        }).sort((a, b) => {
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
+          return b.setsWon - a.setsWon;
+        });
 
-      return { ...group, standings: sortedStandings }
-    })
+        return { ...group, standings: sortedStandings };
+    });
 
-    return { groups: newGroups }
-  }
+    return { groups: newGroups };
+  };
 
   const handleGroupMatchChange = (groupIndex: number, matchIndex: number, field: 'score1' | 'score2', value: string) => {
     if (!activeTab || !activeTournamentData) return;
+    
     let newTournamentData = JSON.parse(JSON.stringify(activeTournamentData));
-    
     const score = value === '' ? undefined : parseInt(value, 10);
-    newTournamentData.groups[groupIndex].matches[matchIndex][field] = isNaN(score!) ? undefined : score;
     
+    // Ensure groups is an array before modification
+    const groupsArray = Array.isArray(newTournamentData.groups) 
+        ? newTournamentData.groups
+        : Object.values(newTournamentData.groups);
+
+    groupsArray[groupIndex].matches[matchIndex][field] = isNaN(score!) ? undefined : score;
+    newTournamentData.groups = groupsArray; // Assign back the array
+
     const updatedDataWithStandings = calculateStandings(newTournamentData);
     const updatedCategoryData = {
       ...activeCategoryData!,
@@ -456,7 +487,7 @@ export function CategoryManager() {
     }));
 
     saveData(activeTab!, updatedCategoryData);
-  }
+  };
 
   const handlePlayoffMatchChange = (bracketKey: keyof PlayoffBracketSet | null, roundName: string, matchIndex: number, field: 'score1' | 'score2', value: string) => {
     if (!activeTab || !activePlayoffs) return;
@@ -639,6 +670,8 @@ export function CategoryManager() {
               const { formValues, tournamentData, playoffs, totalMatches } = categoryData;
               const firstMatchTime = getFirstMatchTime(categoryData);
 
+              const groupsToRender = tournamentData?.groups ? (Array.isArray(tournamentData.groups) ? tournamentData.groups : Object.values(tournamentData.groups)) : [];
+
               const getBracketRounds = (bracket: PlayoffBracket | undefined) => {
                   if (!bracket) return {};
                   return Object.keys(bracket).reduce((acc, key) => {
@@ -680,6 +713,30 @@ export function CategoryManager() {
                         </CardDescription>
                       </div>
                        <div className="flex items-center gap-2 self-start sm:self-center">
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="icon" disabled={isLoading} title="Regenerar Categoria">
+                                        <RefreshCcw className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Regenerar Categoria?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Isto irá apagar todos os placares e o chaveamento atual e gerar um novo com base nos parâmetros originais. Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => handleRegenerateCategory(categoryName)}
+                                        className="bg-primary hover:bg-primary/90"
+                                    >
+                                        Regenerar
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                             <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" size="icon" disabled={isLoading} title="Renomear Categoria">
@@ -766,9 +823,9 @@ export function CategoryManager() {
                        )}
                        
                        <div className="space-y-8">
-                            {formValues.tournamentType === 'groups' && tournamentData && tournamentData.groups && tournamentData.groups.length > 0 && (
+                            {formValues.tournamentType === 'groups' && tournamentData && groupsToRender.length > 0 && (
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                {tournamentData.groups.map((group, groupIndex) => (
+                                {groupsToRender.map((group, groupIndex) => (
                                 <Card key={group.name} className="flex flex-col">
                                     <CardHeader>
                                     <CardTitle className="text-primary">{group.name}</CardTitle>

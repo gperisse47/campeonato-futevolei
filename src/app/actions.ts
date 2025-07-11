@@ -8,9 +8,10 @@ import {
   generateTournamentGroups,
   type GenerateTournamentGroupsOutput
 } from "@/ai/flows/generate-tournament-groups"
-import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput, PlayoffMatch, MatchWithScore, Court } from "@/lib/types"
+import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput, PlayoffMatch, MatchWithScore, Court, TournamentFormValues } from "@/lib/types"
 import { z } from 'zod';
 import { format, addMinutes, parse, isBefore, isEqual, startOfDay } from 'date-fns';
+import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from '@/lib/regeneration';
 
 
 const dbPath = path.resolve(process.cwd(), "db.json")
@@ -546,4 +547,68 @@ export async function updateTeamInTournament(
     console.error("Error updating team:", e);
     return { success: false, error: e.message || "Ocorreu um erro desconhecido ao atualizar a dupla." };
   }
+}
+
+export async function regenerateCategory(categoryName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+        const existingCategory = db[categoryName] as CategoryData;
+
+        if (!existingCategory) {
+            return { success: false, error: "Categoria não encontrada." };
+        }
+
+        const values = existingCategory.formValues;
+
+        let newCategoryData: CategoryData = {
+            tournamentData: null,
+            playoffs: null,
+            formValues: values,
+        };
+
+        if (values.tournamentType === 'doubleElimination') {
+            const finalPlayoffs = await initializeDoubleEliminationBracket(values);
+            newCategoryData.playoffs = finalPlayoffs;
+        } else {
+            const teamsArray: Team[] = values.teams
+                .split("\n")
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .map((teamString) => {
+                    const players = teamString.split(/\s+e\s+/i).map((p) => p.trim())
+                    return { player1: players[0] || "", player2: players[1] || "" }
+                });
+
+            const result = await generateGroupsAction({
+                numberOfTeams: values.numberOfTeams,
+                numberOfGroups: values.numberOfGroups,
+                groupFormationStrategy: values.groupFormationStrategy,
+                teams: teamsArray,
+                category: values.category,
+                tournamentType: values.tournamentType,
+            });
+
+            if (!result.success || !result.data) {
+                return { success: false, error: result.error || "Ocorreu um erro inesperado na geração." };
+            }
+
+            if (values.tournamentType === 'groups') {
+                newCategoryData.tournamentData = { groups: await initializeStandings(result.data.groups) };
+                newCategoryData.playoffs = await initializePlayoffs(values, result.data);
+            } else if (values.tournamentType === 'singleElimination') {
+                newCategoryData.playoffs = await initializePlayoffs(values, result.data);
+            }
+        }
+        
+        newCategoryData.totalMatches = await calculateTotalMatches(newCategoryData);
+        
+        db[categoryName] = newCategoryData;
+        await writeDb(db);
+        
+        return { success: true };
+
+    } catch (e: any) {
+        console.error("Error regenerating category:", e);
+        return { success: false, error: e.message || "Ocorreu um erro desconhecido ao regenerar a categoria." };
+    }
 }
