@@ -25,10 +25,12 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 
 
 export function GlobalSettings() {
   const [isSaving, setIsSaving] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast()
 
@@ -88,7 +90,7 @@ export function GlobalSettings() {
   }
 
   const handleRescheduleAll = async () => {
-    setIsSaving(true);
+    setIsRescheduling(true);
     const result = await rescheduleAllTournaments();
     if (result.success) {
       toast({
@@ -102,7 +104,7 @@ export function GlobalSettings() {
         description: result.error || "Não foi possível reagendar o torneio.",
       });
     }
-    setIsSaving(false);
+    setIsRescheduling(false);
   }
 
   if (!isLoaded) {
@@ -237,7 +239,7 @@ export function GlobalSettings() {
                           Adicionar Quadra
                       </Button>
                     </div>
-                    <Button type="submit" disabled={isSaving} className="w-full">
+                    <Button type="submit" disabled={isSaving || isRescheduling} className="w-full">
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Salvar Configurações
                     </Button>
@@ -260,9 +262,15 @@ export function GlobalSettings() {
                 Recalcula todos os horários de todos os jogos, em todas as categorias. Esta ação considera conflitos de jogadores que participam de múltiplas categorias. Use após cadastrar todas as categorias e duplas.
               </p>
             </div>
-            <Button onClick={handleRescheduleAll} disabled={isSaving} className="w-full">
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Recalcular Horários de Todo o Torneio
+            {isRescheduling && (
+                <div className="space-y-2">
+                    <Progress value={100} className="h-2 animate-pulse" />
+                    <p className="text-sm text-muted-foreground text-center">Aguarde, recalculando horários...</p>
+                </div>
+            )}
+            <Button onClick={handleRescheduleAll} disabled={isSaving || isRescheduling} className="w-full">
+              {(isSaving || isRescheduling) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isRescheduling ? 'Recalculando...' : 'Recalcular Horários de Todo o Torneio'}
             </Button>
           </div>
         </CardContent>
