@@ -3,10 +3,14 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Loader2, Swords, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Swords, Search, Download, FileText } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
 
@@ -118,6 +122,59 @@ export default function MatchesPage() {
     setFilteredMatches(results);
   }, [searchTerm, allMatches]);
 
+  const handleExportCSV = () => {
+    const csvData = Papa.unparse(
+      allMatches.map(m => ({
+        matchId: m.id,
+        category: m.category,
+        stage: m.stage,
+        team1: m.team1,
+        team2: m.team2,
+        time: m.time,
+        court: m.court,
+      }))
+    );
+
+    const blob = new Blob([`\uFEFF${csvData}`], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "horarios.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const tableData = allMatches.map(m => [
+      m.time || '',
+      m.court || '',
+      m.category,
+      m.stage,
+      m.team1,
+      m.score1 !== undefined && m.score2 !== undefined ? `${m.score1} x ${m.score2}` : 'x',
+      m.team2
+    ]);
+
+    doc.text("Lista de Jogos do Torneio", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 14, 20);
+
+    autoTable(doc, {
+      head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Placar', 'Dupla 2']],
+      body: tableData,
+      startY: 25,
+      headStyles: { fillColor: [33, 150, 243] }, // Blue header
+      didDrawPage: (data) => {
+        // You can add headers/footers to each page here if needed
+      }
+    });
+
+    doc.save("horarios.pdf");
+  };
+
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -135,7 +192,18 @@ export default function MatchesPage() {
           <CardDescription>
             Visualize todos os jogos, de todas as categorias e fases.
           </CardDescription>
-           <div className="relative mt-4">
+           <div className="flex flex-col gap-4 mt-4">
+            <div className="flex flex-wrap gap-2 justify-start w-full">
+                <Button onClick={handleExportCSV}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar CSV
+                </Button>
+                 <Button onClick={handleExportPDF}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Exportar PDF
+                </Button>
+            </div>
+            <div className="relative w-full">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     type="search"
@@ -145,6 +213,7 @@ export default function MatchesPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -152,38 +221,40 @@ export default function MatchesPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : filteredMatches.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Horário</TableHead>
-                  <TableHead>Quadra</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Fase</TableHead>
-                  <TableHead className="text-right">Dupla 1</TableHead>
-                  <TableHead className="text-center">Placar</TableHead>
-                  <TableHead>Dupla 2</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMatches.map((match, index) => (
-                  <TableRow key={`${match.category}-${match.id || `match-${index}`}`}>
-                    <TableCell>{match.time || ''}</TableCell>
-                    <TableCell>{match.court || ''}</TableCell>
-                    <TableCell className="font-medium">{match.category}</TableCell>
-                    <TableCell>{match.stage}</TableCell>
-                    <TableCell className="text-right">{match.team1}</TableCell>
-                    <TableCell className="text-center font-bold">
-                        {match.score1 !== undefined && match.score2 !== undefined ? (
-                           `${match.score1} x ${match.score2}`
-                        ) : (
-                            'x'
-                        )}
-                    </TableCell>
-                    <TableCell>{match.team2}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Horário</TableHead>
+                    <TableHead>Quadra</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Fase</TableHead>
+                    <TableHead className="text-right">Dupla 1</TableHead>
+                    <TableHead className="text-center">Placar</TableHead>
+                    <TableHead>Dupla 2</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredMatches.map((match, index) => (
+                    <TableRow key={`${match.category}-${match.id || `match-${index}`}`}>
+                        <TableCell>{match.time || ''}</TableCell>
+                        <TableCell>{match.court || ''}</TableCell>
+                        <TableCell className="font-medium">{match.category}</TableCell>
+                        <TableCell>{match.stage}</TableCell>
+                        <TableCell className="text-right">{match.team1}</TableCell>
+                        <TableCell className="text-center font-bold">
+                            {match.score1 !== undefined && match.score2 !== undefined ? (
+                            `${match.score1} x ${match.score2}`
+                            ) : (
+                                'x'
+                            )}
+                        </TableCell>
+                        <TableCell>{match.team2}</TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full min-h-[200px]">
                 <p className="text-muted-foreground">{allMatches.length > 0 ? 'Nenhum jogo encontrado para a busca atual.' : 'Nenhum jogo encontrado. Gere uma categoria para ver os jogos aqui.'}</p>
