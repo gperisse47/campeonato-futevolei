@@ -231,8 +231,8 @@ export default function AdminMatchesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMatches.map((match) => (
-                    <TableRow key={match.id}>
+                  {filteredMatches.map((match, index) => (
+                    <TableRow key={`${match.id}-${index}`}>
                       <TableCell>
                         <Input
                           type="time"
