@@ -346,7 +346,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
