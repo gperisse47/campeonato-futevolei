@@ -8,7 +8,7 @@ import {
   generateTournamentGroups,
   type GenerateTournamentGroupsOutput
 } from "@/ai/flows/generate-tournament-groups"
-import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput, PlayoffMatch, MatchWithScore, Court, TournamentFormValues, GroupWithScores } from "@/lib/types"
+import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput, PlayoffMatch, MatchWithScore, Court, TournamentFormValues, GroupWithScores, TimeSlot } from "@/lib/types"
 import { z } from 'zod';
 import { format, addMinutes, parse, isBefore, startOfDay, isAfter } from 'date-fns';
 import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from '@/lib/regeneration';
@@ -166,7 +166,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     const groupKey = `${categoryName}-${groupName}`;
                     if(!groupMatchCounts.has(groupKey)) groupMatchCounts.set(groupKey, { total: 0, finished: 0 });
                     groupMatchCounts.get(groupKey)!.total++;
-                    deps.add(`${groupKey}-finished`);
                 }
 
                 [match.team1Placeholder, match.team2Placeholder].forEach(p => {
@@ -227,7 +226,10 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 if (isBefore(currentTime, categoryStartTime)) return false;
 
                 const dependencies = matchDependencyMap.get(match.id!);
-                if (dependencies && !dependencies.every(dep => scheduledFinishTimes.has(dep) && !isAfter(currentTime, scheduledFinishTimes.get(dep)!))) {
+                if (dependencies && !dependencies.every(dep => {
+                    const finishedTime = scheduledFinishTimes.get(dep);
+                    return finishedTime ? !isAfter(currentTime, finishedTime) : false;
+                })) {
                     return false;
                 }
                 
@@ -239,19 +241,27 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
             if (readyMatches.length === 0) {
                 // No matches ready at this time, advance time
-                const nextPlayerFree = Math.min(...Array.from(playerAvailability.values()).map(d => d.getTime()).filter(t => t > currentTime.getTime()), Infinity);
-                const nextCourtFree = Math.min(...Array.from(courtAvailability.values()).map(c => c.nextFree.getTime()).filter(t => t > currentTime.getTime()), Infinity);
-                const nextDepFree = Math.min(...Array.from(scheduledFinishTimes.values()).map(d => d.getTime()).filter(t => t > currentTime.getTime()), Infinity);
+                const nextPlayerFreeTimes = Array.from(playerAvailability.values()).map(d => d.getTime()).filter(t => t > currentTime.getTime());
+                const nextCourtFreeTimes = Array.from(courtAvailability.values()).map(c => c.nextFree.getTime()).filter(t => t > currentTime.getTime());
+                const nextDepFreeTimes = Array.from(dependencyToMatchesMap.keys())
+                    .filter(dep => !scheduledFinishTimes.has(dep))
+                    .flatMap(dep => dependencyToMatchesMap.get(dep) || [])
+                    .map(matchId => matchDependencyMap.get(matchId) || [])
+                    .flat()
+                    .map(dep => scheduledFinishTimes.get(dep)?.getTime())
+                    .filter((t): t is number => t !== undefined && t > currentTime.getTime());
                 
-                let nextTime = Math.min(nextPlayerFree, nextCourtFree, nextDepFree);
+                const allNextTimes = [...nextPlayerFreeTimes, ...nextCourtFreeTimes, ...nextDepFreeTimes];
 
-                if (!isFinite(nextTime)) {
-                     // If no future events, advance by match duration, or break if we are stuck.
+                const nextTimeValue = allNextTimes.length > 0 ? Math.min(...allNextTimes) : Infinity;
+
+                if (!isFinite(nextTimeValue)) {
+                    // If no future events, advance by match duration, or break if we are stuck.
                     const lastTime = currentTime.getTime();
                     currentTime = addMinutes(currentTime, matchDuration);
                     if(currentTime.getTime() === lastTime) break;
                 } else {
-                    currentTime = new Date(nextTime);
+                    currentTime = new Date(nextTimeValue);
                 }
                 continue;
             }
@@ -328,8 +338,23 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 }
             }
 
-            if (scheduledCountThisSlot === 0) {
-                 currentTime = addMinutes(currentTime, matchDuration);
+            if (scheduledCountThisSlot === 0 && availableCourtsNow.length > 0 && readyMatches.length > 0) {
+                // We have ready matches and courts, but couldn't schedule.
+                // This indicates a player availability conflict. We need to advance time.
+                 const nextPlayerFreeTimes = Array.from(playerAvailability.values()).map(d => d.getTime()).filter(t => t > currentTime.getTime());
+                 if (nextPlayerFreeTimes.length > 0) {
+                     currentTime = new Date(Math.min(...nextPlayerFreeTimes));
+                 } else {
+                     currentTime = addMinutes(currentTime, matchDuration);
+                 }
+            } else if (scheduledCountThisSlot === 0) {
+                // No courts were available for the ready matches at this time. Advance time.
+                 const nextCourtFreeTimes = Array.from(courtAvailability.values()).map(c => c.nextFree.getTime()).filter(t => t > currentTime.getTime());
+                 if(nextCourtFreeTimes.length > 0) {
+                     currentTime = new Date(Math.min(...nextCourtFreeTimes));
+                 } else {
+                     currentTime = addMinutes(currentTime, matchDuration);
+                 }
             }
         }
         
@@ -387,15 +412,14 @@ function getPlayersFromMatch(match: MatchWithScore | PlayoffMatch): string[] {
 function extractDependencies(placeholder: string | undefined, categoryName: string): string[] {
     if (!placeholder) return [];
     
-    // For "Vencedor Quartas de Final-1"
+    // For "Vencedor Quartas de Final 1" or "Vencedor U-R1-1"
     const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
     if (matchDepMatch && matchDepMatch[1]) {
-        // Assume the ID from placeholder is complete
         return [matchDepMatch[1].trim()];
     }
     
-    // For "1º do Grupo A"
-    const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
+    // For "1º do Group A"
+    const groupDepMatch = placeholder.match(/\d+º\sdo\s(Group \w)/);
     if (groupDepMatch && groupDepMatch[1]) {
         return [`${categoryName}-${groupDepMatch[1].trim()}-finished`];
     }
