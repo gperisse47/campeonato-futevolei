@@ -249,12 +249,23 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
              
             if (!scheduledSomethingInCycle && unscheduledMatches.length > 0) {
                  const nextCourtTime = new Date(Math.min(...Object.values(courtAvailability).map(t => t.getTime())));
-                 const nextPlayerTime = new Date(Math.min(...unscheduledMatches.flatMap(m => getPlayers(m.original.team1, m.original.team2)).map(p => (playerAvailability[p] || new Date(0)).getTime())));
+                 
+                 const nextPlayerReadyTimes = unscheduledMatches.map(m => {
+                    const players = getPlayers(m.original.team1, m.original.team2);
+                    if (players.length === 0) return new Date(8640000000000000); // Far future if no players
+                    return new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
+                 });
+                 const nextPlayerTime = new Date(Math.min(...nextPlayerReadyTimes.map(t => t.getTime())));
                  
                  const nextTime = new Date(Math.max(nextCourtTime.getTime(), nextPlayerTime.getTime()));
 
                  const courtToAdvance = Object.keys(courtAvailability).reduce((a, b) => courtAvailability[a] < courtAvailability[b] ? a : b);
-                 courtAvailability[courtToAdvance] = addMinutes(nextTime, 1);
+                 
+                 if (isEqual(courtAvailability[courtToAdvance], nextTime)) {
+                     courtAvailability[courtToAdvance] = addMinutes(nextTime, 1);
+                 } else {
+                     courtAvailability[courtToAdvance] = nextTime;
+                 }
             }
         }
         
@@ -346,7 +357,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
@@ -378,7 +389,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     });
 
-    return GenerateTournamentGroupsOutputSchema.parse({ groups });
+    return GenerateTournamentGroupsOutputSchema.parse({ groups, playoffMatches: [] });
 }
 
 
@@ -594,3 +605,6 @@ export async function regenerateCategory(categoryName: string, newFormValues?: T
         return { success: false, error: e.message || "Ocorreu um erro desconhecido ao regenerar a categoria." };
     }
 }
+
+
+      
