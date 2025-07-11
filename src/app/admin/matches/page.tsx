@@ -225,12 +225,19 @@ export default function AdminMatchesPage() {
 
       const originalMatch = tempMatches[matchIndex];
       const updatedMatch = { ...originalMatch, [field]: value, isDirty: true };
+      
+      // Re-validate just the changed match first
+      updatedMatch.validationError = validateChange(updatedMatch, tempMatches);
+      
       tempMatches[matchIndex] = updatedMatch;
       
+      // Now, re-validate any other match that might be affected by this change
       const validatedMatches = tempMatches.map(m => {
-          // Re-validate the match that was just changed, and any matches it might now conflict with
-           const error = validateChange(m, tempMatches);
-           return { ...m, validationError: error };
+          if (m.id !== matchId && (m.time === updatedMatch.time || m.court === updatedMatch.court)) {
+             const error = validateChange(m, tempMatches);
+             return { ...m, validationError: error };
+          }
+          return m;
       });
 
       return validatedMatches;
@@ -388,10 +395,10 @@ export default function AdminMatchesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMatches.map((match) => {
+                  {filteredMatches.map((match, index) => {
                     const isSaving = savingStates[match.id];
                     return (
-                    <TableRow key={match.id}>
+                    <TableRow key={match.id || `match-${index}`}>
                       <TableCell>
                         <Input
                           type="time"
