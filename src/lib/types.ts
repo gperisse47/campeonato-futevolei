@@ -1,5 +1,4 @@
 
-'use server';
 import type {
   GenerateTournamentGroupsInput as AIGenerateTournamentGroupsInput,
 } from "@/ai/flows/generate-tournament-groups"
@@ -114,14 +113,17 @@ export const formSchema = z
       const numTeams = data.numberOfTeams;
       const numGroups = data.numberOfGroups;
       
-      const groups = Array.from({ length: numGroups }, () => 0);
-      for (let i = 0; i < numTeams; i++) {
-        groups[i % numGroups]++;
+      const minTeamsPerGroup = Math.floor(numTeams / numGroups);
+      const maxTeamsPerGroup = Math.ceil(numTeams / numGroups);
+
+      if (maxTeamsPerGroup - minTeamsPerGroup > 1) {
+          // This case should ideally be prevented by UI logic, but it's a safeguard.
+          // It indicates an uneven distribution that's more than just one team difference.
+          return false;
       }
       
-      const minTeamsInGroup = Math.min(...groups);
-
-      return data.teamsPerGroupToAdvance! < minTeamsInGroup;
+      // The number of teams advancing must be less than the size of the smallest possible group.
+      return data.teamsPerGroupToAdvance! < minTeamsPerGroup;
     },
     {
       message: "O número de classificados deve ser menor que o número de duplas no menor grupo.",
