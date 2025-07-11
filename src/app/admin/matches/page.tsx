@@ -54,6 +54,7 @@ export default function AdminMatchesPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
+  const [globalStartTime, setGlobalStartTime] = useState<string>('08:00');
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -80,7 +81,10 @@ export default function AdminMatchesPage() {
     try {
       const savedTournaments = await getTournaments();
       if (savedTournaments) {
-        setCourts(savedTournaments._globalSettings?.courts || []);
+        if (savedTournaments._globalSettings) {
+            setCourts(savedTournaments._globalSettings.courts || []);
+            setGlobalStartTime(savedTournaments._globalSettings.startTime || '08:00');
+        }
         const allMatchesData: EditableMatch[] = [];
 
         const processBracket = (bracket: PlayoffBracket, categoryName: string) => {
@@ -182,10 +186,16 @@ export default function AdminMatchesPage() {
       if (!matchToValidate.time || !matchToValidate.court) return undefined;
       
       const matchDuration = 20; // Assume fixed duration for now
+      
+      // 1. Check against global start time
+      if (matchToValidate.time < globalStartTime) {
+          return `Horário antes do início do torneio (${globalStartTime}).`;
+      }
+
       const startTime = parseTime(matchToValidate.time);
       const endTime = addMinutes(startTime, matchDuration);
       
-      // 1. Check court availability in schedule
+      // 2. Check court availability in schedule
       const courtSlot = courts.find(c => c.name === matchToValidate.court);
       if (courtSlot) {
         const isInValidSlot = courtSlot.slots.some(slot => 
@@ -196,7 +206,7 @@ export default function AdminMatchesPage() {
         }
       }
 
-      // 2. Check for court conflicts
+      // 3. Check for court conflicts
       const courtConflict = allCurrentMatches.find(m => 
           m.id !== matchToValidate.id &&
           m.court === matchToValidate.court &&
@@ -204,7 +214,7 @@ export default function AdminMatchesPage() {
       );
       if (courtConflict) return `Conflito: ${courtConflict.court} já está em uso.`;
       
-      // 3. Check for player conflicts
+      // 4. Check for player conflicts
       if (matchToValidate.players.length > 0) {
         const playerConflict = allCurrentMatches.find(m =>
             m.id !== matchToValidate.id &&
@@ -215,7 +225,7 @@ export default function AdminMatchesPage() {
       }
       
       return undefined;
-  }, [courts]);
+  }, [courts, globalStartTime]);
 
   const handleFieldChange = (matchId: string, field: 'time' | 'court', value: string) => {
     setFilteredMatches(prev => {
