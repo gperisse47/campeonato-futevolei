@@ -147,7 +147,7 @@ const extractDependencies = (placeholder: string): string[] => {
 
 // A unique identifier for a match object
 const getMatchId = (match: SchedulableMatch): string => {
-    if ('id' in match) return match.id;
+    if ('id' in match && match.id) return match.id;
     // For group matches, create a stable ID based on teams and category/group
     return `${match.category}-${match.groupName}-${teamToKey(match.team1)}-vs-${teamToKey(match.team2)}`;
 };
@@ -194,6 +194,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 const processBracket = (bracket: PlayoffBracket | undefined) => {
                     if (!bracket) return;
                     Object.values(bracket).flat().forEach(m => {
+                        if (!m.id) return; // Skip matches without IDs
                         const schedulableMatch: SchedulableMatch = { ...clearSchedule(m), category: catName };
                         allMatchesToSchedule.push(schedulableMatch);
                         const players = getPlayersFromMatch(schedulableMatch);
@@ -228,8 +229,14 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         
         while (unscheduledMatches.size > 0) {
             let scheduledSomethingInThisSlot = false;
-
-            const availableCourts = sortedCourts.filter(c => !isAfter(courtAvailability.get(c.name)!, currentTime));
+            
+            const availableCourts = sortedCourts.filter(court => {
+                const courtAvailTime = courtAvailability.get(court.name)!;
+                return !isAfter(courtAvailTime, currentTime) && court.slots.some(slot => 
+                    !isBefore(currentTime, parseTime(slot.startTime)) && 
+                    !isAfter(addMinutes(currentTime, matchDuration), parseTime(slot.endTime))
+                );
+            });
 
             if (availableCourts.length > 0) {
                 let candidateMatches = allMatchesToSchedule.filter(m => unscheduledMatches.has(getMatchId(m)));
@@ -244,9 +251,10 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                             if (!finishTime || isAfter(finishTime, currentTime)) return false;
                         }
                     }
-
+                    
                     const players = matchPlayerMap.get(getMatchId(match)) || [];
-                    if (players.length === 0 && 'dependencies' in match) return false;
+                    if ('team1Placeholder' in match && players.length === 0) return false; // Don't schedule playoff matches without players yet
+                    
                     return players.every(p => !isAfter(playerAvailability.get(p) || new Date(0), currentTime));
                 });
                 
@@ -263,12 +271,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 const playersScheduledInThisSlot = new Set<string>();
 
                 for (const court of availableCourts) {
-                    const isCourtOpen = court.slots.some(slot => 
-                        !isBefore(currentTime, parseTime(slot.startTime)) &&
-                        !isAfter(addMinutes(currentTime, matchDuration), parseTime(slot.endTime))
-                    );
-                    if (!isCourtOpen) continue;
-
                     const matchToSchedule = schedulableNow.find(match => {
                         const players = matchPlayerMap.get(getMatchId(match)) || [];
                         return players.every(p => !playersScheduledInThisSlot.has(p));
@@ -288,7 +290,9 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                             playersScheduledInThisSlot.add(p);
                         });
                         
-                        if ('id' in matchToSchedule) dependencyFinishTimes.set(matchToSchedule.id, matchEndTime);
+                        if ('id' in matchToSchedule && matchToSchedule.id) {
+                           dependencyFinishTimes.set(matchToSchedule.id, matchEndTime);
+                        }
                         
                         if ('groupName' in matchToSchedule && matchToSchedule.groupName) {
                            const groupKey = `${matchToSchedule.category}-${matchToSchedule.groupName}`;
@@ -659,3 +663,4 @@ export async function regenerateCategory(categoryName: string, newFormValues?: T
         return { success: false, error: e.message || "Ocorreu um erro desconhecido ao regenerar a categoria." };
     }
 }
+
