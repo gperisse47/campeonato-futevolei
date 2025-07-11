@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Papa from "papaparse";
 import { LoginPage } from "@/components/login-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,9 +21,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download } from "lucide-react";
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
-import { getTournaments, updateMatch, importScheduleFromCSV } from "@/app/actions";
+import { getTournaments, updateMatch, updateMultipleMatches, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
@@ -52,6 +52,7 @@ export default function AdminMatchesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
+  const [isSavingAll, setIsSavingAll] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
   const [globalStartTime, setGlobalStartTime] = useState<string>('08:00');
@@ -283,6 +284,55 @@ export default function AdminMatchesPage() {
     }
     setSavingStates(prev => ({ ...prev, [match.id]: false }));
   };
+  
+  const handleSaveAllChanges = async () => {
+    setIsSavingAll(true);
+    const dirtyMatches = filteredMatches.filter(m => m.isDirty && !m.validationError);
+    
+    const matchesToUpdate = dirtyMatches.map(m => ({
+        matchId: m.id,
+        categoryName: m.category,
+        time: m.time,
+        court: m.court
+    }));
+
+    const result = await updateMultipleMatches(matchesToUpdate);
+    
+    if (result.success) {
+      toast({
+        title: "Jogos Atualizados!",
+        description: "Todos os horários e quadras foram salvos com sucesso.",
+      });
+      await loadMatchesAndSettings();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Salvar",
+        description: result.error || "Não foi possível atualizar todos os jogos.",
+      });
+    }
+    setIsSavingAll(false);
+  };
+  
+  const handleResetAllChanges = () => {
+      const resetMatches = filteredMatches.map(m => {
+          if (m.isDirty) {
+              return {
+                  ...m,
+                  time: m.originalTime,
+                  court: m.originalCourt,
+                  isDirty: false,
+                  validationError: undefined,
+              };
+          }
+          return m;
+      });
+      setFilteredMatches(resetMatches);
+      toast({
+          title: "Alterações Desfeitas",
+          description: "Todas as mudanças não salvas foram revertidas."
+      });
+  };
 
   const handleExportCSV = () => {
     const csvData = Papa.unparse(
@@ -336,6 +386,9 @@ export default function AdminMatchesPage() {
     };
     reader.readAsText(file);
   };
+  
+  const hasDirtyMatches = useMemo(() => filteredMatches.some(m => m.isDirty), [filteredMatches]);
+  const hasValidationErrors = useMemo(() => filteredMatches.some(m => !!m.validationError), [filteredMatches]);
 
   if (isAuthLoading) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -360,10 +413,10 @@ export default function AdminMatchesPage() {
         <CardHeader>
           <CardTitle>Todos os Jogos</CardTitle>
           <CardDescription>
-            Ajuste os horários e quadras e clique em salvar para cada linha, ou use a importação/exportação de CSV.
+            Ajuste os horários e quadras. Você pode salvar linha por linha ou todas as alterações de uma vez.
           </CardDescription>
-          <div className="flex flex-col sm:flex-row gap-2 mt-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 mt-4 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -388,6 +441,30 @@ export default function AdminMatchesPage() {
               accept=".csv"
               onChange={handleFileChange}
             />
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline" disabled={!hasDirtyMatches || isSavingAll}>
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Resetar Alterações
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação irá reverter todas as alterações não salvas nesta página.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetAllChanges}>Confirmar</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Button onClick={handleSaveAllChanges} disabled={!hasDirtyMatches || hasValidationErrors || isSavingAll}>
+              {isSavingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Salvar Tudo
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -470,3 +547,4 @@ export default function AdminMatchesPage() {
     </div>
   );
 }
+

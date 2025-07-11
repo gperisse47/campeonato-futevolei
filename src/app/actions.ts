@@ -584,6 +584,69 @@ export async function updateMatch(input: UpdateMatchInput): Promise<{ success: b
     }
 }
 
+export async function updateMultipleMatches(matches: UpdateMatchInput[]): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+
+        for (const { matchId, categoryName, time, court } of matches) {
+            const categoryData = db[categoryName] as CategoryData;
+            if (!categoryData) continue;
+
+            let matchFound = false;
+            const findAndUpdate = (currentMatch: MatchWithScore | PlayoffMatch) => {
+                if (currentMatch.id === matchId) {
+                    currentMatch.time = time;
+                    currentMatch.court = court;
+                    return true;
+                }
+                return false;
+            };
+
+            const findAndUpdateInBracket = (bracket?: PlayoffBracket) => {
+                if (!bracket) return;
+                for (const round of Object.values(bracket)) {
+                    for (const match of round) {
+                        if (findAndUpdate(match)) {
+                            matchFound = true;
+                            return;
+                        }
+                    }
+                }
+            };
+            
+            if (categoryData.tournamentData?.groups) {
+                for (const group of categoryData.tournamentData.groups) {
+                    for (const match of group.matches) {
+                        if (findAndUpdate(match)) {
+                            matchFound = true;
+                            break;
+                        }
+                    }
+                    if (matchFound) break;
+                }
+            }
+            
+            if (!matchFound && categoryData.playoffs) {
+                const bracketSet = categoryData.playoffs as PlayoffBracketSet;
+                if(bracketSet.upper || bracketSet.lower || bracketSet.playoffs) {
+                    findAndUpdateInBracket(bracketSet.upper);
+                    if (!matchFound) findAndUpdateInBracket(bracketSet.lower);
+                    if (!matchFound) findAndUpdateInBracket(bracketSet.playoffs);
+                } else {
+                    findAndUpdateInBracket(bracketSet as PlayoffBracket)
+                }
+            }
+        }
+
+        await writeDb(db);
+        return { success: true };
+    } catch (e: any) {
+        console.error("Erro ao atualizar os jogos:", e);
+        return { success: false, error: e.message || "Erro desconhecido ao atualizar os jogos." };
+    }
+}
+
+
 type CsvRow = {
     matchId: string;
     time: string;
@@ -705,3 +768,4 @@ export async function importScheduleFromCSV(csvData: string): Promise<{ success:
         return { success: false, error: e.message || "Erro inesperado durante a importação." };
     }
 }
+
