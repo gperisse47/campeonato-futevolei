@@ -386,20 +386,48 @@ export default function AdminMatchesPage() {
       m.court || '',
       m.category,
       m.stage,
-      m.team1,
+      m.team1 || '',
       m.score1 !== undefined && m.score2 !== undefined ? `${m.score1} x ${m.score2}` : 'x',
-      m.team2
+      m.team2 || ''
     ]);
 
-    doc.text("Lista de Jogos do Torneio", 14, 15);
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(33, 150, 243); // Primary color
+    const title = "Lista de Jogos do Torneio";
+    const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const x = (pageWidth - titleWidth) / 2;
+    doc.text(title, x, 15);
+
+    // Subtitle
     doc.setFontSize(10);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 14, 20);
+    doc.setTextColor(100); // Muted foreground
+    const subtitle = `Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`;
+    const subtitleWidth = doc.getStringUnitWidth(subtitle) * doc.getFontSize() / doc.internal.scaleFactor;
+    const x2 = (pageWidth - subtitleWidth) / 2;
+    doc.text(subtitle, x2, 22);
 
     autoTable(doc, {
       head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Placar', 'Dupla 2']],
       body: tableData,
-      startY: 25,
-      headStyles: { fillColor: [33, 150, 243] }, // Blue header
+      startY: 30,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [255, 140, 0], // Accent color
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245] // Light gray for zebra stripes
+      },
+      didDrawPage: (data) => {
+        // Footer with page number
+        const pageCount = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 10);
+      }
     });
 
     doc.save("horarios.pdf");
@@ -486,7 +514,7 @@ export default function AdminMatchesPage() {
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button disabled={!hasDirtyMatches || isSavingAll}>
+                        <Button variant="outline" disabled={!hasDirtyMatches || isSavingAll}>
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Resetar Alterações
                         </Button>
