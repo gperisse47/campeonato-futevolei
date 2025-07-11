@@ -88,8 +88,9 @@
                 "player1": "Neves",
                 "player2": "Caze"
               },
-              "time": "11:00",
-              "court": "GP1"
+              "id": "GroupA-Jogo1",
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -100,6 +101,7 @@
                 "player1": "Gustavo",
                 "player2": "Marcus"
               },
+              "id": "GroupA-Jogo2",
               "time": "",
               "court": ""
             },
@@ -112,6 +114,7 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
+              "id": "GroupA-Jogo3",
               "time": "",
               "court": ""
             },
@@ -124,6 +127,7 @@
                 "player1": "Gustavo",
                 "player2": "Marcus"
               },
+              "id": "GroupA-Jogo4",
               "time": "",
               "court": ""
             },
@@ -136,6 +140,7 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
+              "id": "GroupA-Jogo5",
               "time": "",
               "court": ""
             },
@@ -148,6 +153,7 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
+              "id": "GroupA-Jogo6",
               "time": "",
               "court": ""
             }
@@ -225,6 +231,7 @@
                 "player1": "Carelli",
                 "player2": "Hantaro"
               },
+              "id": "GroupB-Jogo1",
               "time": "",
               "court": ""
             },
@@ -237,6 +244,7 @@
                 "player1": "Gabe",
                 "player2": "Yan"
               },
+              "id": "GroupB-Jogo2",
               "time": "",
               "court": ""
             },
@@ -249,6 +257,7 @@
                 "player1": "Sartoratto",
                 "player2": "Poppe"
               },
+              "id": "GroupB-Jogo3",
               "time": "",
               "court": ""
             },
@@ -261,6 +270,7 @@
                 "player1": "Gabe",
                 "player2": "Yan"
               },
+              "id": "GroupB-Jogo4",
               "time": "",
               "court": ""
             },
@@ -273,6 +283,7 @@
                 "player1": "Sartoratto",
                 "player2": "Poppe"
               },
+              "id": "GroupB-Jogo5",
               "time": "",
               "court": ""
             },
@@ -285,6 +296,7 @@
                 "player1": "Sartoratto",
                 "player2": "Poppe"
               },
+              "id": "GroupB-Jogo6",
               "time": "",
               "court": ""
             }
@@ -362,6 +374,7 @@
                 "player1": "Rodrigo",
                 "player2": "Paulinho"
               },
+              "id": "GroupC-Jogo1",
               "time": "",
               "court": ""
             },
@@ -374,6 +387,7 @@
                 "player1": "Brenner",
                 "player2": "Py"
               },
+              "id": "GroupC-Jogo2",
               "time": "",
               "court": ""
             },
@@ -386,6 +400,7 @@
                 "player1": "James",
                 "player2": "Fabio"
               },
+              "id": "GroupC-Jogo3",
               "time": "",
               "court": ""
             },
@@ -398,6 +413,7 @@
                 "player1": "Brenner",
                 "player2": "Py"
               },
+              "id": "GroupC-Jogo4",
               "time": "",
               "court": ""
             },
@@ -410,6 +426,7 @@
                 "player1": "James",
                 "player2": "Fabio"
               },
+              "id": "GroupC-Jogo5",
               "time": "",
               "court": ""
             },
@@ -422,6 +439,7 @@
                 "player1": "James",
                 "player2": "Fabio"
               },
+              "id": "GroupC-Jogo6",
               "time": "",
               "court": ""
             }
@@ -499,6 +517,7 @@
                 "player1": "Felipe M.",
                 "player2": "Rapha B."
               },
+              "id": "GroupD-Jogo1",
               "time": "",
               "court": ""
             },
@@ -511,6 +530,7 @@
                 "player1": "Carril",
                 "player2": "Leandro"
               },
+              "id": "GroupD-Jogo2",
               "time": "",
               "court": ""
             },
@@ -523,6 +543,7 @@
                 "player1": "Russo",
                 "player2": "Maki"
               },
+              "id": "GroupD-Jogo3",
               "time": "",
               "court": ""
             },
@@ -535,6 +556,7 @@
                 "player1": "Carril",
                 "player2": "Leandro"
               },
+              "id": "GroupD-Jogo4",
               "time": "",
               "court": ""
             },
@@ -547,6 +569,7 @@
                 "player1": "Russo",
                 "player2": "Maki"
               },
+              "id": "GroupD-Jogo5",
               "time": "",
               "court": ""
             },
@@ -559,6 +582,7 @@
                 "player1": "Russo",
                 "player2": "Maki"
               },
+              "id": "GroupD-Jogo6",
               "time": "",
               "court": ""
             }
@@ -611,7 +635,7 @@
     "playoffs": {
       "Quartas de Final": [
         {
-          "id": "Quartas de Final-1",
+          "id": "QuartasdeFinal-Jogo1",
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
@@ -620,7 +644,7 @@
           "roundOrder": 3
         },
         {
-          "id": "Quartas de Final-2",
+          "id": "QuartasdeFinal-Jogo2",
           "name": "Quartas de Final 2",
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
@@ -629,7 +653,7 @@
           "roundOrder": 3
         },
         {
-          "id": "Quartas de Final-3",
+          "id": "QuartasdeFinal-Jogo3",
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
@@ -638,7 +662,7 @@
           "roundOrder": 3
         },
         {
-          "id": "Quartas de Final-4",
+          "id": "QuartasdeFinal-Jogo4",
           "name": "Quartas de Final 4",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
@@ -649,19 +673,19 @@
       ],
       "Semifinal": [
         {
-          "id": "Semifinal-1",
+          "id": "Semifinal-Jogo1",
           "name": "Semifinal 1",
-          "team1Placeholder": "Vencedor Quartas de Final 1",
-          "team2Placeholder": "Vencedor Quartas de Final 4",
+          "team1Placeholder": "Vencedor QuartasdeFinal-Jogo1",
+          "team2Placeholder": "Vencedor QuartasdeFinal-Jogo4",
           "time": "",
           "court": "",
           "roundOrder": 2
         },
         {
-          "id": "Semifinal-2",
+          "id": "Semifinal-Jogo2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor Quartas de Final 3",
-          "team2Placeholder": "Vencedor Quartas de Final 2",
+          "team1Placeholder": "Vencedor QuartasdeFinal-Jogo3",
+          "team2Placeholder": "Vencedor QuartasdeFinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -669,10 +693,10 @@
       ],
       "Final": [
         {
-          "id": "Final-1",
+          "id": "Final-Jogo1",
           "name": "Final 1",
-          "team1Placeholder": "Vencedor Semifinal 1",
-          "team2Placeholder": "Vencedor Semifinal 2",
+          "team1Placeholder": "Vencedor Semifinal-Jogo1",
+          "team2Placeholder": "Vencedor Semifinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 1
@@ -680,10 +704,10 @@
       ],
       "Disputa de 3º Lugar": [
         {
-          "id": "terceiro-lugar-1",
+          "id": "Disputa3Lugar-Jogo1",
           "name": "Disputa de 3º Lugar",
-          "team1Placeholder": "Perdedor Semifinal 1",
-          "team2Placeholder": "Perdedor Semifinal 2",
+          "team1Placeholder": "Perdedor Semifinal-Jogo1",
+          "team2Placeholder": "Perdedor Semifinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 0
@@ -732,6 +756,7 @@
                 "player1": "Mari",
                 "player2": "Neves"
               },
+              "id": "GroupA-Jogo1",
               "time": "",
               "court": ""
             },
@@ -744,6 +769,7 @@
                 "player1": "Carla",
                 "player2": "Henrique"
               },
+              "id": "GroupA-Jogo2",
               "time": "",
               "court": ""
             },
@@ -756,6 +782,7 @@
                 "player1": "Carla",
                 "player2": "Henrique"
               },
+              "id": "GroupA-Jogo3",
               "time": "",
               "court": ""
             }
@@ -819,6 +846,7 @@
                 "player1": "Sofia",
                 "player2": "Caio"
               },
+              "id": "GroupB-Jogo1",
               "time": "",
               "court": ""
             },
@@ -831,6 +859,7 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
+              "id": "GroupB-Jogo2",
               "time": "",
               "court": ""
             },
@@ -843,6 +872,7 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
+              "id": "GroupB-Jogo3",
               "time": "",
               "court": ""
             }
@@ -885,7 +915,7 @@
     "playoffs": {
       "Semifinal": [
         {
-          "id": "Semifinal-1",
+          "id": "Semifinal-Jogo1",
           "name": "Semifinal 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo B",
@@ -894,7 +924,7 @@
           "roundOrder": 2
         },
         {
-          "id": "Semifinal-2",
+          "id": "Semifinal-Jogo2",
           "name": "Semifinal 2",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo B",
@@ -905,10 +935,10 @@
       ],
       "Final": [
         {
-          "id": "Final-1",
+          "id": "Final-Jogo1",
           "name": "Final 1",
-          "team1Placeholder": "Vencedor Semifinal 1",
-          "team2Placeholder": "Vencedor Semifinal 2",
+          "team1Placeholder": "Vencedor Semifinal-Jogo1",
+          "team2Placeholder": "Vencedor Semifinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 1
@@ -916,10 +946,10 @@
       ],
       "Disputa de 3º Lugar": [
         {
-          "id": "terceiro-lugar-1",
+          "id": "Disputa3Lugar-Jogo1",
           "name": "Disputa de 3º Lugar",
-          "team1Placeholder": "Perdedor Semifinal 1",
-          "team2Placeholder": "Perdedor Semifinal 2",
+          "team1Placeholder": "Perdedor Semifinal-Jogo1",
+          "team2Placeholder": "Perdedor Semifinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 0
@@ -968,6 +998,7 @@
                 "player1": "Sartoratto",
                 "player2": "Rebeca"
               },
+              "id": "GroupA-Jogo1",
               "time": "",
               "court": ""
             },
@@ -980,6 +1011,7 @@
                 "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
+              "id": "GroupA-Jogo2",
               "time": "",
               "court": ""
             },
@@ -992,6 +1024,7 @@
                 "player1": "Gabi Q.",
                 "player2": "Gularte"
               },
+              "id": "GroupA-Jogo3",
               "time": "",
               "court": ""
             }
@@ -1055,6 +1088,7 @@
                 "player1": "Gabe",
                 "player2": "Bia"
               },
+              "id": "GroupB-Jogo1",
               "time": "",
               "court": ""
             },
@@ -1067,6 +1101,7 @@
                 "player1": "Isa L.",
                 "player2": "Carelli"
               },
+              "id": "GroupB-Jogo2",
               "time": "",
               "court": ""
             },
@@ -1079,6 +1114,7 @@
                 "player1": "Isa L.",
                 "player2": "Carelli"
               },
+              "id": "GroupB-Jogo3",
               "time": "",
               "court": ""
             }
@@ -1142,6 +1178,7 @@
                 "player1": "Clara",
                 "player2": "Peri"
               },
+              "id": "GroupC-Jogo1",
               "time": "",
               "court": ""
             },
@@ -1154,6 +1191,7 @@
                 "player1": "Fabi",
                 "player2": "Alex"
               },
+              "id": "GroupC-Jogo2",
               "time": "",
               "court": ""
             },
@@ -1166,6 +1204,7 @@
                 "player1": "Fabi",
                 "player2": "Alex"
               },
+              "id": "GroupC-Jogo3",
               "time": "",
               "court": ""
             }
@@ -1229,6 +1268,7 @@
                 "player1": "Renata",
                 "player2": "João"
               },
+              "id": "GroupD-Jogo1",
               "time": "",
               "court": ""
             },
@@ -1241,6 +1281,7 @@
                 "player1": "Marina",
                 "player2": "Henrique"
               },
+              "id": "GroupD-Jogo2",
               "time": "",
               "court": ""
             },
@@ -1253,6 +1294,7 @@
                 "player1": "Marina",
                 "player2": "Henrique"
               },
+              "id": "GroupD-Jogo3",
               "time": "",
               "court": ""
             }
@@ -1295,7 +1337,7 @@
     "playoffs": {
       "Quartas de Final": [
         {
-          "id": "Quartas de Final-1",
+          "id": "QuartasdeFinal-Jogo1",
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
@@ -1304,7 +1346,7 @@
           "roundOrder": 3
         },
         {
-          "id": "Quartas de Final-2",
+          "id": "QuartasdeFinal-Jogo2",
           "name": "Quartas de Final 2",
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
@@ -1313,7 +1355,7 @@
           "roundOrder": 3
         },
         {
-          "id": "Quartas de Final-3",
+          "id": "QuartasdeFinal-Jogo3",
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
@@ -1322,7 +1364,7 @@
           "roundOrder": 3
         },
         {
-          "id": "Quartas de Final-4",
+          "id": "QuartasdeFinal-Jogo4",
           "name": "Quartas de Final 4",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
@@ -1333,19 +1375,19 @@
       ],
       "Semifinal": [
         {
-          "id": "Semifinal-1",
+          "id": "Semifinal-Jogo1",
           "name": "Semifinal 1",
-          "team1Placeholder": "Vencedor Quartas de Final 1",
-          "team2Placeholder": "Vencedor Quartas de Final 4",
+          "team1Placeholder": "Vencedor QuartasdeFinal-Jogo1",
+          "team2Placeholder": "Vencedor QuartasdeFinal-Jogo4",
           "time": "",
           "court": "",
           "roundOrder": 2
         },
         {
-          "id": "Semifinal-2",
+          "id": "Semifinal-Jogo2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor Quartas de Final 3",
-          "team2Placeholder": "Vencedor Quartas de Final 2",
+          "team1Placeholder": "Vencedor QuartasdeFinal-Jogo3",
+          "team2Placeholder": "Vencedor QuartasdeFinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -1353,10 +1395,10 @@
       ],
       "Final": [
         {
-          "id": "Final-1",
+          "id": "Final-Jogo1",
           "name": "Final 1",
-          "team1Placeholder": "Vencedor Semifinal 1",
-          "team2Placeholder": "Vencedor Semifinal 2",
+          "team1Placeholder": "Vencedor Semifinal-Jogo1",
+          "team2Placeholder": "Vencedor Semifinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 1
@@ -1364,10 +1406,10 @@
       ],
       "Disputa de 3º Lugar": [
         {
-          "id": "terceiro-lugar-1",
+          "id": "Disputa3Lugar-Jogo1",
           "name": "Disputa de 3º Lugar",
-          "team1Placeholder": "Perdedor Semifinal 1",
-          "team2Placeholder": "Perdedor Semifinal 2",
+          "team1Placeholder": "Perdedor Semifinal-Jogo1",
+          "team2Placeholder": "Perdedor Semifinal-Jogo2",
           "time": "",
           "court": "",
           "roundOrder": 0

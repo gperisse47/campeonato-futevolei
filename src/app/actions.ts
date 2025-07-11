@@ -178,16 +178,16 @@ function getPlayersFromMatch(match: MatchWithScore | PlayoffMatch): string[] {
 function extractDependencies(placeholder: string | undefined, categoryName: string): string[] {
     if (!placeholder) return [];
     
-    // For "Vencedor Quartas de Final 1" or "Vencedor U-R1-1"
+    // For "Vencedor Categoria-QuartasdeFinal-Jogo1" or "Perdedor Categoria-U-R1-J1"
     const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
     if (matchDepMatch && matchDepMatch[1]) {
         return [matchDepMatch[1].trim()];
     }
     
-    // For "1º do Group A"
-    const groupDepMatch = placeholder.match(/\d+º\sdo\s(Group \w)/);
+    // For "1º do Categoria-GroupA"
+    const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
     if (groupDepMatch && groupDepMatch[1]) {
-        return [`${categoryName}-${groupDepMatch[1].trim()}-finished`];
+        return [`${groupDepMatch[1].trim()}-finished`];
     }
 
     return [];
@@ -429,7 +429,8 @@ export async function updateTeamInTournament(
 async function createOrUpdateCategory(values: TournamentFormValues): Promise<{ success: boolean; error?: string }> {
     try {
         const db = await readDb();
-        const oldCategoryData = db[values.category] || {};
+        const categoryName = values.category;
+        const oldCategoryData = db[categoryName] || {};
 
         let newCategoryData: CategoryData = {
             ...oldCategoryData,
@@ -439,7 +440,7 @@ async function createOrUpdateCategory(values: TournamentFormValues): Promise<{ s
         };
 
         if (values.tournamentType === 'doubleElimination') {
-            const finalPlayoffs = await initializeDoubleEliminationBracket(values);
+            const finalPlayoffs = await initializeDoubleEliminationBracket(values, categoryName);
             newCategoryData.playoffs = finalPlayoffs;
         } else {
             const teamsArray: Team[] = values.teams
@@ -465,20 +466,20 @@ async function createOrUpdateCategory(values: TournamentFormValues): Promise<{ s
             }
 
             if (values.tournamentType === 'groups') {
-                const initializedGroups = await initializeStandings(result.data.groups);
-                const initializedPlayoffs = await initializePlayoffs(values, result.data);
+                const initializedGroups = await initializeStandings(result.data.groups, categoryName);
+                const initializedPlayoffs = await initializePlayoffs(values, categoryName, result.data);
 
                 newCategoryData.tournamentData = { groups: initializedGroups };
                 newCategoryData.playoffs = initializedPlayoffs;
 
             } else if (values.tournamentType === 'singleElimination') {
-                newCategoryData.playoffs = await initializePlayoffs(values, result.data);
+                newCategoryData.playoffs = await initializePlayoffs(values, categoryName, result.data);
             }
         }
         
         newCategoryData.totalMatches = await calculateTotalMatches(newCategoryData);
         
-        db[values.category] = newCategoryData;
+        db[categoryName] = newCategoryData;
         await writeDb(db);
         
         return { success: true };

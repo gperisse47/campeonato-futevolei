@@ -35,7 +35,8 @@ export async function calculateTotalMatches(categoryData: { formValues: Tourname
     return count;
 };
 
-export async function initializeStandings(groups: GenerateTournamentGroupsOutput['groups']): Promise<GroupWithScores[]> {
+export async function initializeStandings(groups: GenerateTournamentGroupsOutput['groups'], categoryName: string): Promise<GroupWithScores[]> {
+    const categoryPrefix = categoryName.replace(/\s/g, '');
     return groups.map(group => {
       const standings: Record<string, Omit<TeamStanding, 'points'>> = {}
       group.teams.forEach(team => {
@@ -43,11 +44,14 @@ export async function initializeStandings(groups: GenerateTournamentGroupsOutput
         standings[teamKey] = { team, played: 0, wins: 0, setsWon: 0, setDifference: 0 }
       })
       const sortedStandings = Object.values(standings).sort((a, b) => a.team.player1.localeCompare(b.team.player1))
+      
+      const groupNameId = group.name.replace(/\s/g, '');
+
       return {
         ...group,
         matches: group.matches.map((match, i) => ({ 
             ...match,
-            id: `${group.name.replace(/\s/g, '')}-Jogo${i+1}`,
+            id: `${categoryPrefix}-${groupNameId}-Jogo${i+1}`,
             score1: undefined, 
             score2: undefined, 
             time: '', 
@@ -58,7 +62,9 @@ export async function initializeStandings(groups: GenerateTournamentGroupsOutput
     })
 };
 
-export async function initializeDoubleEliminationBracket(values: TournamentFormValues): Promise<PlayoffBracketSet | null> {
+export async function initializeDoubleEliminationBracket(values: TournamentFormValues, categoryName: string): Promise<PlayoffBracketSet | null> {
+    const categoryPrefix = categoryName.replace(/\s/g, '');
+
     const allTeamsList = values.teams
         .split("\n")
         .map(t => t.trim())
@@ -89,8 +95,9 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
     if (teamsInFirstRound.length > 0) {
         const round1Name = `Upper Rodada ${wbRoundCounter}`;
         for (let i = 0; i < teamsInFirstRound.length / 2; i++) {
+            const matchId = `${categoryPrefix}-U-R${wbRoundCounter}-J${i + 1}`;
             round1Matches.push({
-                id: `U-R${wbRoundCounter}-J${i + 1}`, name: `${round1Name} Jogo ${i + 1}`,
+                id: matchId, name: `Jogo ${i + 1}`,
                 team1: teamsInFirstRound[i],
                 team2: teamsInFirstRound[teamsInFirstRound.length - 1 - i],
                 team1Placeholder: teamToKey(teamsInFirstRound[i]),
@@ -118,9 +125,10 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
         for (let i = 0; i < currentUpperRoundTeamsPlaceholders.length / 2; i++) {
             const team1Placeholder = currentUpperRoundTeamsPlaceholders[i];
             const team2Placeholder = currentUpperRoundTeamsPlaceholders[currentUpperRoundTeamsPlaceholders.length - 1 - i];
+            const matchId = `${categoryPrefix}-U-R${wbRoundCounter}-J${i + 1}`;
             
             nextRoundMatches.push({
-                id: `U-R${wbRoundCounter}-J${i + 1}`, name: `${roundName} Jogo ${i + 1}`,
+                id: matchId, name: `Jogo ${i + 1}`,
                 team1Placeholder: team1Placeholder,
                 team2Placeholder: team2Placeholder,
                 time: '', roundOrder: 100 - wbRoundCounter,
@@ -150,8 +158,9 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
       const lbRound1Name = `Lower Rodada ${lbRoundCounter}`;
       const lbRound1Matches: PlayoffMatch[] = [];
       for (let i = 0; i < r1Losers.length / 2; i++) {
+        const matchId = `${categoryPrefix}-L-R${lbRoundCounter}-J${i+1}`;
         lbRound1Matches.push({
-            id: `L-R${lbRoundCounter}-J${i+1}`, name: `${lbRound1Name} Jogo ${i+1}`,
+            id: matchId, name: `Jogo ${i+1}`,
             team1Placeholder: r1Losers[i]!,
             team2Placeholder: r1Losers[r1Losers.length - 1 - i]!,
             time: '', roundOrder: -(lbRoundCounter * 2),
@@ -170,8 +179,9 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
         const dropDownRoundMatches: PlayoffMatch[] = [];
         if (contenders.length > 0) {
             for (let i = 0; i < contenders.length / 2; i++) {
+                const matchId = `${categoryPrefix}-L-R${lbRoundCounter}-J${i + 1}`;
                 dropDownRoundMatches.push({
-                    id: `L-R${lbRoundCounter}-J${i + 1}`, name: `${dropDownRoundName} Jogo ${i + 1}`,
+                    id: matchId, name: `Jogo ${i + 1}`,
                     team1Placeholder: contenders[i]!,
                     team2Placeholder: contenders[contenders.length - 1 - i]!,
                     time: '', roundOrder: -(lbRoundCounter * 2),
@@ -190,8 +200,9 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
             const internalRoundName = `Lower Rodada ${lbRoundCounter}`;
             const internalRoundMatches: PlayoffMatch[] = [];
              for (let i = 0; i < currentSurvivors.length / 2; i++) {
+                const matchId = `${categoryPrefix}-L-R${lbRoundCounter}-J${i + 1}`;
                 internalRoundMatches.push({
-                    id: `L-R${lbRoundCounter}-J${i + 1}`, name: `${internalRoundName} Jogo ${i + 1}`,
+                    id: matchId, name: `Jogo ${i + 1}`,
                     team1Placeholder: currentSurvivors[i]!,
                     team2Placeholder: currentSurvivors[currentSurvivors.length - 1 - i]!,
                     time: '', roundOrder: -(lbRoundCounter * 2 - 1),
@@ -215,7 +226,7 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
     const finalPlayoffs: PlayoffBracket = {};
     const grandFinalName = "Grande Final";
     finalPlayoffs[grandFinalName] = [
-        { id: 'GF-J1', name: grandFinalName, team1Placeholder: wbFinalist, team2Placeholder: lbFinalist!, time: '', roundOrder: 101, court: '' }
+        { id: `${categoryPrefix}-GF-J1`, name: grandFinalName, team1Placeholder: wbFinalist, team2Placeholder: lbFinalist!, time: '', roundOrder: 101, court: '' }
     ];
 
     if (values.includeThirdPlace) {
@@ -228,7 +239,7 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
         if (wbSemiFinalistLoser && lbSemiFinalistLoser) {
             const thirdPlaceName = "Disputa de 3º Lugar";
             finalPlayoffs[thirdPlaceName] = [
-                { id: '3P-J1', name: thirdPlaceName, team1Placeholder: wbSemiFinalistLoser, team2Placeholder: lbSemiFinalistLoser, time: '', roundOrder: 0, court: '' }
+                { id: `${categoryPrefix}-3P-J1`, name: thirdPlaceName, team1Placeholder: wbSemiFinalistLoser, team2Placeholder: lbSemiFinalistLoser, time: '', roundOrder: 0, court: '' }
             ];
         }
     }
@@ -236,9 +247,11 @@ export async function initializeDoubleEliminationBracket(values: TournamentFormV
     return { upper: upperBracket, lower: lowerBracket, playoffs: finalPlayoffs };
 };
 
-export async function initializePlayoffs(values: TournamentFormValues, aiResult?: GenerateTournamentGroupsOutput): Promise<PlayoffBracketSet | null> {
+export async function initializePlayoffs(values: TournamentFormValues, categoryName: string, aiResult?: GenerateTournamentGroupsOutput): Promise<PlayoffBracketSet | null> {
+        const categoryPrefix = categoryName.replace(/\s/g, '');
+
         if (values.tournamentType === 'doubleElimination') {
-          return initializeDoubleEliminationBracket(values);
+          return initializeDoubleEliminationBracket(values, categoryName);
         }
         if (values.tournamentType === 'singleElimination') {
             if (!aiResult?.playoffMatches) return null;
@@ -258,8 +271,8 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
             let roundOrder = Math.log2(teamsInRound);
             
             let currentRoundMatches: PlayoffMatch[] = aiResult.playoffMatches.map((match, i) => ({
-                id: `Rodada1-Jogo${i + 1}`,
-                name: `Rodada 1 Jogo ${i + 1}`,
+                id: `${categoryPrefix}-Rodada1-Jogo${i + 1}`,
+                name: `Jogo ${i + 1}`,
                 team1: match.team1,
                 team2: match.team2,
                 team1Placeholder: teamToKey(match.team1),
@@ -286,8 +299,9 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
                 const nextRoundMatches: PlayoffMatch[] = [];
                 for (let i = 0; i < nextRoundPlaceholders.length / 2; i++) {
                     const matchName = `${roundName} ${i + 1}`;
+                    const matchId = `${categoryPrefix}-${roundNameKey.replace(/\s/g, '')}-Jogo${i + 1}`;
                     nextRoundMatches.push({
-                        id: `${roundNameKey.replace(/\s/g, '')}-Jogo${i + 1}`,
+                        id: matchId,
                         name: matchName,
                         team1Placeholder: nextRoundPlaceholders[i*2],
                         team2Placeholder: nextRoundPlaceholders[i*2 + 1],
@@ -311,7 +325,7 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
                 
                 bracket['Disputa de 3º Lugar'] = [
-                    { id: 'Disputa3Lugar-Jogo1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
+                    { id: `${categoryPrefix}-Disputa3Lugar-Jogo1`, name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];
             }
             
@@ -320,7 +334,8 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
         } else if (values.tournamentType === 'groups') {
             const getTeamPlaceholder = (groupIndex: number, position: number) => {
                 const groupLetter = String.fromCharCode(65 + groupIndex);
-                return `${position}º do Grupo ${groupLetter}`;
+                const groupName = `Group ${groupLetter}`;
+                return `${position}º do ${categoryPrefix}-${groupName}`;
             };
 
             const { numberOfGroups, teamsPerGroupToAdvance, includeThirdPlace } = values;
@@ -343,10 +358,10 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
             if (totalQualifiers === 8 && numberOfGroups === 4 && teamsPerGroupToAdvance === 2) {
                 // Specific pairing for 8 qualifiers from 4 groups
                 firstRoundMatchups.push(
-                    { team1Placeholder: "1º do Grupo A", team2Placeholder: "2º do Grupo D" },
-                    { team1Placeholder: "2º do Grupo B", team2Placeholder: "1º do Grupo C" },
-                    { team1Placeholder: "1º do Grupo B", team2Placeholder: "2º do Grupo C" },
-                    { team1Placeholder: "2º do Grupo A", team2Placeholder: "1º do Grupo D" }
+                    { team1Placeholder: getTeamPlaceholder(0, 1), team2Placeholder: getTeamPlaceholder(3, 2) }, // 1A vs 2D
+                    { team1Placeholder: getTeamPlaceholder(1, 2), team2Placeholder: getTeamPlaceholder(2, 1) }, // 2B vs 1C
+                    { team1Placeholder: getTeamPlaceholder(1, 1), team2Placeholder: getTeamPlaceholder(2, 2) }, // 1B vs 2C
+                    { team1Placeholder: getTeamPlaceholder(0, 2), team2Placeholder: getTeamPlaceholder(3, 1) }  // 2A vs 1D
                 );
             } else {
                  const half = teamPlaceholders.length / 2;
@@ -373,7 +388,7 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
                 for (let i = 0; i < currentMatchups.length; i++) {
                     const match = currentMatchups[i];
                     const matchName = `${roundName} ${i + 1}`;
-                    const matchId = `${roundNameKey}-Jogo${i + 1}`;
+                    const matchId = `${categoryPrefix}-${roundNameKey}-Jogo${i + 1}`;
                      bracket[roundName].push({
                         id: matchId,
                         name: matchName,
@@ -417,7 +432,7 @@ export async function initializePlayoffs(values: TournamentFormValues, aiResult?
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
                 
                 bracket['Disputa de 3º Lugar'] = [
-                    { id: 'Disputa3Lugar-Jogo1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
+                    { id: `${categoryPrefix}-Disputa3Lugar-Jogo1`, name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];
             }
 
