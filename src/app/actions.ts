@@ -251,24 +251,30 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             }
              
             if (!scheduledSomethingInCycle && unscheduledMatches.length > 0) {
-                 const nextCourtTime = new Date(Math.min(...Object.values(courtAvailability).map(t => t.getTime())));
-                 
-                 const nextPlayerReadyTimes = unscheduledMatches.map(m => {
+                // Find the next time a court is available
+                const nextCourtAvailableTime = new Date(Math.min(...Object.values(courtAvailability).map(t => t.getTime())));
+
+                // Find the next time a player from an unscheduled match is ready
+                const nextPlayerReadyTimes = unscheduledMatches.map(m => {
                     const players = getPlayers(m.original.team1, m.original.team2);
                     if (players.length === 0) return new Date(8640000000000000); // Far future if no players
                     return new Date(Math.max(...players.map(p => (playerAvailability[p] || new Date(0)).getTime())));
-                 });
-                 const nextPlayerTime = new Date(Math.min(...nextPlayerReadyTimes.map(t => t.getTime())));
-                 
-                 const nextTime = new Date(Math.max(nextCourtTime.getTime(), nextPlayerTime.getTime()));
-
-                 const courtToAdvance = Object.keys(courtAvailability).reduce((a, b) => courtAvailability[a] < courtAvailability[b] ? a : b);
-                 
-                 if (isEqual(courtAvailability[courtToAdvance], nextTime)) {
-                     courtAvailability[courtToAdvance] = addMinutes(nextTime, 1);
-                 } else {
-                     courtAvailability[courtToAdvance] = nextTime;
-                 }
+                });
+                const nextPlayerAvailableTime = new Date(Math.min(...nextPlayerReadyTimes.map(t => t.getTime())));
+                
+                // The next time we can potentially schedule is the max of these two
+                const nextAvailableSlot = new Date(Math.max(nextCourtAvailableTime.getTime(), nextPlayerAvailableTime.getTime()));
+                
+                // Find the court that will be free first and advance it to the next available slot
+                // This prevents getting stuck if all players are resting
+                const courtToAdvance = Object.keys(courtAvailability).reduce((a, b) => courtAvailability[a] < courtAvailability[b] ? a : b);
+                
+                if (isBefore(courtAvailability[courtToAdvance], nextAvailableSlot)) {
+                    courtAvailability[courtToAdvance] = nextAvailableSlot;
+                } else {
+                    // If the court is already past the next available slot, just increment slightly to avoid infinite loops
+                     courtAvailability[courtToAdvance] = addMinutes(courtAvailability[courtToAdvance], 1);
+                }
             }
         }
         
