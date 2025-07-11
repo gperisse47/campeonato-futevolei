@@ -3,16 +3,27 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { LoginPage } from "@/components/login-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Swords, Search, Save, AlertCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
-import { getTournaments, updateMatch } from "@/app/actions";
+import { getTournaments, updateMatch, resetAllSchedules } from "@/app/actions";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
 import { cn } from "@/lib/utils";
@@ -22,10 +33,12 @@ type EditableMatch = ConsolidatedMatch & {
   players: string[];
   originalTime: string;
   originalCourt: string;
+  isDirty?: boolean;
   validationError?: string;
 };
 
 const parseTime = (timeStr: string): Date => {
+    if (!timeStr) return new Date(0);
     const [hours, minutes] = timeStr.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
@@ -37,6 +50,7 @@ export default function AdminMatchesPage() {
   const [filteredMatches, setFilteredMatches] = useState<EditableMatch[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -162,7 +176,7 @@ export default function AdminMatchesPage() {
     setFilteredMatches(results);
   }, [searchTerm, allMatches]);
 
-  const validateChange = useCallback((matchToValidate: EditableMatch): string | undefined => {
+  const validateChange = useCallback((matchToValidate: EditableMatch, allCurrentMatches: EditableMatch[]): string | undefined => {
       if (!matchToValidate.time || !matchToValidate.court) return undefined;
       
       const matchDuration = 20; // Assume fixed duration for now
@@ -181,7 +195,7 @@ export default function AdminMatchesPage() {
       }
 
       // 2. Check for court conflicts
-      const courtConflict = allMatches.find(m => 
+      const courtConflict = allCurrentMatches.find(m => 
           m.id !== matchToValidate.id &&
           m.court === matchToValidate.court &&
           m.time === matchToValidate.time
@@ -190,7 +204,7 @@ export default function AdminMatchesPage() {
       
       // 3. Check for player conflicts
       if (matchToValidate.players.length > 0) {
-        const playerConflict = allMatches.find(m =>
+        const playerConflict = allCurrentMatches.find(m =>
             m.id !== matchToValidate.id &&
             m.time === matchToValidate.time &&
             m.players.some(p => matchToValidate.players.includes(p))
@@ -199,25 +213,23 @@ export default function AdminMatchesPage() {
       }
       
       return undefined;
-  }, [allMatches, courts]);
+  }, [courts]);
 
   const handleFieldChange = (matchId: string, field: 'time' | 'court', value: string) => {
-      setFilteredMatches(prev => {
-          const newMatches = prev.map(m => m.id === matchId ? { ...m, [field]: value } : m);
-          const updatedMatch = newMatches.find(m => m.id === matchId);
-          if (updatedMatch) {
-              updatedMatch.validationError = validateChange(updatedMatch);
-          }
-          return newMatches;
-      });
+    setFilteredMatches(prev => {
+        const newMatches = prev.map(m => {
+            if (m.id === matchId) {
+                const updatedMatch = { ...m, [field]: value, isDirty: true };
+                updatedMatch.validationError = validateChange(updatedMatch, prev);
+                return updatedMatch;
+            }
+            return m;
+        });
+        return newMatches;
+    });
   };
   
   const handleSaveChanges = async (match: EditableMatch) => {
-    if (match.time === match.originalTime && match.court === match.originalCourt) {
-        toast({ title: "Nenhuma alteração detectada." });
-        return;
-    }
-    
     setSavingStates(prev => ({ ...prev, [match.id]: true }));
     const result = await updateMatch({
       matchId: match.id,
@@ -231,18 +243,41 @@ export default function AdminMatchesPage() {
         title: "Jogo Atualizado!",
         description: "O horário e/ou quadra do jogo foram salvos.",
       });
-      await loadMatchesAndSettings(); // Recarrega para refletir e ordenar
+      // After a successful save, reload all data to get the fresh state from the server
+      await loadMatchesAndSettings();
     } else {
       toast({
         variant: "destructive",
         title: "Erro ao Salvar",
         description: result.error || "Não foi possível atualizar o jogo.",
       });
-       // Reverte a alteração visual em caso de erro
-      setFilteredMatches(prev => prev.map(m => m.id === match.id ? { ...m, time: m.originalTime, court: m.originalCourt, validationError: undefined } : m));
+       // Revert the visual change on error by remapping from the original `allMatches` state
+      setFilteredMatches(prev => {
+          const originalMatchState = allMatches.find(am => am.id === match.id);
+          return prev.map(m => m.id === match.id ? (originalMatchState || m) : m);
+      });
     }
     setSavingStates(prev => ({ ...prev, [match.id]: false }));
   };
+
+  const handleResetSchedules = async () => {
+    setIsResetting(true);
+    const result = await resetAllSchedules();
+    if (result.success) {
+        toast({
+            title: "Horários Resetados",
+            description: "Todos os horários de jogos foram limpos."
+        });
+        await loadMatchesAndSettings();
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Erro ao Resetar",
+            description: result.error || "Não foi possível limpar os horários."
+        });
+    }
+    setIsResetting(false);
+  }
 
   if (isAuthLoading) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -269,15 +304,41 @@ export default function AdminMatchesPage() {
           <CardDescription>
             Ajuste os horários e quadras e clique em salvar para cada linha. As alterações são validadas em tempo real.
           </CardDescription>
-          <div className="relative mt-4">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar por dupla, categoria, fase..."
-              className="pl-8 w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por dupla, categoria, fase..."
+                className="pl-8 w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isResetting}>
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  Resetar Todos os Horários
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação removerá todos os horários e quadras de TODOS os jogos. 
+                    Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetSchedules} className="bg-destructive hover:bg-destructive/90">
+                    {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Sim, resetar horários
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -301,10 +362,10 @@ export default function AdminMatchesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMatches.map((match, index) => {
+                  {filteredMatches.map((match) => {
                     const isSaving = savingStates[match.id];
                     return (
-                    <TableRow key={`${match.id}-${index}`}>
+                    <TableRow key={match.id}>
                       <TableCell>
                         <Input
                           type="time"
@@ -340,7 +401,7 @@ export default function AdminMatchesPage() {
                       </TableCell>
                       <TableCell>{match.team2}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="icon" onClick={() => handleSaveChanges(match)} disabled={isSaving || !!match.validationError}>
+                        <Button size="icon" onClick={() => handleSaveChanges(match)} disabled={isSaving || !!match.validationError || !match.isDirty}>
                           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         </Button>
                       </TableCell>

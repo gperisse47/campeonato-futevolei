@@ -734,3 +734,53 @@ export async function updateMatch(input: UpdateMatchInput): Promise<{ success: b
         return { success: false, error: e.message || "Erro desconhecido ao atualizar o jogo." };
     }
 }
+
+export async function resetAllSchedules(): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = await readDb();
+
+        for (const categoryName in db) {
+            if (categoryName === '_globalSettings') continue;
+            
+            const categoryData = db[categoryName] as CategoryData;
+
+            // Reset group matches
+            if (categoryData.tournamentData?.groups) {
+                categoryData.tournamentData.groups.forEach(group => {
+                    group.matches.forEach(match => {
+                        match.time = '';
+                        match.court = '';
+                    });
+                });
+            }
+
+            // Reset playoff matches
+            if (categoryData.playoffs) {
+                const resetBracket = (bracket: PlayoffBracket | undefined) => {
+                    if (!bracket) return;
+                    Object.values(bracket).forEach(round => {
+                        round.forEach(match => {
+                            match.time = '';
+                            match.court = '';
+                        });
+                    });
+                };
+                
+                const bracketSet = categoryData.playoffs as PlayoffBracketSet;
+                if(bracketSet.upper || bracketSet.lower || bracketSet.playoffs) {
+                    resetBracket(bracketSet.upper);
+                    resetBracket(bracketSet.lower);
+                    resetBracket(bracketSet.playoffs);
+                } else {
+                    resetBracket(bracketSet as PlayoffBracket);
+                }
+            }
+        }
+
+        await writeDb(db);
+        return { success: true };
+    } catch (e: any) {
+        console.error("Erro ao resetar os horários:", e);
+        return { success: false, error: e.message || "Erro desconhecido ao resetar os horários." };
+    }
+}
