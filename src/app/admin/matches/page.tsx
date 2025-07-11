@@ -436,70 +436,66 @@ export default function AdminMatchesPage() {
             Ajuste os horários e quadras. Você pode salvar linha por linha ou todas as alterações de uma vez.
           </CardDescription>
           <div className="flex flex-col gap-4 mt-4">
-            <div className="flex flex-wrap gap-2 justify-start sm:justify-end w-full">
-                <div className="flex gap-2">
-                    <Button onClick={handleExportCSV}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Exportar
-                    </Button>
-                    <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
-                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Importar
-                    </Button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept=".csv"
-                        onChange={handleFileChange}
-                    />
-                </div>
-                <div className="flex gap-2">
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline" disabled={!hasDirtyMatches || isSavingAll}>
-                                <RotateCcw className="mr-2 h-4 w-4" />
-                                Resetar
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Esta ação irá reverter todas as alterações não salvas nesta página.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleResetAllChanges}>Confirmar</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    <Button onClick={handleSaveAllChanges} disabled={!hasDirtyMatches || hasValidationErrors || isSavingAll}>
-                        {isSavingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Salvar Tudo
-                    </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" disabled={isClearing}>
-                                {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                Limpar
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Limpar todo o agendamento?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Esta ação removerá TODOS os horários e quadras de TODAS as partidas. Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearAllSchedules} className="bg-destructive hover:bg-destructive/90">Confirmar Limpeza</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
+            <div className="flex flex-wrap gap-2 justify-start w-full">
+                <Button onClick={handleExportCSV}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar CSV
+                </Button>
+                <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                    Importar CSV
+                </Button>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept=".csv"
+                    onChange={handleFileChange}
+                />
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button disabled={!hasDirtyMatches || isSavingAll}>
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Resetar Alterações
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação irá reverter todas as alterações não salvas nesta página.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleResetAllChanges}>Confirmar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <Button onClick={handleSaveAllChanges} disabled={!hasDirtyMatches || hasValidationErrors || isSavingAll}>
+                    {isSavingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Salvar Tudo
+                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={isClearing}>
+                            {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Limpar Agendamento
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Limpar todo o agendamento?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação removerá TODOS os horários e quadras de TODAS as partidas. Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearAllSchedules} className="bg-destructive hover:bg-destructive/90">Confirmar Limpeza</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
