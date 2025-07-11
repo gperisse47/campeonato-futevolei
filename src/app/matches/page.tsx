@@ -166,8 +166,8 @@ export default function MatchesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMatches.map((match) => (
-                  <TableRow key={match.id}>
+                {filteredMatches.map((match, index) => (
+                  <TableRow key={match.id || `match-${index}`}>
                     <TableCell>{match.time || ''}</TableCell>
                     <TableCell>{match.court || ''}</TableCell>
                     <TableCell className="font-medium">{match.category}</TableCell>
