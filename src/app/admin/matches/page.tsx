@@ -430,6 +430,7 @@ export default function AdminMatchesPage() {
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="">Não definida</SelectItem>
                             {courts.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
