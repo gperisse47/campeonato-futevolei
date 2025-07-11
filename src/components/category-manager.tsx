@@ -224,6 +224,18 @@ export function CategoryManager() {
         teamsArray.forEach(t => teamNameMap[teamToKey(t)] = t);
     }
     
+    const finishedGroups = new Set<string>();
+    if (tournamentData && tournamentData.groups) {
+        tournamentData.groups.forEach(group => {
+            const allMatchesFinished = group.matches.every(
+                m => typeof m.score1 === 'number' && typeof m.score2 === 'number'
+            );
+            if (allMatchesFinished) {
+                finishedGroups.add(group.name);
+            }
+        });
+    }
+    
     // Function to find a match in any bracket structure
     const findMatchById = (bracket: any, matchId: string): PlayoffMatch | undefined => {
         if (!bracket) return undefined;
@@ -306,13 +318,16 @@ export function CategoryManager() {
                         } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
                             match.team1 = teamNameMap[placeholder];
                         } else if (formValues.tournamentType === 'groups' && tournamentData) {
-                            const qualifiedTeams: { [p: string]: Team } = {};
-                            tournamentData.groups.forEach((group, groupIndex) => {
-                                group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                    qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                            const placeholderParts = placeholder.match(/(\d+)º do (Group \w)/);
+                            if (placeholderParts && finishedGroups.has(placeholderParts[2])) {
+                                const qualifiedTeams: { [p: string]: Team } = {};
+                                tournamentData.groups.forEach((group, groupIndex) => {
+                                    group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+                                        qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                                    });
                                 });
-                            });
-                            match.team1 = qualifiedTeams[placeholder] || undefined;
+                                match.team1 = qualifiedTeams[placeholder] || undefined;
+                            }
                         }
                     }
                     // Resolve team 2
@@ -325,13 +340,16 @@ export function CategoryManager() {
                         } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
                             match.team2 = teamNameMap[placeholder];
                         } else if (formValues.tournamentType === 'groups' && tournamentData) {
-                            const qualifiedTeams: { [p: string]: Team } = {};
-                            tournamentData.groups.forEach((group, groupIndex) => {
-                                group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                    qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                             const placeholderParts = placeholder.match(/(\d+)º do (Group \w)/);
+                             if (placeholderParts && finishedGroups.has(placeholderParts[2])) {
+                                const qualifiedTeams: { [p: string]: Team } = {};
+                                tournamentData.groups.forEach((group, groupIndex) => {
+                                    group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
+                                        qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
+                                    });
                                 });
-                            });
-                            match.team2 = qualifiedTeams[placeholder] || undefined;
+                                match.team2 = qualifiedTeams[placeholder] || undefined;
+                             }
                         }
                     }
                 });

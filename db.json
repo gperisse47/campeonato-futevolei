@@ -89,9 +89,7 @@
                 "player2": "Caze"
               },
               "time": "",
-              "court": "",
-              "score1": 18,
-              "score2": 5
+              "court": ""
             },
             {
               "team1": {
@@ -103,9 +101,7 @@
                 "player2": "Marcus"
               },
               "time": "",
-              "court": "",
-              "score1": 10,
-              "score2": 18
+              "court": ""
             },
             {
               "team1": {
@@ -117,9 +113,7 @@
                 "player2": "Dudu"
               },
               "time": "",
-              "court": "",
-              "score1": 18,
-              "score2": 4
+              "court": ""
             },
             {
               "team1": {
@@ -131,9 +125,7 @@
                 "player2": "Marcus"
               },
               "time": "",
-              "court": "",
-              "score1": 18,
-              "score2": 3
+              "court": ""
             },
             {
               "team1": {
@@ -145,9 +137,7 @@
                 "player2": "Dudu"
               },
               "time": "",
-              "court": "",
-              "score1": 18,
-              "score2": 20
+              "court": ""
             },
             {
               "team1": {
@@ -159,40 +149,28 @@
                 "player2": "Dudu"
               },
               "time": "",
-              "court": "",
-              "score2": 5,
-              "score1": 18
+              "court": ""
             }
           ],
           "standings": [
             {
               "team": {
-                "player1": "Peri",
-                "player2": "Gularte"
-              },
-              "played": 3,
-              "wins": 2,
-              "setsWon": 46,
-              "setDifference": 19
-            },
-            {
-              "team": {
                 "player1": "Gustavo",
                 "player2": "Marcus"
               },
-              "played": 3,
-              "wins": 2,
-              "setsWon": 39,
-              "setDifference": 6
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
             },
             {
               "team": {
                 "player1": "Neves",
                 "player2": "Caze"
               },
-              "played": 3,
-              "wins": 1,
-              "setsWon": 41,
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
               "setDifference": 0
             },
             {
@@ -200,10 +178,20 @@
                 "player1": "Olavo",
                 "player2": "Dudu"
               },
-              "played": 3,
-              "wins": 1,
-              "setsWon": 29,
-              "setDifference": -25
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Peri",
+                "player2": "Gularte"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
             }
           ]
         },
@@ -304,8 +292,8 @@
           "standings": [
             {
               "team": {
-                "player1": "Fabinho",
-                "player2": "Bergallo"
+                "player1": "Carelli",
+                "player2": "Hantaro"
               },
               "played": 0,
               "wins": 0,
@@ -314,8 +302,8 @@
             },
             {
               "team": {
-                "player1": "Carelli",
-                "player2": "Hantaro"
+                "player1": "Fabinho",
+                "player2": "Bergallo"
               },
               "played": 0,
               "wins": 0,
@@ -441,26 +429,6 @@
           "standings": [
             {
               "team": {
-                "player1": "Caslu",
-                "player2": "Leo"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
-                "player1": "Rodrigo",
-                "player2": "Paulinho"
-              },
-              "played": 0,
-              "wins": 0,
-              "setsWon": 0,
-              "setDifference": 0
-            },
-            {
-              "team": {
                 "player1": "Brenner",
                 "player2": "Py"
               },
@@ -471,8 +439,28 @@
             },
             {
               "team": {
+                "player1": "Caslu",
+                "player2": "Leo"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
                 "player1": "James",
                 "player2": "Fabio"
+              },
+              "played": 0,
+              "wins": 0,
+              "setsWon": 0,
+              "setDifference": 0
+            },
+            {
+              "team": {
+                "player1": "Rodrigo",
+                "player2": "Paulinho"
               },
               "played": 0,
               "wins": 0,
@@ -588,8 +576,8 @@
             },
             {
               "team": {
-                "player1": "Felipe M.",
-                "player2": "Rapha B."
+                "player1": "Carril",
+                "player2": "Leandro"
               },
               "played": 0,
               "wins": 0,
@@ -598,8 +586,8 @@
             },
             {
               "team": {
-                "player1": "Carril",
-                "player2": "Leandro"
+                "player1": "Felipe M.",
+                "player2": "Rapha B."
               },
               "played": 0,
               "wins": 0,
@@ -623,27 +611,10 @@
     "playoffs": {
       "Quartas de Final": [
         {
-          "id": "QuartasdeFinal-1",
+          "id": "Quartas de Final-1",
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
-          "time": "",
-          "court": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Peri",
-            "player2": "Gularte"
-          },
-          "team2": {
-            "player1": "Felipe M.",
-            "player2": "Rapha B."
-          }
-        },
-        {
-          "id": "QuartasdeFinal-2",
-          "name": "Quartas de Final 2",
-          "team1Placeholder": "2º do Grupo A",
-          "team2Placeholder": "1º do Grupo D",
           "time": "",
           "court": "",
           "roundOrder": 3,
@@ -652,32 +623,32 @@
             "player2": "Marcus"
           },
           "team2": {
+            "player1": "Carril",
+            "player2": "Leandro"
+          }
+        },
+        {
+          "id": "Quartas de Final-2",
+          "name": "Quartas de Final 2",
+          "team1Placeholder": "2º do Grupo A",
+          "team2Placeholder": "1º do Grupo D",
+          "time": "",
+          "court": "",
+          "roundOrder": 3,
+          "team1": {
+            "player1": "Neves",
+            "player2": "Caze"
+          },
+          "team2": {
             "player1": "Alex",
             "player2": "Lage"
           }
         },
         {
-          "id": "QuartasdeFinal-3",
+          "id": "Quartas de Final-3",
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
-          "time": "",
-          "court": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Fabinho",
-            "player2": "Bergallo"
-          },
-          "team2": {
-            "player1": "Rodrigo",
-            "player2": "Paulinho"
-          }
-        },
-        {
-          "id": "QuartasdeFinal-4",
-          "name": "Quartas de Final 4",
-          "team1Placeholder": "2º do Grupo B",
-          "team2Placeholder": "1º do Grupo C",
           "time": "",
           "court": "",
           "roundOrder": 3,
@@ -689,14 +660,31 @@
             "player1": "Caslu",
             "player2": "Leo"
           }
+        },
+        {
+          "id": "Quartas de Final-4",
+          "name": "Quartas de Final 4",
+          "team1Placeholder": "2º do Grupo B",
+          "team2Placeholder": "1º do Grupo C",
+          "time": "",
+          "court": "",
+          "roundOrder": 3,
+          "team1": {
+            "player1": "Fabinho",
+            "player2": "Bergallo"
+          },
+          "team2": {
+            "player1": "Brenner",
+            "player2": "Py"
+          }
         }
       ],
       "Semifinal": [
         {
           "id": "Semifinal-1",
           "name": "Semifinal 1",
-          "team1Placeholder": "Vencedor QuartasdeFinal-1",
-          "team2Placeholder": "Vencedor QuartasdeFinal-4",
+          "team1Placeholder": "Vencedor Quartas de Final-1",
+          "team2Placeholder": "Vencedor Quartas de Final-4",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -704,8 +692,8 @@
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor QuartasdeFinal-2",
-          "team2Placeholder": "Vencedor QuartasdeFinal-3",
+          "team1Placeholder": "Vencedor Quartas de Final-2",
+          "team2Placeholder": "Vencedor Quartas de Final-3",
           "time": "",
           "court": "",
           "roundOrder": 2
