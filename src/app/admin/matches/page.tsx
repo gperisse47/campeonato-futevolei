@@ -4,6 +4,8 @@
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Papa from "papaparse";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { LoginPage } from "@/components/login-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw, Trash2 } from "lucide-react";
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw, Trash2, FileText } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
 import { getTournaments, updateMatch, updateMultipleMatches, importScheduleFromCSV, clearAllSchedules } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -377,6 +379,32 @@ export default function AdminMatchesPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const tableData = allMatches.map(m => [
+      m.time || '',
+      m.court || '',
+      m.category,
+      m.stage,
+      m.team1,
+      m.score1 !== undefined && m.score2 !== undefined ? `${m.score1} x ${m.score2}` : 'x',
+      m.team2
+    ]);
+
+    doc.text("Lista de Jogos do Torneio", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 14, 20);
+
+    autoTable(doc, {
+      head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Placar', 'Dupla 2']],
+      body: tableData,
+      startY: 25,
+      headStyles: { fillColor: [33, 150, 243] }, // Blue header
+    });
+
+    doc.save("horarios.pdf");
+  };
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -437,10 +465,6 @@ export default function AdminMatchesPage() {
           </CardDescription>
           <div className="flex flex-col gap-4 mt-4">
             <div className="flex flex-wrap gap-2 justify-start w-full">
-                <Button onClick={handleExportCSV}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Exportar CSV
-                </Button>
                 <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
                     {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                     Importar CSV
@@ -452,6 +476,14 @@ export default function AdminMatchesPage() {
                     accept=".csv"
                     onChange={handleFileChange}
                 />
+                <Button onClick={handleExportCSV}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar CSV
+                </Button>
+                <Button onClick={handleExportPDF}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Exportar PDF
+                </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button disabled={!hasDirtyMatches || isSavingAll}>
