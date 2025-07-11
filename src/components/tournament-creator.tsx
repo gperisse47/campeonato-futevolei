@@ -188,7 +188,7 @@ export function TournamentCreator() {
         const round1Name = `Upper Rodada ${wbRoundCounter}`;
         for (let i = 0; i < teamsInFirstRound.length / 2; i++) {
             round1Matches.push({
-                id: `U-R${wbRoundCounter}-${i + 1}`, name: `${round1Name} Jogo ${i + 1}`,
+                id: `U-R${wbRoundCounter}-${i + 1}`, name: `${roundName} Jogo ${i + 1}`,
                 team1: teamsInFirstRound[i],
                 team2: teamsInFirstRound[teamsInFirstRound.length - 1 - i],
                 team1Placeholder: teamToKey(teamsInFirstRound[i]),
@@ -361,7 +361,7 @@ export function TournamentCreator() {
             let roundOrder = Math.log2(teamsInRound);
             
             let currentRoundMatches: PlayoffMatch[] = aiResult.playoffMatches.map((match, i) => ({
-                id: `R1-Jogo${i + 1}`,
+                id: `Rodada 1-Jogo${i + 1}`,
                 name: `Rodada 1 Jogo ${i + 1}`,
                 team1: match.team1,
                 team2: match.team2,
@@ -411,7 +411,7 @@ export function TournamentCreator() {
             }
             
             if (values.includeThirdPlace && bracket['Semifinal']) {
-                const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
+                const semiFinalLosers = bracket['Semifinal'].map((m, i) => `Perdedor ${m.name}`);
                 bracket['Disputa de 3º Lugar'] = [
                     { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];
@@ -466,7 +466,7 @@ export function TournamentCreator() {
                         court: '',
                         roundOrder
                     });
-                    nextRoundPlaceholders.push(`Vencedor ${matchId}`);
+                    nextRoundPlaceholders.push(`Vencedor ${match.name}`);
                 }
 
                 if(nextRoundPlaceholders.length < 2) break;
@@ -485,7 +485,7 @@ export function TournamentCreator() {
             }
             
             if (includeThirdPlace && bracket['Semifinal']) {
-                const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
+                const semiFinalLosers = bracket['Semifinal'].map((m, i) => `Perdedor ${m.name}`);
                 bracket['Disputa de 3º Lugar'] = [
                     { id: 'terceiro-lugar-1', name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
                 ];

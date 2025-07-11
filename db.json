@@ -617,15 +617,7 @@
           "team2Placeholder": "2º do Grupo D",
           "time": "",
           "court": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Gustavo",
-            "player2": "Marcus"
-          },
-          "team2": {
-            "player1": "Carril",
-            "player2": "Leandro"
-          }
+          "roundOrder": 3
         },
         {
           "id": "Quartas de Final-2",
@@ -634,15 +626,7 @@
           "team2Placeholder": "1º do Grupo D",
           "time": "",
           "court": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Neves",
-            "player2": "Caze"
-          },
-          "team2": {
-            "player1": "Alex",
-            "player2": "Lage"
-          }
+          "roundOrder": 3
         },
         {
           "id": "Quartas de Final-3",
@@ -651,15 +635,7 @@
           "team2Placeholder": "2º do Grupo C",
           "time": "",
           "court": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Carelli",
-            "player2": "Hantaro"
-          },
-          "team2": {
-            "player1": "Caslu",
-            "player2": "Leo"
-          }
+          "roundOrder": 3
         },
         {
           "id": "Quartas de Final-4",
@@ -668,15 +644,7 @@
           "team2Placeholder": "1º do Grupo C",
           "time": "",
           "court": "",
-          "roundOrder": 3,
-          "team1": {
-            "player1": "Fabinho",
-            "player2": "Bergallo"
-          },
-          "team2": {
-            "player1": "Brenner",
-            "player2": "Py"
-          }
+          "roundOrder": 3
         }
       ],
       "Semifinal": [
@@ -764,8 +732,8 @@
                 "player1": "Mari",
                 "player2": "Neves"
               },
-              "time": "08:00",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -776,8 +744,8 @@
                 "player1": "Carla",
                 "player2": "Henrique"
               },
-              "time": "08:40",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -788,8 +756,8 @@
                 "player1": "Carla",
                 "player2": "Henrique"
               },
-              "time": "10:40",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             }
           ],
           "standings": [
@@ -851,8 +819,8 @@
                 "player1": "Sofia",
                 "player2": "Caio"
               },
-              "time": "08:00",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -863,8 +831,8 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
-              "time": "08:40",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -875,8 +843,8 @@
                 "player1": "Ana",
                 "player2": "Brenner"
               },
-              "time": "09:20",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             }
           ],
           "standings": [
@@ -922,8 +890,8 @@
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo B",
           "time": "",
-          "roundOrder": 2,
-          "court": ""
+          "court": "",
+          "roundOrder": 2
         },
         {
           "id": "Semifinal-2",
@@ -931,8 +899,8 @@
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo B",
           "time": "",
-          "roundOrder": 2,
-          "court": ""
+          "court": "",
+          "roundOrder": 2
         }
       ],
       "Final": [
@@ -942,8 +910,8 @@
           "team1Placeholder": "Vencedor Semifinal-1",
           "team2Placeholder": "Vencedor Semifinal-2",
           "time": "",
-          "roundOrder": 1,
-          "court": ""
+          "court": "",
+          "roundOrder": 1
         }
       ],
       "Disputa de 3º Lugar": [
@@ -953,8 +921,8 @@
           "team1Placeholder": "Perdedor Semifinal-1",
           "team2Placeholder": "Perdedor Semifinal-2",
           "time": "",
-          "roundOrder": 0,
-          "court": ""
+          "court": "",
+          "roundOrder": 0
         }
       ]
     },
@@ -967,8 +935,7 @@
       "teams": "Jordana e Fabinho\nPaula e Carelli\nSofia e Caio\nMari e Neves \nCarla e Henrique\nAna e Brenner",
       "groupFormationStrategy": "order",
       "includeThirdPlace": true,
-      "startTime": "08:00",
-      "priority": 1
+      "startTime": "08:00"
     },
     "totalMatches": 10
   },
@@ -1328,7 +1295,7 @@
     "playoffs": {
       "Quartas de Final": [
         {
-          "id": "QuartasdeFinal-1",
+          "id": "Quartas de Final-1",
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do Grupo A",
           "team2Placeholder": "2º do Grupo D",
@@ -1337,7 +1304,7 @@
           "roundOrder": 3
         },
         {
-          "id": "QuartasdeFinal-2",
+          "id": "Quartas de Final-2",
           "name": "Quartas de Final 2",
           "team1Placeholder": "2º do Grupo A",
           "team2Placeholder": "1º do Grupo D",
@@ -1346,7 +1313,7 @@
           "roundOrder": 3
         },
         {
-          "id": "QuartasdeFinal-3",
+          "id": "Quartas de Final-3",
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do Grupo B",
           "team2Placeholder": "2º do Grupo C",
@@ -1355,7 +1322,7 @@
           "roundOrder": 3
         },
         {
-          "id": "QuartasdeFinal-4",
+          "id": "Quartas de Final-4",
           "name": "Quartas de Final 4",
           "team1Placeholder": "2º do Grupo B",
           "team2Placeholder": "1º do Grupo C",
@@ -1368,8 +1335,8 @@
         {
           "id": "Semifinal-1",
           "name": "Semifinal 1",
-          "team1Placeholder": "Vencedor QuartasdeFinal-1",
-          "team2Placeholder": "Vencedor QuartasdeFinal-4",
+          "team1Placeholder": "Vencedor Quartas de Final-1",
+          "team2Placeholder": "Vencedor Quartas de Final-4",
           "time": "",
           "court": "",
           "roundOrder": 2
@@ -1377,8 +1344,8 @@
         {
           "id": "Semifinal-2",
           "name": "Semifinal 2",
-          "team1Placeholder": "Vencedor QuartasdeFinal-2",
-          "team2Placeholder": "Vencedor QuartasdeFinal-3",
+          "team1Placeholder": "Vencedor Quartas de Final-2",
+          "team2Placeholder": "Vencedor Quartas de Final-3",
           "time": "",
           "court": "",
           "roundOrder": 2
