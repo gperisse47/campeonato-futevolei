@@ -220,6 +220,11 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                             return !isBefore(scheduleTime, slotStart) && !isBefore(slotEnd, matchEndTime);
                         });
                         return isCourtAvailableInSlot;
+                    })
+                    .sort((a, b) => { // Sort candidates by category start time
+                        const catAStartTime = (db[a.matchWrapper.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime;
+                        const catBStartTime = (db[b.matchWrapper.categoryName] as CategoryData).formValues.startTime || _globalSettings.startTime;
+                        return catAStartTime.localeCompare(catBStartTime);
                     });
                 
                 if (schedulableMatches.length > 0) {
@@ -232,7 +237,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                          const scheduleTime = new Date(Math.max(earliestCourtTime.getTime(), playersReadyTime.getTime(), categoryStartTime.getTime()));
 
                          // Re-check player availability at the actual scheduleTime, as another match might have been scheduled in this cycle for other players
-                         const allPlayersAvailable = players.every(p => (playerAvailability[p] || new Date(0)) <= scheduleTime);
+                         const allPlayersAvailable = players.every(p => !playerAvailability[p] || playerAvailability[p] <= scheduleTime);
 
                          if (allPlayersAvailable) {
                             // Find the correct index in the current `unscheduledMatches` array
@@ -352,7 +357,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groups: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
