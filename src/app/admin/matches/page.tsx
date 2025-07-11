@@ -10,15 +10,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Swords, Search, Save } from "lucide-react";
-import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, GlobalSettings } from "@/lib/types";
+import { Loader2, Swords, Search, Save, AlertCircle } from "lucide-react";
+import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
 import { getTournaments, updateMatch } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
+import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
+import { cn } from "@/lib/utils";
 
 type EditableMatch = ConsolidatedMatch & {
   id: string; // Ensure id is present
+  players: string[];
   originalTime: string;
   originalCourt: string;
+  validationError?: string;
+};
+
+const parseTime = (timeStr: string): Date => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
 };
 
 export default function AdminMatchesPage() {
@@ -26,7 +37,7 @@ export default function AdminMatchesPage() {
   const [filteredMatches, setFilteredMatches] = useState<EditableMatch[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
@@ -36,6 +47,17 @@ export default function AdminMatchesPage() {
     const players = [team.player1, team.player2].sort();
     return `${players[0]} e ${players[1]}`;
   };
+
+  const getPlayers = (team1?: string, team2?: string): string[] => {
+      const players = new Set<string>();
+      [team1, team2].forEach(team => {
+          if(!team) return;
+          if (team.includes(' e ')) {
+              team.split(' e ').forEach(p => players.add(p.trim()));
+          }
+      });
+      return Array.from(players);
+  }
 
   const loadMatchesAndSettings = useCallback(async () => {
     setIsLoading(true);
@@ -50,18 +72,21 @@ export default function AdminMatchesPage() {
             const roundMatches = bracket[roundName];
             if (Array.isArray(roundMatches)) {
               roundMatches.forEach(match => {
+                const team1Str = match.team1 ? teamToKey(match.team1) : match.team1Placeholder;
+                const team2Str = match.team2 ? teamToKey(match.team2) : match.team2Placeholder;
                 allMatchesData.push({
                   id: match.id,
                   category: categoryName,
                   stage: match.name,
-                  team1: match.team1 ? teamToKey(match.team1) : match.team1Placeholder,
-                  team2: match.team2 ? teamToKey(match.team2) : match.team2Placeholder,
+                  team1: team1Str,
+                  team2: team2Str,
                   score1: match.score1,
                   score2: match.score2,
                   time: match.time || '',
                   court: match.court || '',
                   originalTime: match.time || '',
                   originalCourt: match.court || '',
+                   players: getPlayers(team1Str, team2Str),
                 });
               });
             }
@@ -88,6 +113,7 @@ export default function AdminMatchesPage() {
                   court: match.court || '',
                   originalTime: match.time || '',
                   originalCourt: match.court || '',
+                  players: getPlayers(teamToKey(match.team1), teamToKey(match.team2)),
                 });
               });
             });
@@ -136,10 +162,54 @@ export default function AdminMatchesPage() {
     setFilteredMatches(results);
   }, [searchTerm, allMatches]);
 
+  const validateChange = useCallback((matchToValidate: EditableMatch): string | undefined => {
+      if (!matchToValidate.time || !matchToValidate.court) return undefined;
+      
+      const matchDuration = 20; // Assume fixed duration for now
+      const startTime = parseTime(matchToValidate.time);
+      const endTime = addMinutes(startTime, matchDuration);
+      
+      // 1. Check court availability in schedule
+      const courtSlot = courts.find(c => c.name === matchToValidate.court);
+      if (courtSlot) {
+        const isInValidSlot = courtSlot.slots.some(slot => 
+          isWithinInterval(startTime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -matchDuration) })
+        );
+        if (!isInValidSlot) {
+          return `Horário fora do funcionamento da quadra.`;
+        }
+      }
+
+      // 2. Check for court conflicts
+      const courtConflict = allMatches.find(m => 
+          m.id !== matchToValidate.id &&
+          m.court === matchToValidate.court &&
+          m.time === matchToValidate.time
+      );
+      if (courtConflict) return `Conflito: ${courtConflict.court} já está em uso.`;
+      
+      // 3. Check for player conflicts
+      if (matchToValidate.players.length > 0) {
+        const playerConflict = allMatches.find(m =>
+            m.id !== matchToValidate.id &&
+            m.time === matchToValidate.time &&
+            m.players.some(p => matchToValidate.players.includes(p))
+        );
+        if (playerConflict) return `Conflito: Um jogador já está em outro jogo.`;
+      }
+      
+      return undefined;
+  }, [allMatches, courts]);
+
   const handleFieldChange = (matchId: string, field: 'time' | 'court', value: string) => {
-    setFilteredMatches(prev =>
-      prev.map(m => (m.id === matchId ? { ...m, [field]: value } : m))
-    );
+      setFilteredMatches(prev => {
+          const newMatches = prev.map(m => m.id === matchId ? { ...m, [field]: value } : m);
+          const updatedMatch = newMatches.find(m => m.id === matchId);
+          if (updatedMatch) {
+              updatedMatch.validationError = validateChange(updatedMatch);
+          }
+          return newMatches;
+      });
   };
   
   const handleSaveChanges = async (match: EditableMatch) => {
@@ -148,7 +218,7 @@ export default function AdminMatchesPage() {
         return;
     }
     
-    setIsSaving(true);
+    setSavingStates(prev => ({ ...prev, [match.id]: true }));
     const result = await updateMatch({
       matchId: match.id,
       categoryName: match.category,
@@ -169,9 +239,9 @@ export default function AdminMatchesPage() {
         description: result.error || "Não foi possível atualizar o jogo.",
       });
        // Reverte a alteração visual em caso de erro
-      setFilteredMatches(prev => prev.map(m => m.id === match.id ? { ...m, time: m.originalTime, court: m.originalCourt } : m));
+      setFilteredMatches(prev => prev.map(m => m.id === match.id ? { ...m, time: m.originalTime, court: m.originalCourt, validationError: undefined } : m));
     }
-    setIsSaving(false);
+    setSavingStates(prev => ({ ...prev, [match.id]: false }));
   };
 
   if (isAuthLoading) {
@@ -197,7 +267,7 @@ export default function AdminMatchesPage() {
         <CardHeader>
           <CardTitle>Todos os Jogos</CardTitle>
           <CardDescription>
-            Ajuste os horários e quadras e clique em salvar para cada linha.
+            Ajuste os horários e quadras e clique em salvar para cada linha. As alterações são validadas em tempo real.
           </CardDescription>
           <div className="relative mt-4">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -220,8 +290,8 @@ export default function AdminMatchesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">Horário</TableHead>
-                    <TableHead className="w-[150px]">Quadra</TableHead>
+                    <TableHead className="w-[150px]">Horário</TableHead>
+                    <TableHead className="w-[180px]">Quadra</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Fase</TableHead>
                     <TableHead className="text-right">Dupla 1</TableHead>
@@ -231,14 +301,17 @@ export default function AdminMatchesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMatches.map((match, index) => (
+                  {filteredMatches.map((match, index) => {
+                    const isSaving = savingStates[match.id];
+                    return (
                     <TableRow key={`${match.id}-${index}`}>
                       <TableCell>
                         <Input
                           type="time"
                           value={match.time}
                           onChange={(e) => handleFieldChange(match.id, 'time', e.target.value)}
-                          className="w-full"
+                          className={cn("w-full", match.validationError && "border-destructive focus-visible:ring-destructive")}
+                          step="1200"
                         />
                       </TableCell>
                       <TableCell>
@@ -246,13 +319,16 @@ export default function AdminMatchesPage() {
                           value={match.court}
                           onValueChange={(value) => handleFieldChange(match.id, 'court', value)}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className={cn(match.validationError && "border-destructive focus:ring-destructive")}>
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent>
                             {courts.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                         {match.validationError && (
+                            <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3"/>{match.validationError}</p>
+                         )}
                       </TableCell>
                       <TableCell className="font-medium">{match.category}</TableCell>
                       <TableCell>{match.stage}</TableCell>
@@ -264,12 +340,12 @@ export default function AdminMatchesPage() {
                       </TableCell>
                       <TableCell>{match.team2}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="icon" onClick={() => handleSaveChanges(match)} disabled={isSaving}>
+                        <Button size="icon" onClick={() => handleSaveChanges(match)} disabled={isSaving || !!match.validationError}>
                           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </div>
@@ -283,3 +359,5 @@ export default function AdminMatchesPage() {
     </div>
   );
 }
+
+    
