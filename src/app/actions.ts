@@ -139,6 +139,37 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             return { success: false, error: "Nenhuma quadra configurada." };
         }
         
+        // Reset all schedules before processing
+        Object.values(db).forEach(categoryData => {
+            if (typeof categoryData !== 'object' || categoryData === null || !('tournamentData' in categoryData)) return;
+
+            const cat = categoryData as CategoryData;
+
+            cat.tournamentData?.groups.forEach(g => {
+                g.matches.forEach(m => {
+                    m.time = '';
+                    m.court = '';
+                });
+            });
+            if (cat.playoffs) {
+                const processBracket = (bracket?: PlayoffBracket) => {
+                    if (!bracket) return;
+                    Object.values(bracket).flat().forEach(m => {
+                        m.time = '';
+                        m.court = '';
+                    });
+                };
+                if ('upper' in cat.playoffs || 'lower' in cat.playoffs || 'playoffs' in cat.playoffs) {
+                    const bracketSet = cat.playoffs as PlayoffBracketSet;
+                    processBracket(bracketSet.upper);
+                    processBracket(bracketSet.lower);
+                    processBracket(bracketSet.playoffs);
+                } else {
+                    processBracket(cat.playoffs as PlayoffBracket);
+                }
+            }
+        });
+        
         const matchDuration = _globalSettings.estimatedMatchDuration;
         const sortedCourts = [..._globalSettings.courts].sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
@@ -170,9 +201,9 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 
                 if (groupName) {
                     const groupKey = `${categoryName}-${groupName}`;
-                    deps.add(`${groupKey}-finished`);
                     if(!groupMatchCounts.has(groupKey)) groupMatchCounts.set(groupKey, { total: 0, finished: 0 });
                     groupMatchCounts.get(groupKey)!.total++;
+                    deps.add(`${groupKey}-finished`);
                 }
 
                 [match.team1Placeholder, match.team2Placeholder].forEach(p => {
@@ -191,7 +222,13 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 }
             };
             
-            category.tournamentData?.groups.forEach(g => g.matches.forEach(m => processMatch(m, g.name)));
+            category.tournamentData?.groups.forEach(g => {
+                const groupKey = `${categoryName}-${g.name}`;
+                if (!groupMatchCounts.has(groupKey)) {
+                    groupMatchCounts.set(groupKey, { total: 0, finished: 0 });
+                }
+                g.matches.forEach(m => processMatch(m, g.name));
+            });
             if (category.playoffs) {
                 const playoffs = category.playoffs as PlayoffBracketSet;
                  if (category.formValues.tournamentType === 'doubleElimination' && ('upper' in playoffs || 'lower' in playoffs || 'playoffs' in playoffs)) {
@@ -218,7 +255,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 if (isFinite(nextCourtFreeTime)) {
                     currentTime = nextCourtFreeTime;
                 } else {
-                    currentTime += 1; // Should not happen often, but prevents infinite loops
+                     break; 
                 }
             }
             lastProgressTime = currentTime;
@@ -236,7 +273,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             });
             
             if (readyMatches.length === 0 && unscheduledMatches.size > 0) {
-                // If no matches are ready, advance time. This shouldn't be the primary way to advance time.
                 const nextRelevantTime = Math.min(
                     ...Array.from(courtAvailability.values()).map(d => d.getTime()),
                     ...Array.from(playerAvailability.values()).map(d => d.getTime())
@@ -244,8 +280,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 if (isFinite(nextRelevantTime) && nextRelevantTime > currentTime) {
                     currentTime = nextRelevantTime;
                 } else {
-                    // This case indicates a potential logic error or cycle.
-                    // For now, break to avoid infinite loop. A more robust solution might log an error.
                     console.error("Scheduling deadlock detected. Aborting.");
                     break;
                 }
@@ -278,7 +312,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 let earliestStartTime = new Date(Math.max(categoryStartTime.getTime(), playerReadyTime.getTime(), depsFinishTime.getTime()));
             
                 let foundSlot = false;
-                // This loop finds the absolute earliest time this match can be played across all courts
                  for (const court of sortedCourts) {
                     const courtReadyTime = courtAvailability.get(court.name) || new Date(0);
                     let proposedStartTime = new Date(Math.max(earliestStartTime.getTime(), courtReadyTime.getTime()));
@@ -297,7 +330,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                                 scheduledTime = proposedStartTime;
                                 scheduledCourt = court;
                             }
-                            // We don't break here, we check all courts to find the *earliest possible* time
                         }
                     }
                 }
@@ -305,7 +337,6 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                 if (scheduledTime && scheduledCourt) {
                     const endTime = addMinutes(scheduledTime, matchDuration);
 
-                    // Find the match in the original DB object to update it
                     const originalMatch = findMatchInDb(db, matchToSchedule.category, matchToSchedule.id);
                     if (originalMatch) {
                        originalMatch.time = format(scheduledTime, 'HH:mm');
