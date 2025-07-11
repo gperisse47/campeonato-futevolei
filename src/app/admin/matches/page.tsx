@@ -228,6 +228,9 @@ export default function AdminMatchesPage() {
   }, [courts, globalStartTime]);
 
   const handleFieldChange = (matchId: string, field: 'time' | 'court', value: string) => {
+    // Treat 'none' from Select as an empty string for data consistency.
+    const finalValue = field === 'court' && value === 'none' ? '' : value;
+
     setFilteredMatches(prev => {
       // Create a temporary updated list to run validations against
       const tempMatches = [...prev];
@@ -235,7 +238,7 @@ export default function AdminMatchesPage() {
       if (matchIndex === -1) return prev; // Should not happen
 
       const originalMatch = tempMatches[matchIndex];
-      const updatedMatch = { ...originalMatch, [field]: value, isDirty: true };
+      const updatedMatch = { ...originalMatch, [field]: finalValue, isDirty: true };
       
       // Re-validate just the changed match first
       updatedMatch.validationError = validateChange(updatedMatch, tempMatches);
@@ -423,14 +426,14 @@ export default function AdminMatchesPage() {
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={match.court}
+                          value={match.court || 'none'}
                           onValueChange={(value) => handleFieldChange(match.id, 'court', value)}
                         >
                           <SelectTrigger className={cn(match.validationError && "border-destructive focus:ring-destructive")}>
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não definida</SelectItem>
+                            <SelectItem value="none">Não definida</SelectItem>
                             {courts.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
