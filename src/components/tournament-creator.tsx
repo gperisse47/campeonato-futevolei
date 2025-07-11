@@ -113,7 +113,7 @@ export function TournamentCreator() {
     const isUpdate = !!tournaments[categoryName];
     
     // The regenerateCategory action now handles both creation and update without scheduling.
-    const result = await regenerateCategory(categoryName);
+    const result = await regenerateCategory(categoryName, values);
 
     if (result.success) {
       toast({

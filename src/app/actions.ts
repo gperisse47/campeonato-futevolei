@@ -110,9 +110,8 @@ const baseDate = startOfDay(new Date());
 
 const parseTime = (timeStr: string): Date => {
     if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) {
-        console.error("Invalid time string for parsing:", timeStr);
-        // Return a very early date to not interfere with valid times
-        return new Date(baseDate.getTime());
+        console.warn("Invalid or empty time string for parsing, defaulting to start of day:", timeStr);
+        return new Date(baseDate);
     }
     const [h, m] = timeStr.split(':').map(Number);
     const date = new Date(baseDate);
@@ -178,6 +177,8 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
             return players.filter(Boolean);
         };
         
+        const sortedCourts = [..._globalSettings.courts].sort((a, b) => (a.priority || 99) - (b.priority || 99));
+
         let currentTime = parseTime(_globalSettings.startTime);
         const playerAvailability: { [playerName: string]: Date } = {};
         const restDuration = matchDuration; 
@@ -194,23 +195,22 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
             let scheduledInThisSlot = false;
             
-            for (const court of _globalSettings.courts) {
-                // Check if court is available at currentTime
+            for (const court of sortedCourts) {
+                const matchEndTime = addMinutes(currentTime, matchDuration);
                 const isCourtAvailable = court.slots.some(slot => {
                     const slotStart = parseTime(slot.startTime);
                     const slotEnd = parseTime(slot.endTime);
-                    const matchEndTime = addMinutes(currentTime, matchDuration);
-                    return !isBefore(currentTime, slotStart) && !isBefore(matchEndTime, slotEnd);
+                    // Match must be fully contained within the slot
+                    return !isBefore(currentTime, slotStart) && !isBefore(slotEnd, matchEndTime);
                 });
 
                 if (!isCourtAvailable) continue;
 
-                // Find a match for this court and time
                 const matchToScheduleIndex = unscheduledMatches.findIndex(matchWrapper => {
                     const { original: match, categoryName } = matchWrapper;
                     const players = getPlayers(match.team1, match.team2);
-
-                    if ((!match.team1 && !match.team1Placeholder) || (!match.team2 && !match.team2Placeholder) || players.length === 0) {
+                    
+                    if (players.length === 0) {
                         return false;
                     }
                     
@@ -222,7 +222,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
 
                     const playersAreRested = players.every(p => {
                         const availableTime = playerAvailability[p] || new Date(0);
-                        return !isBefore(currentTime, availableTime);
+                        return isEqual(currentTime, availableTime) || isBefore(availableTime, currentTime);
                     });
                     return playersAreRested;
                 });
@@ -235,50 +235,42 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
                     scheduledInThisSlot = true;
                     
                     const playersInMatch = getPlayers(matchWrapper.original.team1, matchWrapper.original.team2);
-                    const restEndTime = addMinutes(currentTime, restDuration);
+                    const restEndTime = addMinutes(currentTime, matchDuration + restDuration);
                     playersInMatch.forEach(p => {
                         playerAvailability[p] = restEndTime;
                     });
+                     // Break from court loop to restart with the same time slot, trying to fill parallel courts
+                    break;
                 }
             }
-
-            // Time advancement logic
+             
             if (!scheduledInThisSlot) {
+                // If nothing was scheduled, advance time.
                 let nextAvailableTime: Date | null = null;
-
-                // Find the soonest a court becomes available AFTER the current time
-                _globalSettings.courts.forEach(court => {
+                 _globalSettings.courts.forEach(court => {
                     court.slots.forEach(slot => {
                         const slotStart = parseTime(slot.startTime);
-                        if (isBefore(currentTime, slotStart)) {
+                         if (isBefore(currentTime, slotStart)) {
                             if (!nextAvailableTime || isBefore(slotStart, nextAvailableTime)) {
                                 nextAvailableTime = slotStart;
                             }
                         }
                     });
                 });
-                
-                // Find the soonest any player becomes available
-                const nextPlayerAvailableTime = Math.min(
-                    ...Object.values(playerAvailability).map(d => d.getTime()).filter(t => t > currentTime.getTime())
-                );
-                
-                if (isFinite(nextPlayerAvailableTime)) {
-                    const playerTime = new Date(nextPlayerAvailableTime);
-                    if (!nextAvailableTime || isBefore(playerTime, nextAvailableTime)) {
-                        nextAvailableTime = playerTime;
+
+                const nextPlayerAvailableTimes = Object.values(playerAvailability).filter(t => isBefore(currentTime, t));
+                if(nextPlayerAvailableTimes.length > 0){
+                    const earliestPlayerTime = new Date(Math.min(...nextPlayerAvailableTimes.map(d => d.getTime())));
+                    if(!nextAvailableTime || isBefore(earliestPlayerTime, nextAvailableTime)){
+                        nextAvailableTime = earliestPlayerTime;
                     }
                 }
-
+                
                 if (nextAvailableTime) {
                     currentTime = nextAvailableTime;
                 } else {
-                    // If no slots or players have a future available time, increment by one minute to avoid getting stuck
                     currentTime = addMinutes(currentTime, 1);
                 }
-
-            } else {
-                 currentTime = addMinutes(currentTime, matchDuration);
             }
 
             if (isBefore(parseTime("23:59"), currentTime)) {
@@ -289,7 +281,7 @@ export async function rescheduleAllTournaments(): Promise<{ success: boolean; er
         
         if (unscheduledMatches.length > 0) {
              console.warn(`${unscheduledMatches.length} matches could not be scheduled.`);
-             unscheduledMatches.forEach(m => console.log(m.original.team1, m.original.team2));
+             unscheduledMatches.forEach(m => console.log(m.original.team1, m.original.team2, m.categoryName));
         }
 
         await writeDb(db);
@@ -483,7 +475,7 @@ export async function updateTeamInTournament(
     // Update teams in formValues.teams string
     if (categoryData.formValues.teams) {
         const teamsList = categoryData.formValues.teams.split('\n');
-        const teamIndex = teamsList.findIndex(t => t.trim().replace(/\s+/g, ' ') === originalTeamKey.replace(/\s+/g, ' '));
+        const teamIndex = teamsList.findIndex(t => t.trim().replace(/\s+/g, ' ') === originalTeamKey.replace(/\s/g, ' '));
         if (teamIndex !== -1) {
             teamsList[teamIndex] = updatedTeamKey;
             categoryData.formValues.teams = teamsList.join('\n');
@@ -544,7 +536,11 @@ export async function updateTeamInTournament(
 
 async function createOrUpdateCategory(values: TournamentFormValues): Promise<{ success: boolean; error?: string }> {
     try {
+        const db = await readDb();
+        const oldCategoryData = db[values.category] || {};
+
         let newCategoryData: CategoryData = {
+            ...oldCategoryData,
             tournamentData: null,
             playoffs: null,
             formValues: values,
@@ -586,7 +582,6 @@ async function createOrUpdateCategory(values: TournamentFormValues): Promise<{ s
         
         newCategoryData.totalMatches = await calculateTotalMatches(newCategoryData);
         
-        const db = await readDb();
         db[values.category] = newCategoryData;
         await writeDb(db);
         
@@ -599,16 +594,22 @@ async function createOrUpdateCategory(values: TournamentFormValues): Promise<{ s
 }
 
 
-export async function regenerateCategory(categoryName: string): Promise<{ success: boolean; error?: string }> {
+export async function regenerateCategory(categoryName: string, newFormValues?: TournamentFormValues): Promise<{ success: boolean; error?: string }> {
     try {
         const db = await readDb();
         const existingCategory = db[categoryName] as CategoryData;
 
-        if (!existingCategory) {
-            return { success: false, error: "Categoria não encontrada." };
+        if (!existingCategory && !newFormValues) {
+            return { success: false, error: "Categoria não encontrada para regenerar." };
+        }
+        
+        const valuesToUse = newFormValues || existingCategory.formValues;
+
+        if (!valuesToUse) {
+            return { success: false, error: "Não foram encontrados valores de formulário para regenerar a categoria." };
         }
 
-        return await createOrUpdateCategory(existingCategory.formValues);
+        return await createOrUpdateCategory(valuesToUse);
     } catch (e: any) {
         console.error("Error regenerating category:", e);
         return { success: false, error: e.message || "Ocorreu um erro desconhecido ao regenerar a categoria." };
