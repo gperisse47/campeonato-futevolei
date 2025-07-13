@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, ChevronDown, ChevronUp, GripVertical, Sparkles } from "lucide-react";
+import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical } from "lucide-react";
 import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -24,8 +24,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Sparkles } from "lucide-react";
+
 
 type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
   id: string;
@@ -33,6 +34,7 @@ type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
   players: string[];
   team1Name: string;
   team2Name: string;
+  stage: string;
 };
 
 type TimeSlot = {
@@ -126,6 +128,7 @@ export default function ScheduleGridPage() {
                             ...match,
                             id: match.id,
                             category: categoryName,
+                            stage: match.name,
                             team1Name: t1Name,
                             team2Name: t2Name,
                             players: [],
@@ -493,3 +496,5 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
+
+    
