@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical } from "lucide-react";
+import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles } from "lucide-react";
 import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -26,7 +26,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Sparkles } from "lucide-react";
 
 
 type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
