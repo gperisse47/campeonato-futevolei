@@ -937,12 +937,13 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
 
         readyMatches.sort((a, b) => {
             const rest = (m: SchedulerMatch) => {
-                const rests = m.players.map(p => differenceInMinutes(currentTime, playerAvailability[p] || new Date(0)));
-                return { min: Math.min(...rests), sum: rests.reduce((a, b) => a + b, 0) };
+              const rests = m.players.map(p => differenceInMinutes(currentTime, playerAvailability[p] || new Date(0)));
+              return { min: Math.min(...rests), sum: rests.reduce((a, b) => a + b, 0) };
             };
-            const ar = rest(a); const br = rest(b);
-            return ar.min - br.min || ar.sum - br.sum;
-        });
+            const ar = rest(a);
+            const br = rest(b);
+            return br.min - ar.min || br.sum - ar.sum;
+          });
 
         let scheduledThisTick = false;
         const usedPlayersThisTick = new Set<string>();
@@ -971,13 +972,15 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
         }
 
         if (!scheduledThisTick) {
-            let nextCourtTime = new Date(Math.min(...courts.map(c => c.nextAvailable.getTime() > currentTime.getTime() ? c.nextAvailable.getTime() : Infinity)));
+            let nextCourtTime = new Date(Math.min(...courts.map(c =>
+              c.nextAvailable.getTime() > currentTime.getTime() ? c.nextAvailable.getTime() : Infinity
+            )));
             if (isFinite(nextCourtTime.getTime())) {
-                 currentTime = nextCourtTime;
+              currentTime = nextCourtTime;
             } else {
-                 currentTime = addMinutes(currentTime, 5);
+              currentTime = addMinutes(currentTime, matchDurationMin); // avanço fixo com a duração do jogo
             }
-        }
+          }
     }
 
     return matches.filter(m => m.time);

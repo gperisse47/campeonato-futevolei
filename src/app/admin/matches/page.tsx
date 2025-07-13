@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle, FileText, Download } from "lucide-react";
+import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle, FileText, Download, Upload, Trash2 } from "lucide-react";
 import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -379,30 +379,18 @@ export default function ScheduleGridPage() {
     if (!courts.length || !timeSlots.length) return;
 
     const doc = new jsPDF({ orientation: "landscape" });
-
-    doc.setFontSize(18);
-    doc.setTextColor("#4682B4");
-    const title = "Grade de Horários do Torneio";
-    const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    doc.text(title, (pageWidth - titleWidth) / 2, 15);
-
-    const head = [["Horário", ...courts.map((c) => c.name)]];
-
-    const body = timeSlots.map((slot) => {
-        return [
-            slot.time,
-            ...slot.courts.map((courtSlot) => {
-                if (!courtSlot.match) return "";
-                const match = courtSlot.match;
-                return `${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
-            }),
-        ];
-    });
-
     autoTable(doc, {
-        head: head,
-        body: body,
+        head: [["Horário", ...courts.map((c) => c.name)]],
+        body: timeSlots.map((slot) => {
+            return [
+                slot.time,
+                ...slot.courts.map((courtSlot) => {
+                    if (!courtSlot.match) return "";
+                    const match = courtSlot.match;
+                    return `${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
+                }),
+            ];
+        }),
         startY: 25,
         theme: "grid",
         headStyles: {
@@ -427,43 +415,49 @@ export default function ScheduleGridPage() {
             if (data.section === 'body' && typeof cell.raw === 'string' && cell.raw.includes('\n')) {
                 const lines = cell.raw.split('\n');
                 const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
-                const requiredHeight = lines.length * lineHeight + 4; // Add some padding
+                const requiredHeight = lines.length * lineHeight + 8; // Adjust padding
                  if (row.height < requiredHeight) {
                     row.height = requiredHeight;
                  }
             }
         },
         didDrawCell: (data) => {
-            const cell = data.cell;
-            if (data.section === 'body' && typeof cell.raw === 'string' && cell.raw.includes('\n')) {
-                cell.text = []; // Prevent default text rendering
-                
-                const lines = cell.raw.split('\n');
-                const stage = lines[0];
-                const team1 = lines[1];
-                const vs = lines[2];
-                const team2 = lines[3];
-                
-                const x = cell.x + cell.padding('left');
-                const y = cell.y + cell.padding('top') + doc.getLineHeight() / doc.internal.scaleFactor * 1.5;
-                const availableWidth = cell.width - cell.padding('left') - cell.padding('right');
-
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.text(stage, x + availableWidth / 2, y, { align: 'center' });
-                
-                doc.setFont('helvetica', 'bold');
-                doc.text(team1, x + availableWidth / 2, y + 5, { align: 'center' });
-                
-                doc.setFont('helvetica', 'normal');
-                doc.text(vs, x + availableWidth / 2, y + 10, { align: 'center' });
-                
-                doc.setFont('helvetica', 'bold');
-                doc.text(team2, x + availableWidth / 2, y + 15, { align: 'center' });
+            if (data.section !== 'body' || !data.cell.raw || typeof data.cell.raw !== 'string') {
+                return;
             }
+            data.cell.text = [];
+            const cell = data.cell;
+            const lines = cell.raw.split('\n');
+            const stage = lines[0];
+            const team1 = lines[1];
+            const vs = lines[2];
+            const team2 = lines[3];
+            
+            const x = cell.x + cell.padding('left');
+            const y = cell.y + cell.padding('top') + doc.getLineHeight() / doc.internal.scaleFactor * 1.5;
+            const availableWidth = cell.width - cell.padding('left') - cell.padding('right');
+
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(stage, x + availableWidth / 2, y, { align: 'center' });
+            
+            doc.setFont('helvetica', 'bold');
+            doc.text(team1, x + availableWidth / 2, y + 5, { align: 'center' });
+            
+            doc.setFont('helvetica', 'normal');
+            doc.text(vs, x + availableWidth / 2, y + 10, { align: 'center' });
+            
+            doc.setFont('helvetica', 'bold');
+            doc.text(team2, x + availableWidth / 2, y + 15, { align: 'center' });
         },
         didDrawPage: (data) => {
             const pageCount = doc.getNumberOfPages();
+            doc.setFontSize(18);
+            doc.setTextColor("#4682B4");
+            const title = "Grade de Horários do Torneio";
+            const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            doc.text(title, (pageWidth - titleWidth) / 2, 15);
             doc.setFontSize(8);
             doc.setTextColor("#777");
             doc.text(
@@ -473,7 +467,6 @@ export default function ScheduleGridPage() {
             );
         },
     });
-
     doc.save("grade_horarios.pdf");
 };
 
@@ -602,16 +595,22 @@ export default function ScheduleGridPage() {
              <CardTitle className="flex items-center"><CalendarClock className="mr-2"/>Grade de Horários</CardTitle>
              <CardDescription>Visualize, mova os jogos e gere horários automaticamente.</CardDescription>
              <div className="flex flex-wrap gap-2 pt-4">
-                <Button onClick={() => fileInputRef.current?.click()} variant="outline">Importar CSV</Button>
+                <Button onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4"/>
+                    Importar CSV
+                </Button>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
 
-                <Button onClick={handleExportCSV} variant="outline"><Download className="mr-2 h-4 w-4"/>Exportar CSV</Button>
+                <Button onClick={handleExportCSV}><Download className="mr-2 h-4 w-4"/>Exportar CSV</Button>
                 
-                <Button onClick={handleExportPDF} variant="outline"><FileText className="mr-2 h-4 w-4"/>Exportar PDF</Button>
+                <Button onClick={handleExportPDF}><FileText className="mr-2 h-4 w-4"/>Exportar PDF</Button>
 
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="outline">Limpar Agendamento</Button>
+                        <Button>
+                          <Trash2 className="mr-2 h-4 w-4"/>
+                          Limpar Agendamento
+                        </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
