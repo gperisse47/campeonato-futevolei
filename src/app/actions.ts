@@ -10,7 +10,7 @@ import {
 } from "@/ai/flows/generate-tournament-groups"
 import type { TournamentsState, CategoryData, GlobalSettings, Team, PlayoffBracket, PlayoffBracketSet, GenerateTournamentGroupsInput, PlayoffMatch, MatchWithScore, Court, TournamentFormValues, GroupWithScores, TimeSlot } from "@/lib/types"
 import { z } from 'zod';
-import { format, addMinutes, parse, isBefore, startOfDay, isAfter, setHours, setMinutes } from 'date-fns';
+import { format, addMinutes, parse, isBefore, startOfDay, isAfter, setHours, setMinutes, differenceInMilliseconds } from 'date-fns';
 import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from '@/lib/regeneration';
 import Papa from 'papaparse';
 
@@ -115,10 +115,11 @@ const parseTime = (timeStr: string): Date => {
         return new Date(0);
     }
     const [h, m] = timeStr.split(':').map(Number);
-    let date = new Date();
+    let date = new Date(baseDate);
     date = setHours(date, h);
     date = setMinutes(date, m);
     date.setSeconds(0, 0);
+    return date;
     return date;
 };
 
@@ -139,12 +140,22 @@ type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
 
 function getPlayersFromMatch(match: MatchWithScore | PlayoffMatch): string[] {
     const players = new Set<string>();
-    const addTeamPlayers = (team?: Team) => {
-        if (team?.player1) players.add(team.player1.trim());
-        if (team?.player2) players.add(team.player2.trim());
+    const addTeamPlayers = (team?: Team | string) => {
+        if (!team) return;
+        if (typeof team === 'string') {
+            if(team.includes(' e ')) {
+                team.split(' e ').forEach(p => players.add(p.trim()));
+            }
+        } else {
+             if (team.player1) players.add(team.player1.trim());
+             if (team.player2) players.add(team.player2.trim());
+        }
     };
     addTeamPlayers(match.team1);
     addTeamPlayers(match.team2);
+    // Add players from placeholders too if teams are not yet defined
+    if (!match.team1 && match.team1Placeholder) addTeamPlayers(match.team1Placeholder);
+    if (!match.team2 && match.team2Placeholder) addTeamPlayers(match.team2Placeholder);
     return Array.from(players);
 }
 
@@ -819,9 +830,10 @@ export async function generateScheduleAction(): Promise<{ success: boolean, erro
 
             cat.tournamentData?.groups.forEach(group => {
                 group.matches.forEach(match => {
+                    if (!match.id) return;
                     allMatches.push({
                         ...match,
-                        id: match.id!,
+                        id: match.id,
                         category: categoryName,
                         groupName: group.name,
                         players: getPlayersFromMatch(match),
@@ -859,7 +871,7 @@ export async function generateScheduleAction(): Promise<{ success: boolean, erro
         const courts = courtSettings.map(c => ({
             name: c.name,
             slots: c.slots.map(s => ({ start: parseTime(s.startTime), end: parseTime(s.endTime) })),
-            nextAvailable: new Date(0)
+            nextAvailable: new Date(0) // Initialize with a past date
         }));
 
         const playerAvailability: { [player: string]: Date } = {};
@@ -893,12 +905,14 @@ export async function generateScheduleAction(): Promise<{ success: boolean, erro
             const sortedHistory = matchHistory[player].filter(t => t < time).sort((a, b) => b.getTime() - a.getTime());
             if (sortedHistory.length < 2) return false;
             
-            const lastMatchTime = sortedHistory[0].getTime();
-            const secondLastMatchTime = sortedHistory[1].getTime();
-            const expectedLast = addMinutes(time, -estimatedMatchDuration).getTime();
-            const expectedSecondLast = addMinutes(time, -2 * estimatedMatchDuration).getTime();
+            const lastMatchTime = sortedHistory[0];
+            const secondLastMatchTime = sortedHistory[1];
+            const expectedLast = addMinutes(time, -estimatedMatchDuration);
+            const expectedSecondLast = addMinutes(time, -2 * estimatedMatchDuration);
             
-            return lastMatchTime === expectedLast && secondLastMatchTime === expectedSecondLast;
+            // Check if last two matches were exactly one and two durations ago.
+            return Math.abs(differenceInMilliseconds(lastMatchTime, expectedLast)) < 1000 &&
+                   Math.abs(differenceInMilliseconds(secondLastMatchTime, expectedSecondLast)) < 1000;
         };
         
         while (unscheduledIds.size > 0) {
@@ -971,7 +985,7 @@ export async function generateScheduleAction(): Promise<{ success: boolean, erro
                 readyMatches = readyMatches.filter(m => m.id !== matchToSchedule.id);
                 scheduledInTick = true;
 
-                // Check if stage is complete
+                // Check if stage is complete for the category
                 const { category, stage } = matchToSchedule;
                 const stageMatches = matchesByCatStage[category][stage];
                 if (stageMatches.every(m => !unscheduledIds.has(m.id))) {
@@ -980,7 +994,7 @@ export async function generateScheduleAction(): Promise<{ success: boolean, erro
             }
 
             if (!scheduledInTick) {
-                currentTime = addMinutes(currentTime, estimatedMatchDuration);
+                currentTime = addMinutes(currentTime, 5); // Increment time if no matches could be scheduled
             }
         }
         
@@ -1002,3 +1016,5 @@ export async function generateScheduleAction(): Promise<{ success: boolean, erro
         return { success: false, error: e.message || "Erro desconhecido ao gerar horários." };
     }
 }
+
+    
