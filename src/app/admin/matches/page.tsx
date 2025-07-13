@@ -329,9 +329,9 @@ export default function ScheduleGridPage() {
     return (
         <Card className={cn("p-2 text-xs relative group h-full flex flex-col justify-center", playerConflicts.length > 0 && "bg-destructive/20 border-destructive")}>
              <div className="text-muted-foreground mb-1 text-center truncate">{match.category} - {match.stage}</div>
-             <div className="font-bold truncate">{match.team1Name}</div>
+             <div className="font-bold truncate text-center">{match.team1Name}</div>
              <div className="text-muted-foreground my-0.5 text-center">vs</div>
-             <div className="font-bold truncate">{match.team2Name}</div>
+             <div className="font-bold truncate text-center">{match.team2Name}</div>
               {playerConflicts.length > 0 && (
                 <div className="absolute -top-2 -right-2">
                     <AlertCircle className="h-5 w-5 text-destructive-foreground bg-destructive rounded-full p-0.5" />
