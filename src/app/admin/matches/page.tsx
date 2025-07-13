@@ -24,6 +24,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Sparkles } from "lucide-react";
 
@@ -496,5 +497,3 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
-
-    
