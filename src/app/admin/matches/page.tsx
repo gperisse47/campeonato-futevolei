@@ -386,64 +386,48 @@ export default function ScheduleGridPage() {
             fontSize: 8,
             valign: 'middle',
             halign: 'center',
-            minCellHeight: 18,
         },
         alternateRowStyles: {
             fillColor: "#F5F5DC"
         },
         willDrawCell: (data) => {
-            if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw) {
-                const rawString = data.cell.raw as string;
-                if (rawString.includes('\n')) {
-                    // Prevent auto-drawing for cells we are handling manually
-                    data.cell.text = []; 
-                }
+            if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw.includes('\n')) {
+                data.cell.text = [];
             }
         },
         didDrawCell: (data) => {
-            if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw) {
+            if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw.includes('\n')) {
                 const rawString = data.cell.raw as string;
                 const parts = rawString.split('\n');
-                if (parts.length === 4) {
-                    // This code runs AFTER the cell is drawn. We are drawing on top.
-                    const [phase, team1, vs, team2] = parts;
-                    const doc = data.doc;
-                    const cell = data.cell;
-                    
-                    const originalFontSize = doc.getFontSize();
-                    const originalFontStyle = doc.getFont().fontStyle;
+                
+                const [phase, team1, vs, team2] = parts;
+                const doc = data.doc;
+                const cell = data.cell;
+                
+                const originalFontStyle = doc.getFont().fontStyle;
 
-                    const x = cell.x + cell.padding('left');
-                    let y = cell.y + cell.padding('top');
-                    const width = cell.width - cell.padding('horizontal');
-                    
-                    const totalTextHeight = 12; // Approximate total height of text block
-                    y += (cell.height - totalTextHeight) / 2;
+                const x = cell.x + cell.padding('left');
+                let y = cell.y + cell.padding('top');
+                const width = cell.width - cell.padding('horizontal');
+                
+                const totalTextHeight = (doc.getLineHeight() / doc.internal.scaleFactor) * 4;
+                y += (cell.height - totalTextHeight) / 2;
 
-                    // Categoria - Fase (menor)
-                    doc.setFontSize(originalFontSize);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(phase, x + width / 2, y + 2, { maxWidth: width, align: 'center' });
+                const lineSpacing = 4;
 
-                    // Dupla 1 (negrito)
-                    doc.setFontSize(originalFontSize);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(team1, x + width / 2, y + 6, { align: 'center' });
+                doc.setFont(undefined, 'normal');
+                doc.text(phase, x + width / 2, y + lineSpacing, { maxWidth: width, align: 'center' });
 
-                    // vs
-                    doc.setFontSize(originalFontSize);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(vs, x + width / 2, y + 10, { align: 'center' });
-                    
-                    // Dupla 2 (negrito)
-                    doc.setFontSize(originalFontSize);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(team2, x + width / 2, y + 14, { align: 'center' });
-                    
-                    // Reset styles
-                    doc.setFontSize(originalFontSize);
-                    doc.setFont(undefined, originalFontStyle);
-                }
+                doc.setFont(undefined, 'bold');
+                doc.text(team1, x + width / 2, y + lineSpacing * 2, { align: 'center' });
+
+                doc.setFont(undefined, 'normal');
+                doc.text(vs, x + width / 2, y + lineSpacing * 3, { align: 'center' });
+                
+                doc.setFont(undefined, 'bold');
+                doc.text(team2, x + width / 2, y + lineSpacing * 4, { align: 'center' });
+                
+                doc.setFont(undefined, originalFontStyle);
             }
         },
         didDrawPage: (data) => {
