@@ -36,6 +36,7 @@ type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
   team2Name: string;
   stage: string;
   dependencies: string[];
+  isGroupMatch: boolean;
 };
 
 type TimeSlot = {
@@ -72,22 +73,24 @@ const getPlayersFromMatch = (match: SchedulableMatch): string[] => {
 };
 
 // Extracts dependencies from a placeholder string
-function extractDependencies(placeholder: string | undefined): string[] {
-    if (!placeholder) return [];
+function extractDependencies(placeholder: string | undefined): { matchDeps: string[], groupDeps: string[] } {
+    const deps = { matchDeps: [] as string[], groupDeps: [] as string[] };
+    if (!placeholder) return deps;
     
     // For "Vencedor Categoria-QuartasdeFinal-Jogo1" or "Perdedor Categoria-U-R1-J1"
     const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
     if (matchDepMatch && matchDepMatch[1]) {
-        return [matchDepMatch[1].trim()];
+        deps.matchDeps.push(matchDepMatch[1].trim());
+        return deps;
     }
     
     // For "1º do MistoAvançado-GroupA"
     const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
     if (groupDepMatch && groupDepMatch[1]) {
-        return [`${groupDepMatch[1].trim()}-finished`];
+        deps.groupDeps.push(groupDepMatch[1].trim());
     }
 
-    return [];
+    return deps;
 }
 
 
@@ -112,67 +115,50 @@ export default function ScheduleGridPage() {
       const loadedCourts = _globalSettings.courts || [];
       setCourts(loadedCourts);
 
-      const loadedMatches: SchedulableMatch[] = [];
+      const loadedMatches: Omit<SchedulableMatch, 'dependencies'>[] = [];
+      const groupMatchMap = new Map<string, string[]>(); // Map group name to match IDs
+
        for (const categoryName in savedTournaments) {
           if (categoryName === '_globalSettings') continue;
           const categoryData = savedTournaments[categoryName] as CategoryData;
 
-          const addMatches = (matches: (MatchWithScore | PlayoffMatch)[], stageOverride?: string) => {
+          const addMatches = (matches: (MatchWithScore | PlayoffMatch)[], stageOverride?: string, isGroup: boolean = false) => {
               matches.forEach(match => {
                   if (!match.id) return;
                   const t1Name = teamName(match.team1, match.team1Placeholder);
                   const t2Name = teamName(match.team2, match.team2Placeholder);
                   
-                  const dependencies = new Set<string>();
-                  extractDependencies(match.team1Placeholder).forEach(d => dependencies.add(d));
-                  extractDependencies(match.team2Placeholder).forEach(d => dependencies.add(d));
-
-                  // For group matches, they are a dependency for playoffs
-                  if(stageOverride && !stageOverride.toLowerCase().includes('final') && !stageOverride.toLowerCase().includes('rodada')) {
-                     const groupName = categoryName.replace(/\s/g, '') + '-' + stageOverride.replace(/\s/g, '');
-                     dependencies.add(`${groupName}-finished`);
+                   if (isGroup && stageOverride) {
+                     const groupIdentifier = `${categoryName.replace(/\s/g, '')}-${stageOverride.replace(/\s/g, '')}`;
+                     if (!groupMatchMap.has(groupIdentifier)) {
+                        groupMatchMap.set(groupIdentifier, []);
+                     }
+                     groupMatchMap.get(groupIdentifier)!.push(match.id);
                   }
 
-                  const schedulableMatch: SchedulableMatch = {
+                  const schedulableMatch = {
                     ...match,
                     id: match.id,
                     category: categoryName,
                     stage: stageOverride || ('name' in match ? match.name : categoryName),
                     team1Name: t1Name,
                     team2Name: t2Name,
-                    players: [],
-                    dependencies: Array.from(dependencies),
+                    players: [] as string[],
+                    isGroupMatch: isGroup,
                   };
-                  schedulableMatch.players = getPlayersFromMatch(schedulableMatch);
+                  schedulableMatch.players = getPlayersFromMatch(schedulableMatch as SchedulableMatch);
                   loadedMatches.push(schedulableMatch);
               });
           };
 
-          categoryData.tournamentData?.groups.forEach(group => addMatches(group.matches, group.name));
+          categoryData.tournamentData?.groups.forEach(group => addMatches(group.matches, group.name, true));
           
            if (categoryData.playoffs) {
                 const processBracket = (bracket?: PlayoffBracket) => {
                     if (!bracket) return;
                     Object.values(bracket).flat().forEach(match => {
                          if (!match.id) return;
-                        const t1Name = teamName(match.team1, match.team1Placeholder);
-                        const t2Name = teamName(match.team2, match.team2Placeholder);
-                        const dependencies = new Set<string>();
-                        extractDependencies(match.team1Placeholder).forEach(d => dependencies.add(d));
-                        extractDependencies(match.team2Placeholder).forEach(d => dependencies.add(d));
-
-                        const schedulableMatch: SchedulableMatch = {
-                            ...match,
-                            id: match.id,
-                            category: categoryName,
-                            stage: match.name,
-                            team1Name: t1Name,
-                            team2Name: t2Name,
-                            players: [],
-                            dependencies: Array.from(dependencies),
-                        };
-                        schedulableMatch.players = getPlayersFromMatch(schedulableMatch);
-                        loadedMatches.push(schedulableMatch);
+                        addMatches([match], undefined, false);
                     });
                 };
                 
@@ -186,7 +172,31 @@ export default function ScheduleGridPage() {
                 }
             }
       }
-      setAllMatches(loadedMatches);
+
+      // Now add dependencies
+        const matchesWithDependencies: SchedulableMatch[] = loadedMatches.map(match => {
+            const deps = new Set<string>();
+            if (!match.isGroupMatch) {
+                const { matchDeps: t1MatchDeps, groupDeps: t1GroupDeps } = extractDependencies(match.team1Placeholder);
+                const { matchDeps: t2MatchDeps, groupDeps: t2GroupDeps } = extractDependencies(match.team2Placeholder);
+
+                t1MatchDeps.forEach(d => deps.add(d));
+                t2MatchDeps.forEach(d => deps.add(d));
+                
+                t1GroupDeps.forEach(groupDep => {
+                    groupMatchMap.get(groupDep)?.forEach(matchId => deps.add(matchId));
+                });
+                t2GroupDeps.forEach(groupDep => {
+                    groupMatchMap.get(groupDep)?.forEach(matchId => deps.add(matchId));
+                });
+            }
+            return {
+                ...match,
+                dependencies: Array.from(deps)
+            } as SchedulableMatch;
+        });
+
+      setAllMatches(matchesWithDependencies);
 
     } catch (error) {
       console.error("Failed to load data", error);
@@ -374,30 +384,33 @@ export default function ScheduleGridPage() {
         .flatMap(c => c.match!.players)
         .filter(p => match.players.includes(p)) ?? [];
     
-    const scheduleConflicts: string[] = [];
+    let scheduleConflict = false;
     if (match.time) {
         const matchTime = parseTime(match.time);
         
-        // Check if this match is scheduled before its dependencies
+        // If this is a playoff match, check if it's scheduled before its dependencies.
         for (const depId of match.dependencies) {
-            if (depId.endsWith('-finished')) continue; // Group dependency handled differently
             const depMatch = scheduledMatchesMap.get(depId);
             if (depMatch?.time && isBefore(matchTime, parseTime(depMatch.time))) {
-                scheduleConflicts.push(depMatch.id);
+                scheduleConflict = true;
+                break;
             }
         }
         
-        // Check if a dependent match is scheduled before this one
-        allMatches.forEach(otherMatch => {
-            if (otherMatch.dependencies.includes(match.id) && otherMatch.time) {
-                if (isBefore(parseTime(otherMatch.time), matchTime)) {
-                    scheduleConflicts.push(otherMatch.id);
+        // If this is a group match, check if any match depending on it is scheduled before it.
+        if (!scheduleConflict && match.isGroupMatch) {
+            for (const otherMatch of allMatches) {
+                if (otherMatch.dependencies.includes(match.id) && otherMatch.time) {
+                    if (isBefore(parseTime(otherMatch.time), matchTime)) {
+                        scheduleConflict = true;
+                        break;
+                    }
                 }
             }
-        });
+        }
     }
 
-    const hasConflict = playerConflicts.length > 0 || scheduleConflicts.length > 0;
+    const hasConflict = playerConflicts.length > 0 || scheduleConflict;
 
     return (
         <Card className={cn("p-2 text-xs relative group h-full flex flex-col justify-center", hasConflict && "bg-destructive/20 border-destructive")}>
