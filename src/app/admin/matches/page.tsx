@@ -343,115 +343,124 @@ export default function ScheduleGridPage() {
   };
 
   const handleExportPDF = () => {
-      if (!courts.length || !timeSlots.length) return;
-  
-      const doc = new jsPDF({ orientation: "landscape" });
-  
-      doc.setFontSize(18);
-      doc.setTextColor("#FF8C00");
-      const title = "Grade de Horários do Torneio";
-      const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      doc.text(title, (pageWidth - titleWidth) / 2, 15);
-  
-      const head = [["Horário", ...courts.map((c) => c.name)]];
-  
-      const body = timeSlots.map((slot) => {
-          return [
-              slot.time,
-              ...slot.courts.map((courtSlot) => {
-                  if (courtSlot.match) {
-                      const match = courtSlot.match;
-                      return `${match.category} - ${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
-                  }
-                  return "";
-              }),
-          ];
-      });
-  
-      autoTable(doc, {
-          head: head,
-          body: body,
-          startY: 25,
-          theme: "grid",
-          headStyles: {
-              fillColor: "#4682B4",
-              textColor: "#FFFFFF",
-              fontStyle: "bold",
-              halign: "center",
-          },
-          styles: {
-              font: "helvetica",
-              cellPadding: 2,
-              fontSize: 8,
-              valign: 'middle',
-              halign: 'center',
-              minCellHeight: 18,
-          },
-          alternateRowStyles: {
-              fillColor: "#F5F5DC"
-          },
-          didDrawCell: (data) => {
-              if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw) {
-                  const rawString = data.cell.raw as string;
-                  const parts = rawString.split('\n');
-                  if (parts.length === 4) {
-                      data.cell.text = []; // Clear original text to prevent it from being drawn
-                      
-                      const [phase, team1, vs, team2] = parts;
-                      const doc = data.doc;
-                      const cell = data.cell;
-                      
-                      const originalFontSize = doc.getFontSize();
-                      const originalFontStyle = doc.getFont().fontStyle;
-  
-                      const x = cell.x + cell.padding('left');
-                      let y = cell.y + cell.padding('top');
-                      const width = cell.width - cell.padding('horizontal');
-                      
-                      const totalTextHeight = 12; // Approximate total height of text block
-                      y += (cell.height - totalTextHeight) / 2;
-  
-                      // Categoria - Fase (menor)
-                      doc.setFontSize(originalFontSize - 2);
-                      doc.setFont(undefined, 'normal');
-                      doc.text(phase, x + width / 2, y + 2, { maxWidth: width, align: 'center' });
-  
-                      // Dupla 1 (negrito)
-                      doc.setFontSize(originalFontSize);
-                      doc.setFont(undefined, 'bold');
-                      doc.text(team1, x + width / 2, y + 6, { align: 'center' });
-  
-                      // vs
-                      doc.setFontSize(originalFontSize - 1);
-                      doc.setFont(undefined, 'normal');
-                      doc.text(vs, x + width / 2, y + 10, { align: 'center' });
-                      
-                      // Dupla 2 (negrito)
-                      doc.setFontSize(originalFontSize);
-                      doc.setFont(undefined, 'bold');
-                      doc.text(team2, x + width / 2, y + 14, { align: 'center' });
-                      
-                      // Reset styles
-                      doc.setFontSize(originalFontSize);
-                      doc.setFont(undefined, originalFontStyle);
-                  }
-              }
-          },
-          didDrawPage: (data) => {
-              const pageCount = doc.getNumberOfPages();
-              doc.setFontSize(8);
-              doc.setTextColor("#777");
-              doc.text(
-                  `Página ${data.pageNumber} de ${pageCount}`,
-                  data.settings.margin.left,
-                  doc.internal.pageSize.getHeight() - 10
-              );
-          },
-      });
-  
-      doc.save("grade_horarios.pdf");
-  };
+    if (!courts.length || !timeSlots.length) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    doc.setFontSize(18);
+    doc.setTextColor("#FF8C00");
+    const title = "Grade de Horários do Torneio";
+    const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.text(title, (pageWidth - titleWidth) / 2, 15);
+
+    const head = [["Horário", ...courts.map((c) => c.name)]];
+
+    const body = timeSlots.map((slot) => {
+        return [
+            slot.time,
+            ...slot.courts.map((courtSlot) => {
+                if (courtSlot.match) {
+                    const match = courtSlot.match;
+                    return `${match.category} - ${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
+                }
+                return "";
+            }),
+        ];
+    });
+
+    autoTable(doc, {
+        head: head,
+        body: body,
+        startY: 25,
+        theme: "grid",
+        headStyles: {
+            fillColor: "#4682B4",
+            textColor: "#FFFFFF",
+            fontStyle: "bold",
+            halign: "center",
+        },
+        styles: {
+            font: "helvetica",
+            cellPadding: 2,
+            fontSize: 8,
+            valign: 'middle',
+            halign: 'center',
+            minCellHeight: 18,
+        },
+        alternateRowStyles: {
+            fillColor: "#F5F5DC"
+        },
+        willDrawCell: (data) => {
+            if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw) {
+                const rawString = data.cell.raw as string;
+                if (rawString.includes('\n')) {
+                    // Prevent auto-drawing for cells we are handling manually
+                    data.cell.text = ''; 
+                }
+            }
+        },
+        didDrawCell: (data) => {
+            if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw) {
+                const rawString = data.cell.raw as string;
+                const parts = rawString.split('\n');
+                if (parts.length === 4) {
+                    // This code runs AFTER the cell is drawn. We are drawing on top.
+                    const [phase, team1, vs, team2] = parts;
+                    const doc = data.doc;
+                    const cell = data.cell;
+                    
+                    const originalFontSize = doc.getFontSize();
+                    const originalFontStyle = doc.getFont().fontStyle;
+
+                    const x = cell.x + cell.padding('left');
+                    let y = cell.y + cell.padding('top');
+                    const width = cell.width - cell.padding('horizontal');
+                    
+                    const totalTextHeight = 12; // Approximate total height of text block
+                    y += (cell.height - totalTextHeight) / 2;
+
+                    // Categoria - Fase (menor)
+                    doc.setFontSize(originalFontSize - 2);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(phase, x + width / 2, y + 2, { maxWidth: width, align: 'center' });
+
+                    // Dupla 1 (negrito)
+                    doc.setFontSize(originalFontSize);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(team1, x + width / 2, y + 6, { align: 'center' });
+
+                    // vs
+                    doc.setFontSize(originalFontSize - 1);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(vs, x + width / 2, y + 10, { align: 'center' });
+                    
+                    // Dupla 2 (negrito)
+                    doc.setFontSize(originalFontSize);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(team2, x + width / 2, y + 14, { align: 'center' });
+                    
+                    // Reset styles
+                    doc.setFontSize(originalFontSize);
+                    doc.setFont(undefined, originalFontStyle);
+                }
+            }
+        },
+        didDrawPage: (data) => {
+            const pageCount = doc.getNumberOfPages();
+            doc.setFontSize(8);
+            doc.setTextColor("#777");
+            doc.text(
+                `Página ${data.pageNumber} de ${pageCount}`,
+                data.settings.margin.left,
+                doc.internal.pageSize.getHeight() - 10
+            );
+        },
+    });
+
+    doc.save("grade_horarios.pdf");
+};
+
 
   const unscheduledMatches = useMemo(() => {
     return allMatches.filter(m => !m.time || !m.court);
@@ -715,5 +724,3 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
-
-    
