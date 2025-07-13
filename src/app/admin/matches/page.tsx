@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle, FileText } from "lucide-react";
+import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle, FileText, Download } from "lucide-react";
 import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import Papa from "papaparse";
 
 
 type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
@@ -228,7 +229,7 @@ export default function ScheduleGridPage() {
 
     const newTimeSlots: TimeSlot[] = [];
     let currentTime = earliestTime;
-    while (currentTime <= latestTime) {
+    while (isBefore(currentTime, latestTime)) {
         newTimeSlots.push({
             time: format(currentTime, 'HH:mm'),
             datetime: new Date(currentTime),
@@ -342,6 +343,38 @@ export default function ScheduleGridPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    const scheduledMatches = allMatches.filter(m => m.time && m.court);
+    if (scheduledMatches.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "Nenhum Jogo Agendado",
+            description: "Não há jogos na grade para exportar.",
+        });
+        return;
+    }
+    const csvData = Papa.unparse(
+      scheduledMatches.map(m => ({
+        matchId: m.id,
+        category: m.category,
+        stage: m.stage,
+        team1: m.team1Name,
+        team2: m.team2Name,
+        time: m.time,
+        court: m.court,
+      }))
+    );
+
+    const blob = new Blob([`\uFEFF${csvData}`], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "grade_horarios.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleExportPDF = () => {
     if (!courts.length || !timeSlots.length) return;
 
@@ -362,7 +395,7 @@ export default function ScheduleGridPage() {
             ...slot.courts.map((courtSlot) => {
                 if (!courtSlot.match) return "";
                 const match = courtSlot.match;
-                return `${match.category} - ${match.stage}\n\n${match.team1Name}\nvs\n${match.team2Name}`;
+                return `${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
             }),
         ];
     });
@@ -381,39 +414,52 @@ export default function ScheduleGridPage() {
         styles: {
             font: "helvetica",
             cellPadding: 2,
-            fontSize: 8,
             valign: 'middle',
             halign: 'center',
+            fontSize: 8,
         },
         alternateRowStyles: {
             fillColor: "#F5F5F5"
         },
         willDrawCell: (data) => {
-            // This hook ensures that the row height is calculated correctly
-            // before drawing, which prevents page breaks within a row.
-            if (data.section === 'body') {
-                const cellText = data.cell.text as string[];
-                const numLines = Array.isArray(cellText) ? cellText.length : 1;
-                const calculatedHeight = numLines * data.doc.getFontSize() * 0.35 + 4; 
-                if (data.row.height < calculatedHeight) {
-                    data.row.height = calculatedHeight;
-                }
+            const row = data.row;
+            const cell = data.cell;
+            if (data.section === 'body' && typeof cell.raw === 'string' && cell.raw.includes('\n')) {
+                const lines = cell.raw.split('\n');
+                const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
+                const requiredHeight = lines.length * lineHeight + 4; // Add some padding
+                 if (row.height < requiredHeight) {
+                    row.height = requiredHeight;
+                 }
             }
         },
-        didParseCell: (data) => {
-             if (data.section === 'body' && data.column.index > 0 && data.cell.raw) {
-                const cellText = data.cell.text[0]; // The raw string like "Stage\nTeam1\nvs\nTeam2"
-                if (typeof cellText === 'string' && cellText.includes('\n')) {
-                    const lines = cellText.split('\n');
-                    const formattedLines = [
-                        { content: lines[0], styles: { fontSize: 7, fontStyle: 'bold' } },
-                        { content: lines[1], styles: { fontStyle: 'normal' } },
-                        { content: lines[2], styles: { fontSize: 7, fontStyle: 'italic' } },
-                        { content: lines[3], styles: { fontStyle: 'bold' } }
-                    ];
-                    data.cell.text = formattedLines.map(l => l.content);
-                    (data.cell.styles as any).cellPadding = { top: 2, right: 2, bottom: 2, left: 2 };
-                }
+        didDrawCell: (data) => {
+            const cell = data.cell;
+            if (data.section === 'body' && typeof cell.raw === 'string' && cell.raw.includes('\n')) {
+                cell.text = []; // Prevent default text rendering
+                
+                const lines = cell.raw.split('\n');
+                const stage = lines[0];
+                const team1 = lines[1];
+                const vs = lines[2];
+                const team2 = lines[3];
+                
+                const x = cell.x + cell.padding('left');
+                const y = cell.y + cell.padding('top') + doc.getLineHeight() / doc.internal.scaleFactor * 1.5;
+                const availableWidth = cell.width - cell.padding('left') - cell.padding('right');
+
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.text(stage, x + availableWidth / 2, y, { align: 'center' });
+                
+                doc.setFont('helvetica', 'bold');
+                doc.text(team1, x + availableWidth / 2, y + 5, { align: 'center' });
+                
+                doc.setFont('helvetica', 'normal');
+                doc.text(vs, x + availableWidth / 2, y + 10, { align: 'center' });
+                
+                doc.setFont('helvetica', 'bold');
+                doc.text(team2, x + availableWidth / 2, y + 15, { align: 'center' });
             }
         },
         didDrawPage: (data) => {
@@ -443,7 +489,12 @@ export default function ScheduleGridPage() {
       timeSlots.forEach(ts => {
           ts.courts.forEach(c => {
               const isCourtInService = courts.find(court => court.name === c.name)?.slots
-                  .some(slot => isWithinInterval(ts.datetime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -(globalSettings.estimatedMatchDuration || 20)) }));
+                  .some(slot => {
+                    const slotStart = parseTime(slot.startTime);
+                    const slotEnd = parseTime(slot.endTime);
+                    const matchEnd = addMinutes(ts.datetime, globalSettings.estimatedMatchDuration || 20);
+                    return ts.datetime >= slotStart && matchEnd <= slotEnd;
+                  });
 
               if (isCourtInService && !c.match) {
                   slots.push({ time: ts.time, court: c.name });
@@ -553,6 +604,8 @@ export default function ScheduleGridPage() {
              <div className="flex flex-wrap gap-2 pt-4">
                 <Button onClick={() => fileInputRef.current?.click()} variant="outline">Importar CSV</Button>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
+
+                <Button onClick={handleExportCSV} variant="outline"><Download className="mr-2 h-4 w-4"/>Exportar CSV</Button>
                 
                 <Button onClick={handleExportPDF} variant="outline"><FileText className="mr-2 h-4 w-4"/>Exportar PDF</Button>
 
@@ -619,8 +672,10 @@ export default function ScheduleGridPage() {
                                     const isCourtInService = courts.find(c => c.name === court.name)?.slots
                                         .some(s => {
                                             if (!globalSettings) return false;
-                                            const intervalEnd = addMinutes(parseTime(s.endTime), -(globalSettings.estimatedMatchDuration || 20));
-                                            return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: intervalEnd })
+                                            const slotStart = parseTime(s.startTime);
+                                            const slotEnd = parseTime(s.endTime);
+                                            const matchEnd = addMinutes(slot.datetime, globalSettings.estimatedMatchDuration || 20);
+                                            return slot.datetime >= slotStart && matchEnd <= slotEnd;
                                         });
 
                                     return (
