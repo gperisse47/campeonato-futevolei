@@ -43,7 +43,8 @@
         "priority": 5
       }
     ],
-    "startTime": "08:00"
+    "startTime": "08:00",
+    "endTime": "17:30"
   },
   "Masculino Avançado": {
     "tournamentData": {
@@ -837,8 +838,8 @@
                 "player2": "Caio"
               },
               "id": "MistoIniciante-GroupB-Jogo1",
-              "time": "",
-              "court": ""
+              "time": "08:00",
+              "court": "GP2"
             },
             {
               "team1": {

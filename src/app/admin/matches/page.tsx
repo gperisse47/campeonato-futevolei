@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle } from "lucide-react";
+import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle, FileText } from "lucide-react";
 import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +26,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 
 type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
@@ -336,6 +338,50 @@ export default function ScheduleGridPage() {
     }
   };
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const scheduledMatches = allMatches
+        .filter(m => m.time && m.court)
+        .sort((a, b) => a.time!.localeCompare(b.time!) || a.court!.localeCompare(b.court!));
+
+    const tableData = scheduledMatches.map(m => [
+        m.time || '',
+        m.court || '',
+        m.category,
+        m.stage,
+        m.team1Name || '',
+        m.team2Name || ''
+    ]);
+
+    doc.setFontSize(18);
+    doc.setTextColor(33, 100, 50); // Using HSL from theme
+    const title = "Grade de Horários do Torneio";
+    const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const x = (pageWidth - titleWidth) / 2;
+    doc.text(title, x, 15);
+
+    autoTable(doc, {
+        head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Dupla 2']],
+        body: tableData,
+        startY: 25,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [33, 100, 50], // HSL Primary
+            textColor: [60, 9, 98], // HSL Primary Foreground
+            fontStyle: 'bold'
+        },
+        didDrawPage: (data) => {
+            const pageCount = doc.getNumberOfPages();
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 10);
+        }
+    });
+
+    doc.save("grade_horarios.pdf");
+  };
+
   const unscheduledMatches = useMemo(() => {
     return allMatches.filter(m => !m.time || !m.court);
   }, [allMatches]);
@@ -457,6 +503,8 @@ export default function ScheduleGridPage() {
                 <Button onClick={() => fileInputRef.current?.click()} variant="outline">Importar CSV</Button>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
                 
+                <Button onClick={handleExportPDF} variant="outline"><FileText className="mr-2 h-4 w-4"/>Exportar PDF</Button>
+
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="outline">Limpar Agendamento</Button>
