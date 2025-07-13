@@ -797,294 +797,8 @@ export async function clearAllSchedules(): Promise<{ success: boolean; error?: s
         return { success: false, error: e.message || "Erro inesperado ao limpar agendamento." };
     }
 }
-/*
-
-// --- New Scheduler Logic ---
-
-interface SchedulerMatchRow {
-    matchId: string;
-    category: string;
-    stage: string;
-    team1: string;
-    team2: string;
-}
-
-class SchedulerCourt {
-    name: string;
-    slots: { start: Date; end: Date; }[];
-    nextAvailable: Date = new Date(0);
-
-    constructor(name: string, slots: { startTime: string; endTime: string; }[]) {
-        this.name = name;
-        this.slots = slots.map(({ startTime, endTime }) => ({
-            start: parse(startTime, 'HH:mm', new Date()),
-            end: parse(endTime, 'HH:mm', new Date())
-        }));
-    }
-}
-
-class SchedulerMatch {
-    id: string;
-    category: string;
-    group: string;
-    team1: string;
-    team2: string;
-    stage: string;
-    players: string[];
-    time?: string;
-    court?: string;
-
-    constructor(row: SchedulerMatchRow) {
-        this.id = row.matchId;
-        this.category = row.category;
-        this.group = row.stage;
-        this.team1 = row.team1;
-        this.team2 = row.team2;
-        this.stage = this.normalizeStageName(row.stage);
-        this.players = this.extractPlayers(this.team1).concat(this.extractPlayers(this.team2));
-    }
-
-    private extractPlayers(team: string): string[] {
-        if (!team) return [];
-        return team.split(/\s+e\s+/).map(p => p.trim());
-    }
-
-    private normalizeStageName(stage: string): string {
-        if (!stage) return "desconhecido";
-        stage = stage.trim().toLowerCase();
-        if (stage.includes("grupo") || stage.includes("group")) return "grupos";
-        if (stage.includes("oitava")) return "oitavas";
-        if (stage.includes("quart")) return "quartas";
-        if (stage.includes("semi")) return "semifinal";
-        if (stage.includes("final") && stage.includes("3")) return "3º lugar";
-        if (stage.includes("final")) return "final";
-        return stage;
-    }
-}
-
-function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): SchedulerMatch[] {
-    const { _globalSettings } = db;
-    const matchDurationMin = _globalSettings.estimatedMatchDuration || 20;
-
-    const courts: SchedulerCourt[] = _globalSettings.courts.map(c => new SchedulerCourt(c.name, c.slots));
-    
-    const startTimes: Record<string, Date> = {};
-     Object.entries(db).forEach(([key, value]) => {
-        if (key !== '_globalSettings') {
-            const catData = value as CategoryData;
-            startTimes[key] = parse(catData.formValues.startTime || _globalSettings.startTime, 'HH:mm', new Date());
-        }
-    });
-
-    const STAGE_ORDER = ["grupos", "oitavas", "quartas", "semifinal", "final", "3º lugar"];
-    const stagePriority = Object.fromEntries(STAGE_ORDER.map((s, i) => [s, i]));
-
-    const matches = matchesInput.map(row => new SchedulerMatch(row));
-    const matchesByCatStage: Record<string, Record<string, SchedulerMatch[]>> = {};
-
-    for (const match of matches) {
-        if (!matchesByCatStage[match.category]) matchesByCatStage[match.category] = {};
-        if (!matchesByCatStage[match.category][match.stage]) matchesByCatStage[match.category][match.stage] = [];
-        matchesByCatStage[match.category][match.stage].push(match);
-    }
-
-    const stagesPerCat: Record<string, string[]> = {};
-    const currentStageIdx: Record<string, number> = {};
-    for (const cat in matchesByCatStage) {
-        const stages = Object.keys(matchesByCatStage[cat]).sort((a, b) => (stagePriority[a] ?? 99) - (stagePriority[b] ?? 99));
-        stagesPerCat[cat] = stages;
-        currentStageIdx[cat] = 0;
-    }
-    
-    const END_OF_DAY = parse("21:00", "HH:mm", new Date());
-    let currentTime = new Date(Math.min(...Object.values(startTimes).map(d => d.getTime())));
-    const unscheduled = new Set(matches.map(m => m.id));
-    
-    const playerAvailability: Record<string, Date> = {};
-    const matchHistory: Record<string, Date[]> = {};
-
-    function playedTwoConsecutive(player: string, time: Date): boolean {
-        const times = (matchHistory[player] || []).filter(t => t < time).sort((a, b) => a.getTime() - b.getTime());
-        if (times.length < 2) return false;
-
-        const lastMatchTime = times[times.length - 1];
-        const secondLastMatchTime = times[times.length - 2];
-        
-        return isEqual(lastMatchTime, addMinutes(time, -matchDurationMin)) &&
-               isEqual(secondLastMatchTime, addMinutes(time, -2 * matchDurationMin));
-    }
-    
-    let iterations = 0;
-    while (unscheduled.size > 0 && iterations < 5000) { // Safety break
-        iterations++;
-        if (addMinutes(currentTime, matchDurationMin) > END_OF_DAY) {
-            console.warn("Scheduler reached end of day. Some matches may be unscheduled.");
-            break;
-        }
-
-        const availableCourts = courts.filter(c =>
-            c.slots.some(({ start, end }) => start <= currentTime && addMinutes(currentTime, matchDurationMin) <= end) &&
-            c.nextAvailable <= currentTime
-        );
-
-        const readyMatches: SchedulerMatch[] = [];
-        for (const cat in matchesByCatStage) {
-            if (currentTime < startTimes[cat]) continue;
-            
-            const stageIdx = currentStageIdx[cat];
-            if(stageIdx >= stagesPerCat[cat].length) continue;
-
-            const stage = stagesPerCat[cat][stageIdx];
-            const stageMatches = (matchesByCatStage[cat][stage] || []).filter(m => unscheduled.has(m.id));
-
-            for (const m of stageMatches) {
-                if (m.players.every(p => (playerAvailability[p] || new Date(0)) <= currentTime) &&
-                    m.players.every(p => !playedTwoConsecutive(p, currentTime))) {
-                    readyMatches.push(m);
-                }
-            }
-        }
-        
-        readyMatches.sort((a, b) => {
-            const getRestMetrics = (match: SchedulerMatch) => {
-                if (!match.players.length) return { minRest: Infinity, sumRest: Infinity };
-                const restTimes = match.players.map(p => differenceInMinutes(currentTime, playerAvailability[p] || new Date(0)));
-                return {
-                    minRest: Math.min(...restTimes),
-                    sumRest: restTimes.reduce((acc, r) => acc + r, 0)
-                };
-            };
-            const metricsA = getRestMetrics(a);
-            const metricsB = getRestMetrics(b);
-            if (metricsA.minRest !== metricsB.minRest) return metricsA.minRest - metricsB.minRest;
-            return metricsA.sumRest - metricsB.sumRest;
-        });
-
-        let scheduledInTick = false;
-        const usedPlayers = new Set<string>();
-        
-        for (const court of availableCourts) {
-            const match = readyMatches.find(m => m.players.every(p => !usedPlayers.has(p)));
-            if (!match) continue;
-
-            match.time = format(currentTime, "HH:mm");
-            match.court = court.name;
-            court.nextAvailable = addMinutes(currentTime, matchDurationMin);
-            
-            for (const p of match.players) {
-                playerAvailability[p] = addMinutes(currentTime, matchDurationMin);
-                if (!matchHistory[p]) matchHistory[p] = [];
-                matchHistory[p].push(new Date(currentTime.getTime())); // Push a copy
-                usedPlayers.add(p);
-            }
-            
-            unscheduled.delete(match.id);
-            scheduledInTick = true;
-            readyMatches.splice(readyMatches.findIndex(m => m.id === match.id), 1);
-
-            const {category, stage} = match;
-            if (matchesByCatStage[category][stage].every(m => !unscheduled.has(m.id))) {
-                 if (currentStageIdx[category] < stagesPerCat[category].length -1) {
-                    currentStageIdx[category]++;
-                 }
-            }
-        }
-        
-        if (!scheduledInTick) {
-            currentTime = addMinutes(currentTime, 5);
-        }
-    }
-    
-    if (unscheduled.size > 0) {
-        console.warn(`Could not schedule ${unscheduled.size} matches.`);
-    }
-
-    return matches.filter(m => m.time);
-}
-
-
-export async function generateScheduleAction(): Promise<{ success: boolean; error?: string }> {
-    try {
-        const db = await readDb();
-        const allMatchesInput: SchedulerMatchRow[] = [];
-
-        const teamName = (team: Team | undefined, placeholder: string | undefined): string => {
-            if (team && team.player1 && team.player2) return `${team.player1} e ${team.player2}`;
-            return placeholder || "A Definir";
-        };
-
-        Object.entries(db).forEach(([categoryName, categoryData]) => {
-            if (categoryName === '_globalSettings') return;
-            const cat = categoryData as CategoryData;
-
-            const addMatches = (matches: (MatchWithScore | PlayoffMatch)[], stageOverride?: string) => {
-                matches.forEach(match => {
-                    if (!match.id) return;
-                    allMatchesInput.push({
-                        matchId: match.id,
-                        category: categoryName,
-                        stage: stageOverride || ('name' in match ? match.name : cat.formValues.category),
-                        team1: teamName(match.team1, match.team1Placeholder),
-                        team2: teamName(match.team2, match.team2Placeholder)
-                    });
-                });
-            };
-
-            cat.tournamentData?.groups.forEach(group => addMatches(group.matches, group.name));
-            
-            if (cat.playoffs) {
-                const processBracket = (bracket?: PlayoffBracket) => {
-                    if (!bracket) return;
-                    Object.values(bracket).flat().forEach(match => {
-                        if (!match.id) return;
-                         allMatchesInput.push({
-                            matchId: match.id,
-                            category: categoryName,
-                            stage: match.name,
-                            team1: teamName(match.team1, match.team1Placeholder),
-                            team2: teamName(match.team2, match.team2Placeholder),
-                        });
-                    });
-                };
-                
-                const playoffs = cat.playoffs as PlayoffBracketSet;
-                if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
-                    processBracket(playoffs.upper);
-                    processBracket(playoffs.lower);
-                    processBracket(playoffs.playoffs);
-                } else {
-                    processBracket(playoffs as PlayoffBracket);
-                }
-            }
-        });
-        
-        const scheduledMatches = runScheduler(allMatchesInput, db);
-        
-        if (scheduledMatches.length < allMatchesInput.length) {
-            const unscheduledCount = allMatchesInput.length - scheduledMatches.length;
-            return { success: false, error: `${unscheduledCount} jogos não puderam ser agendados. Verifique a disponibilidade das quadras e horários.` };
-        }
-
-        const updatedMatches: UpdateMatchInput[] = scheduledMatches.map(m => ({
-            matchId: m.id,
-            categoryName: m.category,
-            time: m.time || '',
-            court: m.court || ''
-        }));
-
-        return updateMultipleMatches(updatedMatches);
-
-    } catch (e: any) {
-        console.error("Erro ao gerar horários:", e);
-        return { success: false, error: e.message || "Erro desconhecido ao gerar horários." };
-    }
-}
-
-*/
 
 // --- Scheduler with Constraints ---
-// import { TournamentsState, CategoryData, Team, MatchWithScore, PlayoffMatch, PlayoffBracketSet, PlayoffBracket, UpdateMatchInput } from './types';
-// import { readDb, updateMultipleMatches } from './db';
 
 interface SchedulerMatchRow {
     matchId: string;
@@ -1102,8 +816,8 @@ class SchedulerCourt {
     constructor(name: string, slots: { startTime: string; endTime: string; }[]) {
         this.name = name;
         this.slots = slots.map(({ startTime, endTime }) => ({
-            start: parse(startTime, 'HH:mm', new Date()),
-            end: parse(endTime, 'HH:mm', new Date())
+            start: parseTime(startTime),
+            end: parseTime(endTime)
         }));
     }
 }
@@ -1157,7 +871,7 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
     Object.entries(db).forEach(([key, value]) => {
         if (key !== '_globalSettings') {
             const catData = value as CategoryData;
-            startTimes[key] = parse(catData.formValues.startTime || _globalSettings.startTime, 'HH:mm', new Date());
+            startTimes[key] = parseTime(catData.formValues.startTime || _globalSettings.startTime);
         }
     });
 
@@ -1180,7 +894,7 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
         currentStageIdx[cat] = 0;
     }
 
-    const END_OF_DAY = parse("21:00", "HH:mm", new Date());
+    const END_OF_DAY = parseTime(_globalSettings.endTime || "21:00");
     let currentTime = new Date(Math.min(...Object.values(startTimes).map(d => d.getTime())));
     const unscheduled = new Set(matches.map(m => m.id));
 
@@ -1198,10 +912,11 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
     let iterations = 0;
     while (unscheduled.size > 0 && iterations++ < 5000) {
         if (addMinutes(currentTime, matchDurationMin) > END_OF_DAY) break;
-
-        const availableCourts = courts.filter(c =>
-            c.slots.some(({ start, end }) => start <= currentTime && addMinutes(currentTime, matchDurationMin) <= end) &&
-            c.nextAvailable <= currentTime
+        
+        const availableCourts = courts.filter(c => 
+            c.slots.some(({ start, end }) => 
+                currentTime >= start && addMinutes(currentTime, matchDurationMin) <= end
+            ) && c.nextAvailable <= currentTime
         );
 
         const readyMatches: SchedulerMatch[] = [];
@@ -1254,7 +969,14 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
             }
         }
 
-        if (!scheduledThisTick) currentTime = addMinutes(currentTime, 5);
+        if (!scheduledThisTick) {
+            let nextCourtTime = new Date(Math.min(...courts.map(c => c.nextAvailable.getTime() > currentTime.getTime() ? c.nextAvailable.getTime() : Infinity)));
+            if (isFinite(nextCourtTime.getTime())) {
+                 currentTime = nextCourtTime;
+            } else {
+                 currentTime = addMinutes(currentTime, 5);
+            }
+        }
     }
 
     return matches.filter(m => m.time);
@@ -1336,5 +1058,7 @@ export async function generateScheduleAction(): Promise<{ success: boolean; erro
     }
 }
 
+
+    
 
     
