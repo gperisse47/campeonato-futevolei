@@ -362,7 +362,7 @@ export default function ScheduleGridPage() {
             ...slot.courts.map((courtSlot) => {
                 if (!courtSlot.match) return "";
                 const match = courtSlot.match;
-                return `${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
+                return `${match.category} - ${match.stage}\n\n${match.team1Name}\nvs\n${match.team2Name}`;
             }),
         ];
     });
@@ -406,8 +406,8 @@ export default function ScheduleGridPage() {
                 if (typeof cellText === 'string' && cellText.includes('\n')) {
                     const lines = cellText.split('\n');
                     const formattedLines = [
-                        { content: lines[0], styles: { fontSize: 7, fontStyle: 'normal' } },
-                        { content: lines[1], styles: { fontStyle: 'bold' } },
+                        { content: lines[0], styles: { fontSize: 7, fontStyle: 'bold' } },
+                        { content: lines[1], styles: { fontStyle: 'normal' } },
                         { content: lines[2], styles: { fontSize: 7, fontStyle: 'italic' } },
                         { content: lines[3], styles: { fontStyle: 'bold' } }
                     ];
@@ -507,10 +507,11 @@ export default function ScheduleGridPage() {
 
     return (
         <Card className={cn("p-2 text-xs relative group h-full flex flex-col justify-center", hasConflict && "bg-destructive/20 border-destructive")}>
-             <div className="text-muted-foreground mb-1 text-center truncate">{match.category} - {match.stage}</div>
-             <div className="font-bold truncate text-center">{match.team1Name}</div>
+             <div className="font-bold text-center truncate">{match.category} - {match.stage}</div>
+
+             <div className="text-muted-foreground mb-0.5 truncate text-center">{match.team1Name}</div>
              <div className="text-muted-foreground my-0.5 text-center">vs</div>
-             <div className="font-bold truncate text-center">{match.team2Name}</div>
+             <div className="text-muted-foreground mb-0.5 truncate text-center">{match.team2Name}</div>
               {hasConflict && (
                 <div className="absolute -top-2 -right-2">
                     <AlertCircle className="h-5 w-5 text-destructive-foreground bg-destructive rounded-full p-0.5" />
@@ -663,11 +664,11 @@ export default function ScheduleGridPage() {
                     <div className="space-y-2">
                     {unscheduledMatches.map(match => (
                         <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
-                            <div className="flex-grow">
-                                <div className="font-bold truncate">{match.team1Name}</div>
+                            <div>
+                            <div className="font-bold truncate">{match.category} - {match.stage}</div>
+                                <div className="text-muted-foreground my-0.5 text-center">{match.team1Name}</div>
                                 <div className="text-muted-foreground my-0.5 text-center">vs</div>
-                                <div className="font-bold truncate">{match.team2Name}</div>
-                                <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
+                                <div className="text-muted-foreground my-0.5 text-center">{match.team2Name}</div>
                             </div>
                             <Select onValueChange={(value) => {
                                 const [newTime, newCourt] = value.split('|');
