@@ -3,490 +3,263 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import Papa from "papaparse";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { LoginPage } from "@/components/login-page";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw, Trash2, FileText, Sparkles } from "lucide-react";
-import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
-import { getTournaments, updateMatch, updateMultipleMatches, importScheduleFromCSV, clearAllSchedules, generateScheduleAction } from "@/app/actions";
+import { Loader2, Swords, AlertCircle, CalendarClock, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team } from "@/lib/types";
+import { getTournaments, updateMultipleMatches } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
+import { format, parse, addMinutes, isWithinInterval, startOfDay } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { LoginPage } from "@/components/login-page";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type EditableMatch = ConsolidatedMatch & {
-  id: string; // Ensure id is present
+type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
+  id: string;
+  category: string;
   players: string[];
-  originalTime: string;
-  originalCourt: string;
-  isDirty?: boolean;
-  validationError?: string;
+  team1Name: string;
+  team2Name: string;
+};
+
+type TimeSlot = {
+  time: string;
+  datetime: Date;
+  courts: ({
+    name: string;
+    match?: SchedulableMatch;
+  })[];
 };
 
 const parseTime = (timeStr: string): Date => {
     if (!timeStr) return new Date(0);
     const [hours, minutes] = timeStr.split(':').map(Number);
-    const date = new Date();
+    const date = startOfDay(new Date());
     date.setHours(hours, minutes, 0, 0);
     return date;
 };
 
-export default function AdminMatchesPage() {
-  const [allMatches, setAllMatches] = useState<EditableMatch[]>([]);
-  const [filteredMatches, setFilteredMatches] = useState<EditableMatch[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isImporting, setIsImporting] = useState(false);
-  const [isSavingAll, setIsSavingAll] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
+const teamName = (team: Team | undefined, placeholder: string | undefined): string => {
+    if (team && team.player1 && team.player2) return `${team.player1} e ${team.player2}`;
+    return placeholder || "A Definir";
+};
+
+const getPlayersFromMatch = (match: SchedulableMatch): string[] => {
+    const players = new Set<string>();
+    [match.team1Name, match.team2Name].forEach(team => {
+        if (!team) return;
+        if (team.includes(' e ')) {
+            team.split(' e ').forEach(p => players.add(p.trim()));
+        }
+    });
+    return Array.from(players);
+};
+
+export default function ScheduleGridPage() {
+  const [allMatches, setAllMatches] = useState<SchedulableMatch[]>([]);
   const [courts, setCourts] = useState<Court[]>([]);
-  const [globalStartTime, setGlobalStartTime] = useState<string>('08:00');
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const teamToKey = (team: any): string => {
-    if (!team) return '';
-    const players = [team.player1, team.player2].sort();
-    return `${players[0]} e ${players[1]}`;
-  };
-
-  const getPlayers = (team1?: string, team2?: string): string[] => {
-      const players = new Set<string>();
-      [team1, team2].forEach(team => {
-          if(!team) return;
-          if (team.includes(' e ')) {
-              team.split(' e ').forEach(p => players.add(p.trim()));
-          }
-      });
-      return Array.from(players);
-  }
-
-  const loadMatchesAndSettings = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const savedTournaments = await getTournaments();
-      if (savedTournaments) {
-        if (savedTournaments._globalSettings) {
-            setCourts(savedTournaments._globalSettings.courts || []);
-            setGlobalStartTime(savedTournaments._globalSettings.startTime || '08:00');
-        }
-        const allMatchesData: EditableMatch[] = [];
+      const { _globalSettings } = savedTournaments;
+      
+      const loadedCourts = _globalSettings.courts || [];
+      setCourts(loadedCourts);
 
-        const processBracket = (bracket: PlayoffBracket, categoryName: string) => {
-          for (const roundName in bracket) {
-            const roundMatches = bracket[roundName];
-            if (Array.isArray(roundMatches)) {
-              roundMatches.forEach(match => {
-                const team1Str = match.team1 ? teamToKey(match.team1) : match.team1Placeholder;
-                const team2Str = match.team2 ? teamToKey(match.team2) : match.team2Placeholder;
-                allMatchesData.push({
-                  id: match.id,
-                  category: categoryName,
-                  stage: match.name,
-                  team1: team1Str,
-                  team2: team2Str,
-                  score1: match.score1,
-                  score2: match.score2,
-                  time: match.time || '',
-                  court: match.court || '',
-                  originalTime: match.time || '',
-                  originalCourt: match.court || '',
-                   players: getPlayers(team1Str, team2Str),
-                });
-              });
-            }
-          }
-        };
-
-        for (const categoryName in savedTournaments) {
+      const loadedMatches: SchedulableMatch[] = [];
+       for (const categoryName in savedTournaments) {
           if (categoryName === '_globalSettings') continue;
-
           const categoryData = savedTournaments[categoryName] as CategoryData;
 
-          if (categoryData.tournamentData?.groups) {
-            categoryData.tournamentData.groups.forEach(group => {
-              group.matches.forEach(match => {
-                allMatchesData.push({
-                  id: match.id!,
-                  category: categoryName,
-                  stage: group.name,
-                  team1: teamToKey(match.team1),
-                  team2: teamToKey(match.team2),
-                  score1: match.score1,
-                  score2: match.score2,
-                  time: match.time || '',
-                  court: match.court || '',
-                  originalTime: match.time || '',
-                  originalCourt: match.court || '',
-                  players: getPlayers(teamToKey(match.team1), teamToKey(match.team2)),
-                });
+          const addMatches = (matches: (MatchWithScore | PlayoffMatch)[], stageOverride?: string) => {
+              matches.forEach(match => {
+                  if (!match.id) return;
+                  const t1Name = teamName(match.team1, match.team1Placeholder);
+                  const t2Name = teamName(match.team2, match.team2Placeholder);
+                  const schedulableMatch: SchedulableMatch = {
+                    ...match,
+                    id: match.id,
+                    category: categoryName,
+                    stage: stageOverride || ('name' in match ? match.name : categoryName),
+                    team1Name: t1Name,
+                    team2Name: t2Name,
+                    players: [],
+                  };
+                  schedulableMatch.players = getPlayersFromMatch(schedulableMatch);
+                  loadedMatches.push(schedulableMatch);
               });
-            });
-          }
+          };
 
-          if (categoryData.playoffs) {
-            const playoffs = categoryData.playoffs as PlayoffBracketSet;
-             if (categoryData.formValues.tournamentType === 'doubleElimination' && ('upper' in playoffs || 'lower' in playoffs || 'playoffs' in playoffs)) {
-                  if (playoffs.upper) processBracket(playoffs.upper, categoryName);
-                  if (playoffs.lower) processBracket(playoffs.lower, categoryName);
-                  if (playoffs.playoffs) processBracket(playoffs.playoffs, categoryName);
-              } else {
-                  processBracket(playoffs as PlayoffBracket, categoryName);
-              }
-          }
-        }
-
-        allMatchesData.sort((a, b) => {
-          if (!a.time) return 1;
-          if (!b.time) return -1;
-          return a.time.localeCompare(b.time);
-        });
-
-        setAllMatches(allMatchesData);
-        setFilteredMatches(allMatchesData);
+          categoryData.tournamentData?.groups.forEach(group => addMatches(group.matches, group.name));
+          
+           if (categoryData.playoffs) {
+                const processBracket = (bracket?: PlayoffBracket) => {
+                    if (!bracket) return;
+                    Object.values(bracket).flat().forEach(match => {
+                         if (!match.id) return;
+                        const t1Name = teamName(match.team1, match.team1Placeholder);
+                        const t2Name = teamName(match.team2, match.team2Placeholder);
+                        const schedulableMatch: SchedulableMatch = {
+                            ...match,
+                            id: match.id,
+                            category: categoryName,
+                            team1Name: t1Name,
+                            team2Name: t2Name,
+                            players: [],
+                        };
+                        schedulableMatch.players = getPlayersFromMatch(schedulableMatch);
+                        loadedMatches.push(schedulableMatch);
+                    });
+                };
+                
+                const playoffs = categoryData.playoffs as PlayoffBracketSet;
+                if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
+                    processBracket(playoffs.upper);
+                    processBracket(playoffs.lower);
+                    processBracket(playoffs.playoffs);
+                } else {
+                    processBracket(playoffs as PlayoffBracket);
+                }
+            }
       }
+      setAllMatches(loadedMatches);
+
     } catch (error) {
-      console.error("Failed to load matches from DB", error);
-      toast({ variant: "destructive", title: "Erro ao Carregar Jogos" });
+      console.error("Failed to load data", error);
+      toast({ variant: "destructive", title: "Erro ao Carregar Dados" });
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
-
+  
   useEffect(() => {
     if (isAuthenticated) {
-      loadMatchesAndSettings();
+      loadData();
     }
-  }, [isAuthenticated, loadMatchesAndSettings]);
+  }, [isAuthenticated, loadData]);
+
 
   useEffect(() => {
-    const results = allMatches.filter(match => {
-      const matchString = `${match.category} ${match.stage} ${match.team1} ${match.team2} ${match.court}`.toLowerCase();
-      return matchString.includes(searchTerm.toLowerCase());
-    });
-    setFilteredMatches(results);
-  }, [searchTerm, allMatches]);
+    if (!courts.length || !allMatches.length) return;
 
-  const validateChange = useCallback((matchToValidate: EditableMatch, allCurrentMatches: EditableMatch[]): string | undefined => {
-      if (!matchToValidate.time || !matchToValidate.court) return undefined;
-      
-      const matchDuration = 20; // Assume fixed duration for now
-      
-      // 1. Check against global start time
-      if (matchToValidate.time < globalStartTime) {
-          return `Horário antes do início do torneio (${globalStartTime}).`;
-      }
+    const { startTime, estimatedMatchDuration } = (getTournaments() as any)._globalSettings;
+    const interval = estimatedMatchDuration || 20;
 
-      const startTime = parseTime(matchToValidate.time);
-      const endTime = addMinutes(startTime, matchDuration);
-      
-      // 2. Check court availability in schedule
-      const courtSlot = courts.find(c => c.name === matchToValidate.court);
-      if (courtSlot) {
-        const isInValidSlot = courtSlot.slots.some(slot => 
-          isWithinInterval(startTime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -matchDuration) })
-        );
-        if (!isInValidSlot) {
-          return `Horário fora do funcionamento da quadra.`;
+    const earliestTime = parseTime(startTime);
+    const latestTime = courts.flatMap(c => c.slots).reduce((latest, slot) => {
+        const end = parseTime(slot.endTime);
+        return end > latest ? end : latest;
+    }, new Date(0));
+
+    const newTimeSlots: TimeSlot[] = [];
+    let currentTime = earliestTime;
+    while (currentTime < latestTime) {
+        newTimeSlots.push({
+            time: format(currentTime, 'HH:mm'),
+            datetime: new Date(currentTime),
+            courts: courts.map(c => ({ name: c.name, match: undefined })),
+        });
+        currentTime = addMinutes(currentTime, interval);
+    }
+
+    allMatches.forEach(match => {
+        if (match.time && match.court) {
+            const slot = newTimeSlots.find(ts => ts.time === match.time);
+            if (slot) {
+                const courtInSlot = slot.courts.find(c => c.name === match.court);
+                if (courtInSlot) {
+                    courtInSlot.match = match;
+                }
+            }
         }
-      }
+    });
+    setTimeSlots(newTimeSlots);
+  }, [courts, allMatches]);
 
-      // 3. Check for court conflicts
-      const courtConflict = allCurrentMatches.find(m => 
-          m.id !== matchToValidate.id &&
-          m.court === matchToValidate.court &&
-          m.time === matchToValidate.time
-      );
-      if (courtConflict) return `Conflito: ${courtConflict.court} já está em uso.`;
+  const handleMoveMatch = async (matchId: string, newTime: string, newCourt: string) => {
+      const matchToMove = allMatches.find(m => m.id === matchId);
+      if (!matchToMove) return;
       
-      // 4. Check for player conflicts
-      if (matchToValidate.players.length > 0) {
-        const playerConflict = allCurrentMatches.find(m =>
-            m.id !== matchToValidate.id &&
-            m.time === matchToValidate.time &&
-            m.players.some(p => matchToValidate.players.includes(p))
-        );
-        if (playerConflict) return `Conflito: Um jogador já está em outro jogo.`;
-      }
+      const updates = [{ matchId, categoryName: matchToMove.category, time: newTime, court: newCourt }];
       
-      return undefined;
-  }, [courts, globalStartTime]);
-
-  const handleFieldChange = (matchId: string, field: 'time' | 'court', value: string) => {
-    // Treat 'none' from Select as an empty string for data consistency.
-    const finalValue = field === 'court' && value === 'none' ? '' : value;
-
-    setFilteredMatches(prev => {
-      // Create a temporary updated list to run validations against
-      const tempMatches = [...prev];
-      const matchIndex = tempMatches.findIndex(m => m.id === matchId);
-      if (matchIndex === -1) return prev; // Should not happen
-
-      const originalMatch = tempMatches[matchIndex];
-      const updatedMatch = { ...originalMatch, [field]: finalValue, isDirty: true };
-      
-      // Re-validate just the changed match first
-      updatedMatch.validationError = validateChange(updatedMatch, tempMatches);
-      
-      tempMatches[matchIndex] = updatedMatch;
-      
-      // Now, re-validate any other match that might be affected by this change
-      const validatedMatches = tempMatches.map(m => {
-          if (m.id !== matchId && (m.time === updatedMatch.time || m.court === updatedMatch.court)) {
-             const error = validateChange(m, tempMatches);
-             return { ...m, validationError: error };
+      const oldTime = matchToMove.time;
+      if (oldTime) {
+          const originalSlot = timeSlots.find(ts => ts.time === oldTime);
+          if (originalSlot) {
+              const originalCourtSlot = originalSlot.courts.find(c => c.match?.id === matchId);
+              if (originalCourtSlot) {
+                  updates.push({ 
+                      matchId: originalCourtSlot.match!.id, 
+                      categoryName: originalCourtSlot.match!.category, 
+                      time: '', 
+                      court: '' 
+                  });
+              }
           }
-          return m;
-      });
-
-      return validatedMatches;
-    });
-  };
-  
-  const handleSaveChanges = async (match: EditableMatch) => {
-    setSavingStates(prev => ({ ...prev, [match.id]: true }));
-    const result = await updateMatch({
-      matchId: match.id,
-      categoryName: match.category,
-      time: match.time,
-      court: match.court,
-    });
-    
-    if (result.success) {
-      toast({
-        title: "Jogo Atualizado!",
-        description: "O horário e/ou quadra do jogo foram salvos.",
-      });
-      await loadMatchesAndSettings();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Erro ao Salvar",
-        description: result.error || "Não foi possível atualizar o jogo.",
-      });
-      await loadMatchesAndSettings();
-    }
-    setSavingStates(prev => ({ ...prev, [match.id]: false }));
-  };
-  
-  const handleSaveAllChanges = async () => {
-    setIsSavingAll(true);
-    const dirtyMatches = filteredMatches.filter(m => m.isDirty && !m.validationError);
-    
-    const matchesToUpdate = dirtyMatches.map(m => ({
-        matchId: m.id,
-        categoryName: m.category,
-        time: m.time,
-        court: m.court
-    }));
-
-    const result = await updateMultipleMatches(matchesToUpdate);
-    
-    if (result.success) {
-      toast({
-        title: "Jogos Atualizados!",
-        description: "Todos os horários e quadras foram salvos com sucesso.",
-      });
-      await loadMatchesAndSettings();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Erro ao Salvar",
-        description: result.error || "Não foi possível atualizar todos os jogos.",
-      });
-    }
-    setIsSavingAll(false);
-  };
-  
-  const handleResetAllChanges = () => {
-      const resetMatches = allMatches.map(m => {
-          if (m.isDirty) {
-              return {
-                  ...m,
-                  time: m.originalTime,
-                  court: m.originalCourt,
-                  isDirty: false,
-                  validationError: undefined,
-              };
-          }
-          return m;
-      });
-      setFilteredMatches(resetMatches);
-      toast({
-          title: "Alterações Desfeitas",
-          description: "Todas as mudanças não salvas foram revertidas."
-      });
-  };
-
-  const handleClearAllSchedules = async () => {
-    setIsClearing(true);
-    const result = await clearAllSchedules();
-    if(result.success) {
-        toast({
-            title: "Agendamento Limpo!",
-            description: "Todos os horários e quadras foram removidos."
-        });
-        await loadMatchesAndSettings();
-    } else {
-         toast({
-            variant: "destructive",
-            title: "Erro ao Limpar",
-            description: result.error || "Não foi possível limpar o agendamento.",
-        });
-    }
-    setIsClearing(false);
-  }
-
-  const handleGenerateSchedule = async () => {
-    setIsGenerating(true);
-    const result = await generateScheduleAction();
-    if (result.success) {
-        toast({
-            title: "Horários Gerados!",
-            description: "O agendamento foi gerado e salvo com sucesso."
-        });
-        await loadMatchesAndSettings();
-    } else {
-         toast({
-            variant: "destructive",
-            title: "Erro ao Gerar Horários",
-            description: result.error || "Não foi possível gerar os horários.",
-        });
-    }
-    setIsGenerating(false);
-  }
-
-  const handleExportCSV = () => {
-    const csvData = Papa.unparse(
-      allMatches.map(m => ({
-        matchId: m.id,
-        category: m.category,
-        stage: m.stage,
-        team1: m.team1,
-        team2: m.team2,
-        time: m.time,
-        court: m.court,
-      }))
-    );
-
-    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "horarios.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleExportPDF = () => {
-    const doc = new jsPDF({ orientation: "landscape" });
-    const tableData = allMatches.map(m => [
-      m.time || '',
-      m.court || '',
-      m.category,
-      m.stage,
-      m.team1 || '',
-      m.score1 !== undefined && m.score2 !== undefined ? `${m.score1} x ${m.score2}` : 'x',
-      m.team2 || ''
-    ]);
-
-    // Title
-    doc.setFontSize(18);
-    doc.setTextColor(33, 150, 243); // Primary color
-    const title = "Lista de Jogos do Torneio";
-    const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const x = (pageWidth - titleWidth) / 2;
-    doc.text(title, x, 15);
-
-    // Subtitle
-    doc.setFontSize(10);
-    doc.setTextColor(100); // Muted foreground
-    const subtitle = `Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`;
-    const subtitleWidth = doc.getStringUnitWidth(subtitle) * doc.getFontSize() / doc.internal.scaleFactor;
-    const x2 = (pageWidth - subtitleWidth) / 2;
-    doc.text(subtitle, x2, 22);
-
-    autoTable(doc, {
-      head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Placar', 'Dupla 2']],
-      body: tableData,
-      startY: 30,
-      theme: 'grid',
-      headStyles: { 
-        fillColor: [255, 140, 0], // Accent color
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: {
-        fillColor: [245, 245, 245] // Light gray for zebra stripes
-      },
-      didDrawPage: (data) => {
-        // Footer with page number
-        const pageCount = doc.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 10);
       }
-    });
-
-    doc.save("horarios.pdf");
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const csvData = e.target?.result as string;
-      const result = await importScheduleFromCSV(csvData);
-
+      
+      setIsSaving(true);
+      const result = await updateMultipleMatches(updates);
       if (result.success) {
-        toast({
-          title: "Importação Concluída!",
-          description: "Os horários e quadras foram atualizados com sucesso.",
-        });
-        await loadMatchesAndSettings();
+          toast({ title: "Jogo movido com sucesso!" });
+          await loadData();
       } else {
-        toast({
-          variant: "destructive",
-          title: "Erro na Importação",
-          description: result.error || "Não foi possível importar o arquivo.",
-        });
+          toast({ variant: "destructive", title: "Erro ao mover jogo", description: result.error });
       }
-      setIsImporting(false);
-      // Reset file input
-      if(fileInputRef.current) fileInputRef.current.value = "";
-    };
-    reader.readAsText(file);
+      setIsSaving(false);
   };
   
-  const hasDirtyMatches = useMemo(() => filteredMatches.some(m => m.isDirty), [filteredMatches]);
-  const hasValidationErrors = useMemo(() => filteredMatches.some(m => !!m.validationError), [filteredMatches]);
+  const handleUnscheduleMatch = async (matchId: string) => {
+      const matchToUnschedule = allMatches.find(m => m.id === matchId);
+      if (!matchToUnschedule) return;
 
-  if (isAuthLoading) {
+      setIsSaving(true);
+      const result = await updateMultipleMatches([{
+          matchId: matchToUnschedule.id,
+          categoryName: matchToUnschedule.category,
+          time: '',
+          court: ''
+      }]);
+       if (result.success) {
+          toast({ title: "Jogo removido do agendamento!" });
+          await loadData();
+      } else {
+          toast({ variant: "destructive", title: "Erro ao remover jogo", description: result.error });
+      }
+      setIsSaving(false);
+  }
+
+  const unscheduledMatches = useMemo(() => {
+    return allMatches.filter(m => !m.time || !m.court);
+  }, [allMatches]);
+
+  const availableSlots = useMemo(() => {
+      const slots: { time: string, court: string }[] = [];
+      const scheduledMatches = allMatches.filter(m => m.time && m.court);
+      
+      timeSlots.forEach(ts => {
+          ts.courts.forEach(c => {
+              const isCourtInService = courts.find(court => court.name === c.name)?.slots
+                  .some(slot => isWithinInterval(ts.datetime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -20) }));
+
+              if (isCourtInService && !c.match) {
+                  slots.push({ time: ts.time, court: c.name });
+              }
+          });
+      });
+      return slots;
+  }, [timeSlots, courts, allMatches]);
+
+  if (isAuthLoading || (isAuthenticated && isLoading)) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -494,182 +267,135 @@ export default function AdminMatchesPage() {
     return <LoginPage />;
   }
 
+  const MatchCard = ({ match }: { match: SchedulableMatch }) => {
+    const playerConflicts = timeSlots.find(ts => ts.time === match.time)
+        ?.courts.filter(c => c.match && c.match.id !== match.id)
+        .flatMap(c => c.match!.players)
+        .filter(p => match.players.includes(p)) ?? [];
+
+    return (
+        <Card className={cn("p-2 text-xs relative group", playerConflicts.length > 0 && "bg-destructive/20 border-destructive")}>
+             <div className="font-bold truncate">{match.team1Name}</div>
+             <div className="text-muted-foreground my-0.5 text-center">vs</div>
+             <div className="font-bold truncate">{match.team2Name}</div>
+             <div className="text-muted-foreground mt-1 text-center truncate">{match.category} - {match.stage}</div>
+              {playerConflicts.length > 0 && (
+                <div className="absolute -top-2 -right-2">
+                    <AlertCircle className="h-5 w-5 text-destructive-foreground bg-destructive rounded-full p-0.5" />
+                </div>
+            )}
+             <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Select onValueChange={(value) => {
+                    if (value === 'unschedule') {
+                        handleUnscheduleMatch(match.id);
+                    } else {
+                        const [newTime, newCourt] = value.split('|');
+                        handleMoveMatch(match.id, newTime, newCourt);
+                    }
+                }}>
+                    <SelectTrigger className="h-6 w-6 p-1 bg-background/80">
+                       <GripVertical className="h-4 w-4" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="unschedule">Remover do Horário</SelectItem>
+                        {availableSlots.map(slot => (
+                            <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
+                                Mover para {slot.time} - {slot.court}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+             </div>
+        </Card>
+    );
+  };
+
+
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center">
-          <Swords className="mr-2 h-8 w-8" />
-          Gerenciador de Jogos
-        </h1>
-        <p className="text-muted-foreground">
-          Edite os horários e quadras de todos os jogos do torneio.
-        </p>
+    <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-8rem)]">
+      <div className="xl:w-1/4">
+        <Card className="h-full flex flex-col">
+            <CardHeader>
+                <CardTitle>Jogos Não Agendados</CardTitle>
+                <CardDescription>{unscheduledMatches.length} jogos a serem agendados.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-hidden">
+                 <ScrollArea className="h-full pr-4">
+                    <div className="space-y-2">
+                    {unscheduledMatches.map(match => (
+                        <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
+                            <div className="flex-grow">
+                                <div className="font-bold truncate">{match.team1Name}</div>
+                                <div className="text-muted-foreground my-0.5 text-center">vs</div>
+                                <div className="font-bold truncate">{match.team2Name}</div>
+                                <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
+                            </div>
+                            <Select onValueChange={(value) => {
+                                const [newTime, newCourt] = value.split('|');
+                                handleMoveMatch(match.id, newTime, newCourt);
+                            }}>
+                                <SelectTrigger className="w-28 h-8 text-xs">
+                                    <SelectValue placeholder="Agendar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableSlots.map(slot => (
+                                        <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
+                                            {slot.time} - {slot.court}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </Card>
+                    ))}
+                    </div>
+                </ScrollArea>
+            </CardContent>
+        </Card>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Todos os Jogos</CardTitle>
-          <CardDescription>
-            Ajuste os horários e quadras. Você pode salvar linha por linha ou todas as alterações de uma vez.
-          </CardDescription>
-          <div className="flex flex-col gap-4 mt-4">
-             <div className="flex flex-wrap gap-2 justify-start w-full">
-                <Button onClick={handleGenerateSchedule} disabled={isGenerating}>
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                    Gerar Horários
-                </Button>
-                <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
-                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                    Importar CSV
-                </Button>
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept=".csv"
-                    onChange={handleFileChange}
-                />
-                <Button onClick={handleExportCSV}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Exportar CSV
-                </Button>
-                <Button onClick={handleExportPDF}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Exportar PDF
-                </Button>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="outline" disabled={!hasDirtyMatches || isSavingAll}>
-                            <RotateCcw className="mr-2 h-4 w-4" />
-                            Resetar Alterações
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta ação irá reverter todas as alterações não salvas nesta página.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleResetAllChanges}>Confirmar</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-                <Button onClick={handleSaveAllChanges} disabled={!hasDirtyMatches || hasValidationErrors || isSavingAll}>
-                    {isSavingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Salvar Tudo
-                </Button>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" disabled={isClearing}>
-                            {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                            Limpar Agendamento
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Limpar todo o agendamento?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta ação removerá TODOS os horários e quadras de TODAS as partidas. Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearAllSchedules} className="bg-destructive hover:bg-destructive/90">Confirmar Limpeza</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </div>
-            <div className="relative w-full">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar por dupla, categoria, fase..."
-                className="pl-8 w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : filteredMatches.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[150px]">Horário</TableHead>
-                    <TableHead className="w-[180px]">Quadra</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Fase</TableHead>
-                    <TableHead className="text-right">Dupla 1</TableHead>
-                    <TableHead className="text-center w-[50px]">Placar</TableHead>
-                    <TableHead>Dupla 2</TableHead>
-                    <TableHead className="text-right w-[80px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMatches.map((match, index) => {
-                    const isSaving = savingStates[match.id];
-                    return (
-                    <TableRow key={`${match.category}-${match.id}-${index}`}>
-                      <TableCell>
-                        <Input
-                          type="time"
-                          value={match.time}
-                          onChange={(e) => handleFieldChange(match.id, 'time', e.target.value)}
-                          className={cn("w-full", match.validationError && "border-destructive focus-visible:ring-destructive")}
-                          step="1200"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={match.court || 'none'}
-                          onValueChange={(value) => handleFieldChange(match.id, 'court', value)}
-                        >
-                          <SelectTrigger className={cn(match.validationError && "border-destructive focus:ring-destructive")}>
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Não definida</SelectItem>
-                            {courts.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                         {match.validationError && (
-                            <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3"/>{match.validationError}</p>
-                         )}
-                      </TableCell>
-                      <TableCell className="font-medium">{match.category}</TableCell>
-                      <TableCell>{match.stage}</TableCell>
-                      <TableCell className="text-right">{match.team1}</TableCell>
-                      <TableCell className="text-center font-bold">
-                        {match.score1 !== undefined && match.score2 !== undefined
-                          ? `${match.score1} x ${match.score2}`
-                          : 'x'}
-                      </TableCell>
-                      <TableCell>{match.team2}</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" onClick={() => handleSaveChanges(match)} disabled={isSaving || !!match.validationError || !match.isDirty}>
-                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )})}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[200px]">
-              <p className="text-muted-foreground">Nenhum jogo encontrado.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+      <div className="flex-grow">
+         <Card className="h-full flex flex-col">
+            <CardHeader>
+                 <CardTitle className="flex items-center"><CalendarClock className="mr-2"/>Grade de Horários</CardTitle>
+                 <CardDescription>Visualize e mova os jogos entre os horários e quadras disponíveis.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-auto">
+                 <div className="min-w-[800px]">
+                    <div className="grid grid-cols-1" style={{ gridTemplateColumns: `60px repeat(${courts.length}, 1fr)`}}>
+                        <div className="sticky top-0 bg-background z-10"></div>
+                        {courts.map(court => (
+                            <div key={court.name} className="text-center font-bold p-2 sticky top-0 bg-background z-10 border-b">
+                                {court.name}
+                            </div>
+                        ))}
+                        
+                        {timeSlots.map(slot => (
+                            <React.Fragment key={slot.time}>
+                                <div className="flex items-center justify-center font-mono text-sm text-muted-foreground border-r">
+                                    {slot.time}
+                                </div>
+                                {slot.courts.map(court => {
+                                    const isCourtInService = courts.find(c => c.name === court.name)?.slots
+                                        .some(s => isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -20) }));
+
+                                    return (
+                                        <div key={court.name} className={cn(
+                                            "border-r border-b p-1 min-h-[90px]",
+                                            !isCourtInService && "bg-muted/50"
+                                        )}>
+                                            {isCourtInService && court.match && <MatchCard match={court.match} />}
+                                        </div>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                 </div>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+
+    
