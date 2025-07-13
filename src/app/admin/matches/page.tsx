@@ -348,7 +348,7 @@ export default function ScheduleGridPage() {
     const doc = new jsPDF({ orientation: "landscape" });
 
     doc.setFontSize(18);
-    doc.setTextColor("#FF8C00");
+    doc.setTextColor("#4682B4");
     const title = "Grade de Horários do Torneio";
     const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -360,11 +360,9 @@ export default function ScheduleGridPage() {
         return [
             slot.time,
             ...slot.courts.map((courtSlot) => {
-                if (courtSlot.match) {
-                    const match = courtSlot.match;
-                    return `${match.category} - ${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
-                }
-                return "";
+                if (!courtSlot.match) return "";
+                const match = courtSlot.match;
+                return `${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
             }),
         ];
     });
@@ -388,15 +386,34 @@ export default function ScheduleGridPage() {
             halign: 'center',
         },
         alternateRowStyles: {
-            fillColor: "#F5F5DC"
+            fillColor: "#F5F5F5"
         },
         willDrawCell: (data) => {
-            if (data.section === 'body' && data.column.index > 0 && typeof data.cell.raw === 'string' && data.cell.raw) {
-                 const textLines = (data.cell.raw as string).split('\n').length;
-                 const calculatedHeight = textLines * 4 + 4; // 4pt per line + padding
-                 if (data.row.height < calculatedHeight) {
+            // This hook ensures that the row height is calculated correctly
+            // before drawing, which prevents page breaks within a row.
+            if (data.section === 'body') {
+                const cellText = data.cell.text as string[];
+                const numLines = Array.isArray(cellText) ? cellText.length : 1;
+                const calculatedHeight = numLines * data.doc.getFontSize() * 0.35 + 4; 
+                if (data.row.height < calculatedHeight) {
                     data.row.height = calculatedHeight;
-                 }
+                }
+            }
+        },
+        didParseCell: (data) => {
+             if (data.section === 'body' && data.column.index > 0 && data.cell.raw) {
+                const cellText = data.cell.text[0]; // The raw string like "Stage\nTeam1\nvs\nTeam2"
+                if (typeof cellText === 'string' && cellText.includes('\n')) {
+                    const lines = cellText.split('\n');
+                    const formattedLines = [
+                        { content: lines[0], styles: { fontSize: 7, fontStyle: 'normal' } },
+                        { content: lines[1], styles: { fontStyle: 'bold' } },
+                        { content: lines[2], styles: { fontSize: 7, fontStyle: 'italic' } },
+                        { content: lines[3], styles: { fontStyle: 'bold' } }
+                    ];
+                    data.cell.text = formattedLines.map(l => l.content);
+                    (data.cell.styles as any).cellPadding = { top: 2, right: 2, bottom: 2, left: 2 };
+                }
             }
         },
         didDrawPage: (data) => {
@@ -677,5 +694,3 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
-
-    
