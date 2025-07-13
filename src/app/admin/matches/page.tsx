@@ -397,6 +397,7 @@ export default function ScheduleGridPage() {
                   const parts = rawString.split('\n');
                   if (parts.length === 4) {
                       data.cell.text = []; // Clear original text to prevent it from being drawn
+                      
                       const [phase, team1, vs, team2] = parts;
                       const doc = data.doc;
                       const cell = data.cell;
@@ -504,7 +505,7 @@ export default function ScheduleGridPage() {
         // Check "backward": is this match scheduled before a dependency?
         for (const depId of match.dependencies) {
             const depMatch = scheduledMatchesMap.get(depId);
-            if (depMatch?.time && isBefore(parseTime(depMatch.time), matchTime)) { // Swapped condition
+            if (depMatch?.time && isBefore(matchTime, parseTime(depMatch.time))) {
                 scheduleConflict = true;
                 break;
             }
@@ -617,6 +618,7 @@ export default function ScheduleGridPage() {
         </CardHeader>
       </Card>
       
+      <div className="flex flex-col gap-4">
         <Card>
             <CardContent className="pt-6 overflow-auto">
                 <div className="min-w-[800px]">
@@ -709,6 +711,9 @@ export default function ScheduleGridPage() {
                 </ScrollArea>
             </CardContent>
         </Card>
+      </div>
     </div>
   );
 }
+
+    
