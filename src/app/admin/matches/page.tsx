@@ -396,7 +396,7 @@ export default function ScheduleGridPage() {
                 const rawString = data.cell.raw as string;
                 if (rawString.includes('\n')) {
                     // Prevent auto-drawing for cells we are handling manually
-                    data.cell.text = ''; 
+                    data.cell.text = []; 
                 }
             }
         },
@@ -421,7 +421,7 @@ export default function ScheduleGridPage() {
                     y += (cell.height - totalTextHeight) / 2;
 
                     // Categoria - Fase (menor)
-                    doc.setFontSize(originalFontSize - 2);
+                    doc.setFontSize(originalFontSize);
                     doc.setFont(undefined, 'normal');
                     doc.text(phase, x + width / 2, y + 2, { maxWidth: width, align: 'center' });
 
@@ -431,7 +431,7 @@ export default function ScheduleGridPage() {
                     doc.text(team1, x + width / 2, y + 6, { align: 'center' });
 
                     // vs
-                    doc.setFontSize(originalFontSize - 1);
+                    doc.setFontSize(originalFontSize);
                     doc.setFont(undefined, 'normal');
                     doc.text(vs, x + width / 2, y + 10, { align: 'center' });
                     
@@ -724,3 +724,5 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
+
+    
