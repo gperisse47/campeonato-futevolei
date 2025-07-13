@@ -3,9 +3,9 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
-import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team } from "@/lib/types";
-import { getTournaments, updateMultipleMatches } from "@/app/actions";
+import { Loader2, Swords, AlertCircle, CalendarClock, ChevronDown, ChevronUp, GripVertical, Sparkles } from "lucide-react";
+import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
+import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, parse, addMinutes, isWithinInterval, startOfDay } from 'date-fns';
@@ -15,6 +15,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
   id: string;
@@ -65,6 +76,8 @@ export default function ScheduleGridPage() {
   const [isSaving, setIsSaving] = useState(false);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -72,6 +85,7 @@ export default function ScheduleGridPage() {
       const savedTournaments = await getTournaments();
       const { _globalSettings } = savedTournaments;
       
+      setGlobalSettings(_globalSettings);
       const loadedCourts = _globalSettings.courts || [];
       setCourts(loadedCourts);
 
@@ -149,9 +163,9 @@ export default function ScheduleGridPage() {
 
 
   useEffect(() => {
-    if (!courts.length || !allMatches.length) return;
+    if (!courts.length || !allMatches.length || !globalSettings) return;
 
-    const { startTime, estimatedMatchDuration } = (getTournaments() as any)._globalSettings;
+    const { startTime, estimatedMatchDuration } = globalSettings;
     const interval = estimatedMatchDuration || 20;
 
     const earliestTime = parseTime(startTime);
@@ -176,39 +190,27 @@ export default function ScheduleGridPage() {
             const slot = newTimeSlots.find(ts => ts.time === match.time);
             if (slot) {
                 const courtInSlot = slot.courts.find(c => c.name === match.court);
-                if (courtInSlot) {
+                if (courtInSlot && !courtInSlot.match) { // Check if slot is empty
                     courtInSlot.match = match;
                 }
             }
         }
     });
     setTimeSlots(newTimeSlots);
-  }, [courts, allMatches]);
+  }, [courts, allMatches, globalSettings]);
 
   const handleMoveMatch = async (matchId: string, newTime: string, newCourt: string) => {
       const matchToMove = allMatches.find(m => m.id === matchId);
       if (!matchToMove) return;
       
-      const updates = [{ matchId, categoryName: matchToMove.category, time: newTime, court: newCourt }];
-      
-      const oldTime = matchToMove.time;
-      if (oldTime) {
-          const originalSlot = timeSlots.find(ts => ts.time === oldTime);
-          if (originalSlot) {
-              const originalCourtSlot = originalSlot.courts.find(c => c.match?.id === matchId);
-              if (originalCourtSlot) {
-                  updates.push({ 
-                      matchId: originalCourtSlot.match!.id, 
-                      categoryName: originalCourtSlot.match!.category, 
-                      time: '', 
-                      court: '' 
-                  });
-              }
-          }
-      }
-      
       setIsSaving(true);
-      const result = await updateMultipleMatches(updates);
+      const result = await updateMultipleMatches([{
+          matchId: matchToMove.id,
+          categoryName: matchToMove.category,
+          time: newTime,
+          court: newCourt
+      }]);
+
       if (result.success) {
           toast({ title: "Jogo movido com sucesso!" });
           await loadData();
@@ -238,18 +240,66 @@ export default function ScheduleGridPage() {
       setIsSaving(false);
   }
 
+  const handleGenerateSchedule = async () => {
+    setIsSaving(true);
+    const result = await generateScheduleAction();
+    if (result.success) {
+        toast({ title: "Horários gerados com sucesso!", description: "A grade foi atualizada."});
+        await loadData();
+    } else {
+        toast({ variant: "destructive", title: "Erro ao gerar horários", description: result.error });
+    }
+    setIsSaving(false);
+  };
+
+  const handleClearSchedule = async () => {
+    setIsSaving(true);
+    const result = await clearAllSchedules();
+    if (result.success) {
+        toast({ title: "Agendamento limpo!", description: "Todos os horários e quadras foram removidos."});
+        await loadData();
+    } else {
+        toast({ variant: "destructive", title: "Erro ao limpar", description: result.error });
+    }
+    setIsSaving(false);
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsSaving(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const csvData = e.target?.result as string;
+        const result = await importScheduleFromCSV(csvData);
+        if (result.success) {
+            toast({ title: "Horários importados com sucesso!" });
+            await loadData();
+        } else {
+            toast({ variant: "destructive", title: "Erro na importação", description: result.error });
+        }
+        setIsSaving(false);
+    };
+    reader.readAsText(file);
+    // Reset file input
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+  };
+
   const unscheduledMatches = useMemo(() => {
     return allMatches.filter(m => !m.time || !m.court);
   }, [allMatches]);
 
   const availableSlots = useMemo(() => {
       const slots: { time: string, court: string }[] = [];
-      const scheduledMatches = allMatches.filter(m => m.time && m.court);
+      if (!globalSettings) return slots;
       
       timeSlots.forEach(ts => {
           ts.courts.forEach(c => {
               const isCourtInService = courts.find(court => court.name === c.name)?.slots
-                  .some(slot => isWithinInterval(ts.datetime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -20) }));
+                  .some(slot => isWithinInterval(ts.datetime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -globalSettings.estimatedMatchDuration) }));
 
               if (isCourtInService && !c.match) {
                   slots.push({ time: ts.time, court: c.name });
@@ -257,7 +307,7 @@ export default function ScheduleGridPage() {
           });
       });
       return slots;
-  }, [timeSlots, courts, allMatches]);
+  }, [timeSlots, courts, globalSettings]);
 
   if (isAuthLoading || (isAuthenticated && isLoading)) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -357,7 +407,50 @@ export default function ScheduleGridPage() {
          <Card className="h-full flex flex-col">
             <CardHeader>
                  <CardTitle className="flex items-center"><CalendarClock className="mr-2"/>Grade de Horários</CardTitle>
-                 <CardDescription>Visualize e mova os jogos entre os horários e quadras disponíveis.</CardDescription>
+                 <CardDescription>Visualize, mova os jogos e gere horários automaticamente.</CardDescription>
+                 <div className="flex flex-wrap gap-2 pt-4">
+                    <Button onClick={() => fileInputRef.current?.click()} variant="outline">Importar CSV</Button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
+                    
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline">Limpar Agendamento</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta ação removerá todos os horários e quadras de todos os jogos. A lista de jogos não será afetada.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleClearSchedule}>Limpar</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button disabled={isSaving}>
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                                Gerar Horários
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Gerar Horários Automaticamente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta ação irá apagar o agendamento atual e gerar um novo para todos os jogos, otimizando o uso das quadras e o descanso dos jogadores. Isso pode levar alguns segundos.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleGenerateSchedule}>Gerar</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                 </div>
             </CardHeader>
             <CardContent className="flex-grow overflow-auto">
                  <div className="min-w-[800px]">
@@ -376,7 +469,10 @@ export default function ScheduleGridPage() {
                                 </div>
                                 {slot.courts.map(court => {
                                     const isCourtInService = courts.find(c => c.name === court.name)?.slots
-                                        .some(s => isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -20) }));
+                                        .some(s => {
+                                            if (!globalSettings) return false;
+                                            return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -globalSettings.estimatedMatchDuration) })
+                                        });
 
                                     return (
                                         <div key={court.name} className={cn(
@@ -397,5 +493,3 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
-
-    
