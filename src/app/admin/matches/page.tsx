@@ -216,14 +216,11 @@ export default function ScheduleGridPage() {
   useEffect(() => {
     if (!courts.length || !allMatches.length || !globalSettings) return;
 
-    const { startTime, estimatedMatchDuration } = globalSettings;
+    const { startTime, endTime, estimatedMatchDuration } = globalSettings;
     const interval = estimatedMatchDuration || 20;
 
     const earliestTime = parseTime(startTime);
-    const latestTime = courts.flatMap(c => c.slots).reduce((latest, slot) => {
-        const end = parseTime(slot.endTime);
-        return end > latest ? end : latest;
-    }, new Date(0));
+    const latestTime = parseTime(endTime);
 
     const newTimeSlots: TimeSlot[] = [];
     let currentTime = earliestTime;
@@ -388,7 +385,7 @@ export default function ScheduleGridPage() {
     if (match.time) {
         const matchTime = parseTime(match.time);
         
-        // If this is a playoff match, check if it's scheduled before its dependencies.
+        // Check if a prerequisite match is scheduled after the current match
         for (const depId of match.dependencies) {
             const depMatch = scheduledMatchesMap.get(depId);
             if (depMatch?.time && isBefore(matchTime, parseTime(depMatch.time))) {
@@ -397,8 +394,8 @@ export default function ScheduleGridPage() {
             }
         }
         
-        // If this is a group match, check if any match depending on it is scheduled before it.
-        if (!scheduleConflict && match.isGroupMatch) {
+        // Check if the current match is scheduled before a match that depends on it
+        if (!scheduleConflict) {
             for (const otherMatch of allMatches) {
                 if (otherMatch.dependencies.includes(match.id) && otherMatch.time) {
                     if (isBefore(parseTime(otherMatch.time), matchTime)) {
@@ -502,99 +499,98 @@ export default function ScheduleGridPage() {
         </CardHeader>
       </Card>
       
-      <Card>
-        <CardContent className="pt-6 overflow-auto">
-             <div className="min-w-[800px]">
-                <div className="grid grid-cols-1" style={{ gridTemplateColumns: `60px repeat(${courts.length}, 1fr)`}}>
-                    <div className="sticky top-0 bg-background z-10"></div>
-                    {courts.map(court => (
-                        <div key={court.name} className="text-center font-bold p-2 sticky top-0 bg-background z-10 border-b">
-                            {court.name}
-                        </div>
-                    ))}
-                    
-                    {timeSlots.map(slot => (
-                        <React.Fragment key={slot.time}>
-                            <div className="flex items-center justify-center font-mono text-sm text-muted-foreground border-r">
-                                {slot.time}
+        <Card>
+            <CardHeader>
+                <CardTitle>Jogos Não Agendados</CardTitle>
+                <CardDescription>{unscheduledMatches.length} jogos a serem agendados.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="max-h-48 pr-4">
+                    <div className="space-y-2">
+                    {unscheduledMatches.map(match => (
+                        <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
+                            <div className="flex-grow">
+                                <div className="font-bold truncate">{match.team1Name}</div>
+                                <div className="text-muted-foreground my-0.5 text-center">vs</div>
+                                <div className="font-bold truncate">{match.team2Name}</div>
+                                <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
                             </div>
-                            {slot.courts.map(court => {
-                                const isCourtInService = courts.find(c => c.name === court.name)?.slots
-                                    .some(s => {
-                                        if (!globalSettings) return false;
-                                        return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -globalSettings.estimatedMatchDuration) })
-                                    });
-
-                                return (
-                                    <div key={court.name} className={cn(
-                                        "border-r border-b p-1 min-h-[100px] flex items-center justify-center",
-                                        !isCourtInService && "bg-muted/50"
-                                    )}>
-                                        {isCourtInService && court.match && <MatchCard match={court.match} />}
-                                        {isCourtInService && !court.match && (
-                                          <Select onValueChange={(matchId) => handleMoveMatch(matchId, slot.time, court.name)}>
-                                              <SelectTrigger className="h-8 w-8 p-0 border-dashed bg-transparent shadow-none">
-                                                  <PlusCircle className="h-5 w-5 text-muted-foreground" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                  <SelectGroup>
-                                                     {unscheduledMatches.map(m => (
-                                                        <SelectItem key={m.id} value={m.id}>
-                                                            {m.team1Name} vs {m.team2Name}
-                                                        </SelectItem>
-                                                     ))}
-                                                  </SelectGroup>
-                                              </SelectContent>
-                                          </Select>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </React.Fragment>
+                            <Select onValueChange={(value) => {
+                                const [newTime, newCourt] = value.split('|');
+                                handleMoveMatch(match.id, newTime, newCourt);
+                            }}>
+                                <SelectTrigger className="w-28 h-8 text-xs">
+                                    <SelectValue placeholder="Agendar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableSlots.map(slot => (
+                                        <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
+                                            {slot.time} - {slot.court}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </Card>
                     ))}
-                </div>
-             </div>
-        </CardContent>
-    </Card>
+                    </div>
+                </ScrollArea>
+            </CardContent>
+        </Card>
+      
+        <Card>
+            <CardContent className="pt-6 overflow-auto">
+                <div className="min-w-[800px]">
+                    <div className="grid grid-cols-1" style={{ gridTemplateColumns: `60px repeat(${courts.length}, 1fr)`}}>
+                        <div className="sticky top-0 bg-background z-10"></div>
+                        {courts.map(court => (
+                            <div key={court.name} className="text-center font-bold p-2 sticky top-0 bg-background z-10 border-b">
+                                {court.name}
+                            </div>
+                        ))}
+                        
+                        {timeSlots.map(slot => (
+                            <React.Fragment key={slot.time}>
+                                <div className="flex items-center justify-center font-mono text-sm text-muted-foreground border-r">
+                                    {slot.time}
+                                </div>
+                                {slot.courts.map(court => {
+                                    const isCourtInService = courts.find(c => c.name === court.name)?.slots
+                                        .some(s => {
+                                            if (!globalSettings) return false;
+                                            return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -globalSettings.estimatedMatchDuration) })
+                                        });
 
-    <Card>
-        <CardHeader>
-            <CardTitle>Jogos Não Agendados</CardTitle>
-            <CardDescription>{unscheduledMatches.length} jogos a serem agendados.</CardDescription>
-        </CardHeader>
-        <CardContent>
-             <ScrollArea className="max-h-48 pr-4">
-                <div className="space-y-2">
-                {unscheduledMatches.map(match => (
-                    <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
-                        <div className="flex-grow">
-                            <div className="font-bold truncate">{match.team1Name}</div>
-                            <div className="text-muted-foreground my-0.5 text-center">vs</div>
-                            <div className="font-bold truncate">{match.team2Name}</div>
-                            <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
-                        </div>
-                        <Select onValueChange={(value) => {
-                            const [newTime, newCourt] = value.split('|');
-                            handleMoveMatch(match.id, newTime, newCourt);
-                        }}>
-                            <SelectTrigger className="w-28 h-8 text-xs">
-                                <SelectValue placeholder="Agendar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableSlots.map(slot => (
-                                    <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
-                                        {slot.time} - {slot.court}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </Card>
-                ))}
+                                    return (
+                                        <div key={court.name} className={cn(
+                                            "border-r border-b p-1 min-h-[100px] flex items-center justify-center",
+                                            !isCourtInService && "bg-muted/50"
+                                        )}>
+                                            {isCourtInService && court.match && <MatchCard match={court.match} />}
+                                            {isCourtInService && !court.match && (
+                                            <Select onValueChange={(matchId) => handleMoveMatch(matchId, slot.time, court.name)}>
+                                                <SelectTrigger className="h-8 w-8 p-0 border-dashed bg-transparent shadow-none">
+                                                    <PlusCircle className="h-5 w-5 text-muted-foreground" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {unscheduledMatches.map(m => (
+                                                            <SelectItem key={m.id} value={m.id}>
+                                                                {m.team1Name} vs {m.team2Name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
                 </div>
-            </ScrollArea>
-        </CardContent>
-    </Card>
-
+            </CardContent>
+        </Card>
     </div>
   );
 }

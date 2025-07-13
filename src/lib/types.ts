@@ -40,6 +40,15 @@ export const globalSettingsSchema = z.object({
       .positive("A duração deve ser positiva."),
   courts: z.array(courtSchema).min(1, "Deve haver pelo menos uma quadra."),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)."),
+}).refine(data => {
+    if (data.startTime && data.endTime) {
+        return data.endTime > data.startTime;
+    }
+    return true;
+}, {
+    message: "O horário de término deve ser posterior ao horário de início.",
+    path: ["endTime"],
 });
 export type GlobalSettings = z.infer<typeof globalSettingsSchema>;
 

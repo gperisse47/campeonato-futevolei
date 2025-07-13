@@ -37,6 +37,7 @@ export function GlobalSettings() {
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: {
         startTime: "08:00",
+        endTime: "18:00",
         estimatedMatchDuration: 20,
         courts: [],
     }
@@ -234,6 +235,19 @@ export function GlobalSettings() {
                           render={({ field }) => (
                               <FormItem>
                               <FormLabel>Horário de Início do Torneio</FormLabel>
+                              <FormControl>
+                                  <Input type="time" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                     <FormField
+                          control={globalSettingsForm.control}
+                          name="endTime"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Horário de Fim do Torneio</FormLabel>
                               <FormControl>
                                   <Input type="time" {...field} />
                               </FormControl>
