@@ -365,154 +365,151 @@ export default function ScheduleGridPage() {
 
 
   return (
-    <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-8rem)]">
-      <div className="xl:w-1/4">
-        <Card className="h-full flex flex-col">
-            <CardHeader>
-                <CardTitle>Jogos Não Agendados</CardTitle>
-                <CardDescription>{unscheduledMatches.length} jogos a serem agendados.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow overflow-hidden">
-                 <ScrollArea className="h-full pr-4">
-                    <div className="space-y-2">
-                    {unscheduledMatches.map(match => (
-                        <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
-                            <div className="flex-grow">
-                                <div className="font-bold truncate">{match.team1Name}</div>
-                                <div className="text-muted-foreground my-0.5 text-center">vs</div>
-                                <div className="font-bold truncate">{match.team2Name}</div>
-                                <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
-                            </div>
-                            <Select onValueChange={(value) => {
-                                const [newTime, newCourt] = value.split('|');
-                                handleMoveMatch(match.id, newTime, newCourt);
-                            }}>
-                                <SelectTrigger className="w-28 h-8 text-xs">
-                                    <SelectValue placeholder="Agendar..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableSlots.map(slot => (
-                                        <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
-                                            {slot.time} - {slot.court}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </Card>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader>
+             <CardTitle className="flex items-center"><CalendarClock className="mr-2"/>Grade de Horários</CardTitle>
+             <CardDescription>Visualize, mova os jogos e gere horários automaticamente.</CardDescription>
+             <div className="flex flex-wrap gap-2 pt-4">
+                <Button onClick={() => fileInputRef.current?.click()} variant="outline">Importar CSV</Button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
+                
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline">Limpar Agendamento</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação removerá todos os horários e quadras de todos os jogos. A lista de jogos não será afetada.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearSchedule}>Limpar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                            Gerar Horários
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Gerar Horários Automaticamente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação irá apagar o agendamento atual e gerar um novo para todos os jogos, otimizando o uso das quadras e o descanso dos jogadores. Isso pode levar alguns segundos.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleGenerateSchedule}>Gerar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+             </div>
+        </CardHeader>
+      </Card>
+      
+      <Card>
+          <CardHeader>
+              <CardTitle>Jogos Não Agendados</CardTitle>
+              <CardDescription>{unscheduledMatches.length} jogos a serem agendados.</CardDescription>
+          </CardHeader>
+          <CardContent>
+               <ScrollArea className="max-h-48 pr-4">
+                  <div className="space-y-2">
+                  {unscheduledMatches.map(match => (
+                      <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
+                          <div className="flex-grow">
+                              <div className="font-bold truncate">{match.team1Name}</div>
+                              <div className="text-muted-foreground my-0.5 text-center">vs</div>
+                              <div className="font-bold truncate">{match.team2Name}</div>
+                              <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
+                          </div>
+                          <Select onValueChange={(value) => {
+                              const [newTime, newCourt] = value.split('|');
+                              handleMoveMatch(match.id, newTime, newCourt);
+                          }}>
+                              <SelectTrigger className="w-28 h-8 text-xs">
+                                  <SelectValue placeholder="Agendar..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {availableSlots.map(slot => (
+                                      <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
+                                          {slot.time} - {slot.court}
+                                      </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                      </Card>
+                  ))}
+                  </div>
+              </ScrollArea>
+          </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 overflow-auto">
+             <div className="min-w-[800px]">
+                <div className="grid grid-cols-1" style={{ gridTemplateColumns: `60px repeat(${courts.length}, 1fr)`}}>
+                    <div className="sticky top-0 bg-background z-10"></div>
+                    {courts.map(court => (
+                        <div key={court.name} className="text-center font-bold p-2 sticky top-0 bg-background z-10 border-b">
+                            {court.name}
+                        </div>
                     ))}
-                    </div>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex-grow">
-         <Card className="h-full flex flex-col">
-            <CardHeader>
-                 <CardTitle className="flex items-center"><CalendarClock className="mr-2"/>Grade de Horários</CardTitle>
-                 <CardDescription>Visualize, mova os jogos e gere horários automaticamente.</CardDescription>
-                 <div className="flex flex-wrap gap-2 pt-4">
-                    <Button onClick={() => fileInputRef.current?.click()} variant="outline">Importar CSV</Button>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
                     
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline">Limpar Agendamento</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Esta ação removerá todos os horários e quadras de todos os jogos. A lista de jogos não será afetada.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearSchedule}>Limpar</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button disabled={isSaving}>
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                Gerar Horários
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Gerar Horários Automaticamente?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Esta ação irá apagar o agendamento atual e gerar um novo para todos os jogos, otimizando o uso das quadras e o descanso dos jogadores. Isso pode levar alguns segundos.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleGenerateSchedule}>Gerar</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                 </div>
-            </CardHeader>
-            <CardContent className="flex-grow overflow-auto">
-                 <div className="min-w-[800px]">
-                    <div className="grid grid-cols-1" style={{ gridTemplateColumns: `60px repeat(${courts.length}, 1fr)`}}>
-                        <div className="sticky top-0 bg-background z-10"></div>
-                        {courts.map(court => (
-                            <div key={court.name} className="text-center font-bold p-2 sticky top-0 bg-background z-10 border-b">
-                                {court.name}
+                    {timeSlots.map(slot => (
+                        <React.Fragment key={slot.time}>
+                            <div className="flex items-center justify-center font-mono text-sm text-muted-foreground border-r">
+                                {slot.time}
                             </div>
-                        ))}
-                        
-                        {timeSlots.map(slot => (
-                            <React.Fragment key={slot.time}>
-                                <div className="flex items-center justify-center font-mono text-sm text-muted-foreground border-r">
-                                    {slot.time}
-                                </div>
-                                {slot.courts.map(court => {
-                                    const isCourtInService = courts.find(c => c.name === court.name)?.slots
-                                        .some(s => {
-                                            if (!globalSettings) return false;
-                                            return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -globalSettings.estimatedMatchDuration) })
-                                        });
+                            {slot.courts.map(court => {
+                                const isCourtInService = courts.find(c => c.name === court.name)?.slots
+                                    .some(s => {
+                                        if (!globalSettings) return false;
+                                        return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -globalSettings.estimatedMatchDuration) })
+                                    });
 
-                                    return (
-                                        <div key={court.name} className={cn(
-                                            "border-r border-b p-1 min-h-[100px] flex items-center justify-center",
-                                            !isCourtInService && "bg-muted/50"
-                                        )}>
-                                            {isCourtInService && court.match && <MatchCard match={court.match} />}
-                                            {isCourtInService && !court.match && (
-                                              <Select onValueChange={(matchId) => handleMoveMatch(matchId, slot.time, court.name)}>
-                                                  <SelectTrigger className="h-8 w-8 p-0 border-dashed bg-transparent shadow-none">
-                                                      <PlusCircle className="h-5 w-5 text-muted-foreground" />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                      <SelectGroup>
-                                                         {unscheduledMatches.map(m => (
-                                                            <SelectItem key={m.id} value={m.id}>
-                                                                {m.team1Name} vs {m.team2Name}
-                                                            </SelectItem>
-                                                         ))}
-                                                      </SelectGroup>
-                                                  </SelectContent>
-                                              </Select>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </React.Fragment>
-                        ))}
-                    </div>
-                 </div>
-            </CardContent>
-        </Card>
-      </div>
+                                return (
+                                    <div key={court.name} className={cn(
+                                        "border-r border-b p-1 min-h-[100px] flex items-center justify-center",
+                                        !isCourtInService && "bg-muted/50"
+                                    )}>
+                                        {isCourtInService && court.match && <MatchCard match={court.match} />}
+                                        {isCourtInService && !court.match && (
+                                          <Select onValueChange={(matchId) => handleMoveMatch(matchId, slot.time, court.name)}>
+                                              <SelectTrigger className="h-8 w-8 p-0 border-dashed bg-transparent shadow-none">
+                                                  <PlusCircle className="h-5 w-5 text-muted-foreground" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                  <SelectGroup>
+                                                     {unscheduledMatches.map(m => (
+                                                        <SelectItem key={m.id} value={m.id}>
+                                                            {m.team1Name} vs {m.team2Name}
+                                                        </SelectItem>
+                                                     ))}
+                                                  </SelectGroup>
+                                              </SelectContent>
+                                          </Select>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </React.Fragment>
+                    ))}
+                </div>
+             </div>
+        </CardContent>
+    </Card>
     </div>
   );
 }
 
-    
-
-    
+  
