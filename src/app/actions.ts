@@ -914,9 +914,10 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
         if (addMinutes(currentTime, matchDurationMin) > END_OF_DAY) break;
         
         const availableCourts = courts.filter(c => 
-            c.slots.some(({ start, end }) => 
-                currentTime >= start && addMinutes(currentTime, matchDurationMin) <= end
-            ) && c.nextAvailable <= currentTime
+            c.slots.some(({ start, end }) => {
+                const matchEnd = addMinutes(currentTime, matchDurationMin);
+                return currentTime >= start && matchEnd <= end;
+            }) && c.nextAvailable <= currentTime
         );
 
         const readyMatches: SchedulerMatch[] = [];
@@ -944,10 +945,10 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
         });
 
         let scheduledThisTick = false;
-        const usedPlayers = new Set<string>();
+        const usedPlayersThisTick = new Set<string>();
 
         for (const court of availableCourts) {
-            const match = readyMatches.find(m => m.players.every(p => !usedPlayers.has(p)));
+            const match = readyMatches.find(m => m.players.every(p => !usedPlayersThisTick.has(p)));
             if (!match) continue;
 
             match.time = format(currentTime, 'HH:mm');
@@ -956,7 +957,7 @@ function runScheduler(matchesInput: SchedulerMatchRow[], db: TournamentsState): 
             for (const p of match.players) {
                 playerAvailability[p] = addMinutes(currentTime, matchDurationMin);
                 matchHistory[p] = [...(matchHistory[p] || []), new Date(currentTime.getTime())];
-                usedPlayers.add(p);
+                usedPlayersThisTick.add(p);
             }
             unscheduled.delete(match.id);
             scheduledThisTick = true;
@@ -1058,6 +1059,8 @@ export async function generateScheduleAction(): Promise<{ success: boolean; erro
     }
 }
 
+
+    
 
     
 
