@@ -339,46 +339,70 @@ export default function ScheduleGridPage() {
   };
 
   const handleExportPDF = () => {
+    if (!courts.length || !timeSlots.length) return;
+  
     const doc = new jsPDF({ orientation: 'landscape' });
-    const scheduledMatches = allMatches
-        .filter(m => m.time && m.court)
-        .sort((a, b) => a.time!.localeCompare(b.time!) || a.court!.localeCompare(b.court!));
-
-    const tableData = scheduledMatches.map(m => [
-        m.time || '',
-        m.court || '',
-        m.category,
-        m.stage,
-        m.team1Name || '',
-        m.team2Name || ''
-    ]);
-
+  
+    // Define a paleta de cores para consistência
+    const primaryColor = '#FF8C00'; // Laranja Vibrante
+    const textColor = '#333';
+    const mutedTextColor = '#777';
+    const headerColor = '#4682B4'; // Azul Complementar
+  
     doc.setFontSize(18);
-    doc.setTextColor(33, 100, 50); // Using HSL from theme
+    doc.setTextColor(primaryColor);
     const title = "Grade de Horários do Torneio";
     const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
     const pageWidth = doc.internal.pageSize.getWidth();
-    const x = (pageWidth - titleWidth) / 2;
-    doc.text(title, x, 15);
-
-    autoTable(doc, {
-        head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Dupla 2']],
-        body: tableData,
-        startY: 25,
-        theme: 'grid',
-        headStyles: { 
-            fillColor: [33, 100, 50], // HSL Primary
-            textColor: [60, 9, 98], // HSL Primary Foreground
-            fontStyle: 'bold'
-        },
-        didDrawPage: (data) => {
-            const pageCount = doc.getNumberOfPages();
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 10);
+    doc.text(title, (pageWidth - titleWidth) / 2, 15);
+  
+    const head = [['Horário', ...courts.map(c => c.name)]];
+  
+    const body = timeSlots.map(slot => {
+      const row = [slot.time];
+      slot.courts.forEach(courtSlot => {
+        if (courtSlot.match) {
+          const { team1Name, team2Name, category, stage } = courtSlot.match;
+          // Formata o texto para caber na célula
+          const cellText = `${team1Name || 'A definir'} vs\n${team2Name || 'A definir'}\n(${category} - ${stage})`;
+          row.push(cellText);
+        } else {
+          row.push(''); // Célula vazia para slots sem jogo
         }
+      });
+      return row;
     });
-
+  
+    autoTable(doc, {
+      head: head,
+      body: body,
+      startY: 25,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: headerColor,
+        textColor: '#FFFFFF', // Branco
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      styles: {
+        font: 'Inter', // Usa a mesma fonte da aplicação
+        cellPadding: 2,
+        fontSize: 7, // Tamanho de fonte menor para caber mais informação
+        valign: 'middle',
+        halign: 'center',
+        textColor: textColor,
+      },
+      alternateRowStyles: {
+        fillColor: '#F5F5DC' // Bege claro
+      },
+      didDrawPage: (data) => {
+        const pageCount = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(mutedTextColor);
+        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 10);
+      }
+    });
+  
     doc.save("grade_horarios.pdf");
   };
 
@@ -444,7 +468,7 @@ export default function ScheduleGridPage() {
         if (!scheduleConflict) {
             for (const otherMatch of allMatches) {
                 if (otherMatch.dependencies.includes(match.id) && otherMatch.time) {
-                    if (isBefore(parseTime(otherMatch.time), matchTime)) {
+                     if (isBefore(parseTime(otherMatch.time), matchTime)) {
                         scheduleConflict = true;
                         break;
                     }
