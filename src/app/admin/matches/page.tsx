@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles } from "lucide-react";
+import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle } from "lucide-react";
 import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +14,7 @@ import { LoginPage } from "@/components/login-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -327,8 +327,8 @@ export default function ScheduleGridPage() {
         .filter(p => match.players.includes(p)) ?? [];
 
     return (
-        <Card className={cn("p-2 text-xs relative group", playerConflicts.length > 0 && "bg-destructive/20 border-destructive")}>
-             <div className="text-muted-foreground mb-2 text-center truncate">{match.category} - {match.stage}</div>
+        <Card className={cn("p-2 text-xs relative group h-full flex flex-col justify-center", playerConflicts.length > 0 && "bg-destructive/20 border-destructive")}>
+             <div className="text-muted-foreground mb-1 text-center truncate">{match.category} - {match.stage}</div>
              <div className="font-bold truncate">{match.team1Name}</div>
              <div className="text-muted-foreground my-0.5 text-center">vs</div>
              <div className="font-bold truncate">{match.team2Name}</div>
@@ -479,10 +479,26 @@ export default function ScheduleGridPage() {
 
                                     return (
                                         <div key={court.name} className={cn(
-                                            "border-r border-b p-1 min-h-[90px]",
+                                            "border-r border-b p-1 min-h-[100px] flex items-center justify-center",
                                             !isCourtInService && "bg-muted/50"
                                         )}>
                                             {isCourtInService && court.match && <MatchCard match={court.match} />}
+                                            {isCourtInService && !court.match && (
+                                              <Select onValueChange={(matchId) => handleMoveMatch(matchId, slot.time, court.name)}>
+                                                  <SelectTrigger className="h-8 w-8 p-0 border-dashed bg-transparent shadow-none">
+                                                      <PlusCircle className="h-5 w-5 text-muted-foreground" />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                      <SelectGroup>
+                                                         {unscheduledMatches.map(m => (
+                                                            <SelectItem key={m.id} value={m.id}>
+                                                                {m.team1Name} vs {m.team2Name}
+                                                            </SelectItem>
+                                                         ))}
+                                                      </SelectGroup>
+                                                  </SelectContent>
+                                              </Select>
+                                            )}
                                         </div>
                                     );
                                 })}
