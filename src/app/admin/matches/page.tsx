@@ -417,44 +417,6 @@ export default function ScheduleGridPage() {
       </Card>
       
       <Card>
-          <CardHeader>
-              <CardTitle>Jogos Não Agendados</CardTitle>
-              <CardDescription>{unscheduledMatches.length} jogos a serem agendados.</CardDescription>
-          </CardHeader>
-          <CardContent>
-               <ScrollArea className="max-h-48 pr-4">
-                  <div className="space-y-2">
-                  {unscheduledMatches.map(match => (
-                      <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
-                          <div className="flex-grow">
-                              <div className="font-bold truncate">{match.team1Name}</div>
-                              <div className="text-muted-foreground my-0.5 text-center">vs</div>
-                              <div className="font-bold truncate">{match.team2Name}</div>
-                              <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
-                          </div>
-                          <Select onValueChange={(value) => {
-                              const [newTime, newCourt] = value.split('|');
-                              handleMoveMatch(match.id, newTime, newCourt);
-                          }}>
-                              <SelectTrigger className="w-28 h-8 text-xs">
-                                  <SelectValue placeholder="Agendar..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  {availableSlots.map(slot => (
-                                      <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
-                                          {slot.time} - {slot.court}
-                                      </SelectItem>
-                                  ))}
-                              </SelectContent>
-                          </Select>
-                      </Card>
-                  ))}
-                  </div>
-              </ScrollArea>
-          </CardContent>
-      </Card>
-
-      <Card>
         <CardContent className="pt-6 overflow-auto">
              <div className="min-w-[800px]">
                 <div className="grid grid-cols-1" style={{ gridTemplateColumns: `60px repeat(${courts.length}, 1fr)`}}>
@@ -508,8 +470,45 @@ export default function ScheduleGridPage() {
              </div>
         </CardContent>
     </Card>
+
+    <Card>
+        <CardHeader>
+            <CardTitle>Jogos Não Agendados</CardTitle>
+            <CardDescription>{unscheduledMatches.length} jogos a serem agendados.</CardDescription>
+        </CardHeader>
+        <CardContent>
+             <ScrollArea className="max-h-48 pr-4">
+                <div className="space-y-2">
+                {unscheduledMatches.map(match => (
+                    <Card key={match.id} className="p-2 text-xs flex items-center gap-2">
+                        <div className="flex-grow">
+                            <div className="font-bold truncate">{match.team1Name}</div>
+                            <div className="text-muted-foreground my-0.5 text-center">vs</div>
+                            <div className="font-bold truncate">{match.team2Name}</div>
+                            <div className="text-muted-foreground mt-1 truncate">{match.category} - {match.stage}</div>
+                        </div>
+                        <Select onValueChange={(value) => {
+                            const [newTime, newCourt] = value.split('|');
+                            handleMoveMatch(match.id, newTime, newCourt);
+                        }}>
+                            <SelectTrigger className="w-28 h-8 text-xs">
+                                <SelectValue placeholder="Agendar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableSlots.map(slot => (
+                                    <SelectItem key={`${slot.time}-${slot.court}`} value={`${slot.time}|${slot.court}`}>
+                                        {slot.time} - {slot.court}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </Card>
+                ))}
+                </div>
+            </ScrollArea>
+        </CardContent>
+    </Card>
+
     </div>
   );
 }
-
-  
