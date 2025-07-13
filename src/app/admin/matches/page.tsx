@@ -75,7 +75,7 @@ const getPlayersFromMatch = (match: SchedulableMatch): string[] => {
 };
 
 // Extracts dependencies from a placeholder string
-function extractDependencies(placeholder: string | undefined): { matchDeps: string[], groupDeps: string[] } {
+function extractDependencies(placeholder: string | undefined, categoryName: string): { matchDeps: string[], groupDeps: string[] } {
     const deps = { matchDeps: [] as string[], groupDeps: [] as string[] };
     if (!placeholder) return deps;
     
@@ -89,7 +89,9 @@ function extractDependencies(placeholder: string | undefined): { matchDeps: stri
     // For "1º do MistoAvançado-GroupA"
     const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
     if (groupDepMatch && groupDepMatch[1]) {
-        deps.groupDeps.push(groupDepMatch[1].trim());
+        // We add the category name to ensure uniqueness across categories
+        const groupIdentifier = `${categoryName.replace(/\s/g, '')}-${groupDepMatch[1].replace(/\s/g, '')}`;
+        deps.groupDeps.push(groupIdentifier);
     }
 
     return deps;
@@ -179,8 +181,8 @@ export default function ScheduleGridPage() {
         const matchesWithDependencies: SchedulableMatch[] = loadedMatches.map(match => {
             const deps = new Set<string>();
             if (!match.isGroupMatch) {
-                const { matchDeps: t1MatchDeps, groupDeps: t1GroupDeps } = extractDependencies(match.team1Placeholder);
-                const { matchDeps: t2MatchDeps, groupDeps: t2GroupDeps } = extractDependencies(match.team2Placeholder);
+                const { matchDeps: t1MatchDeps, groupDeps: t1GroupDeps } = extractDependencies(match.team1Placeholder, match.category);
+                const { matchDeps: t2MatchDeps, groupDeps: t2GroupDeps } = extractDependencies(match.team2Placeholder, match.category);
 
                 t1MatchDeps.forEach(d => deps.add(d));
                 t2MatchDeps.forEach(d => deps.add(d));
@@ -222,11 +224,11 @@ export default function ScheduleGridPage() {
     const interval = estimatedMatchDuration || 20;
 
     const earliestTime = parseTime(startTime);
-    const latestTime = parseTime(endTime);
+    const latestTime = parseTime(endTime || '23:59');
 
     const newTimeSlots: TimeSlot[] = [];
     let currentTime = earliestTime;
-    while (currentTime < latestTime) {
+    while (currentTime <= latestTime) {
         newTimeSlots.push({
             time: format(currentTime, 'HH:mm'),
             datetime: new Date(currentTime),
@@ -242,6 +244,8 @@ export default function ScheduleGridPage() {
                 const courtInSlot = slot.courts.find(c => c.name === match.court);
                 if (courtInSlot && !courtInSlot.match) { // Check if slot is empty
                     courtInSlot.match = match;
+                } else if (courtInSlot) {
+                    console.warn(`Slot conflict at ${slot.time} on ${match.court}. Match ${match.id} not placed.`);
                 }
             }
         }
@@ -385,7 +389,7 @@ export default function ScheduleGridPage() {
         halign: 'center'
       },
       styles: {
-        font: 'Inter', // Usa a mesma fonte da aplicação
+        font: 'helvetica',
         cellPadding: 2,
         fontSize: 7, // Tamanho de fonte menor para caber mais informação
         valign: 'middle',
@@ -393,7 +397,7 @@ export default function ScheduleGridPage() {
         textColor: textColor,
       },
       alternateRowStyles: {
-        fillColor: '#F5F5DC' // Bege claro
+        fillColor: '#F5F5F5' // Cinza bem claro
       },
       didDrawPage: (data) => {
         const pageCount = doc.getNumberOfPages();
@@ -417,7 +421,7 @@ export default function ScheduleGridPage() {
       timeSlots.forEach(ts => {
           ts.courts.forEach(c => {
               const isCourtInService = courts.find(court => court.name === c.name)?.slots
-                  .some(slot => isWithinInterval(ts.datetime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -globalSettings.estimatedMatchDuration) }));
+                  .some(slot => isWithinInterval(ts.datetime, { start: parseTime(slot.startTime), end: addMinutes(parseTime(slot.endTime), -(globalSettings.estimatedMatchDuration || 20)) }));
 
               if (isCourtInService && !c.match) {
                   slots.push({ time: ts.time, court: c.name });
@@ -629,7 +633,8 @@ export default function ScheduleGridPage() {
                                     const isCourtInService = courts.find(c => c.name === court.name)?.slots
                                         .some(s => {
                                             if (!globalSettings) return false;
-                                            return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: addMinutes(parseTime(s.endTime), -globalSettings.estimatedMatchDuration) })
+                                            const intervalEnd = addMinutes(parseTime(s.endTime), -(globalSettings.estimatedMatchDuration || 20));
+                                            return isWithinInterval(slot.datetime, { start: parseTime(s.startTime), end: intervalEnd })
                                         });
 
                                     return (
