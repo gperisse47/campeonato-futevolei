@@ -480,7 +480,7 @@ export default function ScheduleGridPage() {
                                     return (
                                         <div key={court.name} className={cn(
                                             "border-r border-b p-1 min-h-[100px] flex items-center justify-center",
-                                            !isCourtInService && "bg-muted/50"
+                                            !isCourtInService && "bg-destructive/20"
                                         )}>
                                             {isCourtInService && court.match && <MatchCard match={court.match} />}
                                             {isCourtInService && !court.match && (
@@ -512,5 +512,7 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
+
+    
 
     
