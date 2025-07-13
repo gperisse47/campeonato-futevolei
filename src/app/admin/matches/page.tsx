@@ -8,7 +8,7 @@ import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState,
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { format, parse, addMinutes, isWithinInterval, startOfDay } from 'date-fns';
+import { format, parse, addMinutes, isWithinInterval, startOfDay, isBefore } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { LoginPage } from "@/components/login-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,7 @@ type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
   team1Name: string;
   team2Name: string;
   stage: string;
+  dependencies: string[];
 };
 
 type TimeSlot = {
@@ -70,6 +71,26 @@ const getPlayersFromMatch = (match: SchedulableMatch): string[] => {
     return Array.from(players);
 };
 
+// Extracts dependencies from a placeholder string
+function extractDependencies(placeholder: string | undefined): string[] {
+    if (!placeholder) return [];
+    
+    // For "Vencedor Categoria-QuartasdeFinal-Jogo1" or "Perdedor Categoria-U-R1-J1"
+    const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
+    if (matchDepMatch && matchDepMatch[1]) {
+        return [matchDepMatch[1].trim()];
+    }
+    
+    // For "1º do MistoAvançado-GroupA"
+    const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
+    if (groupDepMatch && groupDepMatch[1]) {
+        return [`${groupDepMatch[1].trim()}-finished`];
+    }
+
+    return [];
+}
+
+
 export default function ScheduleGridPage() {
   const [allMatches, setAllMatches] = useState<SchedulableMatch[]>([]);
   const [courts, setCourts] = useState<Court[]>([]);
@@ -101,6 +122,17 @@ export default function ScheduleGridPage() {
                   if (!match.id) return;
                   const t1Name = teamName(match.team1, match.team1Placeholder);
                   const t2Name = teamName(match.team2, match.team2Placeholder);
+                  
+                  const dependencies = new Set<string>();
+                  extractDependencies(match.team1Placeholder).forEach(d => dependencies.add(d));
+                  extractDependencies(match.team2Placeholder).forEach(d => dependencies.add(d));
+
+                  // For group matches, they are a dependency for playoffs
+                  if(stageOverride && !stageOverride.toLowerCase().includes('final') && !stageOverride.toLowerCase().includes('rodada')) {
+                     const groupName = categoryName.replace(/\s/g, '') + '-' + stageOverride.replace(/\s/g, '');
+                     dependencies.add(`${groupName}-finished`);
+                  }
+
                   const schedulableMatch: SchedulableMatch = {
                     ...match,
                     id: match.id,
@@ -109,6 +141,7 @@ export default function ScheduleGridPage() {
                     team1Name: t1Name,
                     team2Name: t2Name,
                     players: [],
+                    dependencies: Array.from(dependencies),
                   };
                   schedulableMatch.players = getPlayersFromMatch(schedulableMatch);
                   loadedMatches.push(schedulableMatch);
@@ -124,6 +157,10 @@ export default function ScheduleGridPage() {
                          if (!match.id) return;
                         const t1Name = teamName(match.team1, match.team1Placeholder);
                         const t2Name = teamName(match.team2, match.team2Placeholder);
+                        const dependencies = new Set<string>();
+                        extractDependencies(match.team1Placeholder).forEach(d => dependencies.add(d));
+                        extractDependencies(match.team2Placeholder).forEach(d => dependencies.add(d));
+
                         const schedulableMatch: SchedulableMatch = {
                             ...match,
                             id: match.id,
@@ -132,6 +169,7 @@ export default function ScheduleGridPage() {
                             team1Name: t1Name,
                             team2Name: t2Name,
                             players: [],
+                            dependencies: Array.from(dependencies),
                         };
                         schedulableMatch.players = getPlayersFromMatch(schedulableMatch);
                         loadedMatches.push(schedulableMatch);
@@ -312,6 +350,16 @@ export default function ScheduleGridPage() {
       return slots;
   }, [timeSlots, courts, globalSettings]);
 
+  const scheduledMatchesMap = useMemo(() => {
+    const map = new Map<string, SchedulableMatch>();
+    allMatches.forEach(m => {
+        if (m.id && m.time) {
+            map.set(m.id, m);
+        }
+    });
+    return map;
+  }, [allMatches]);
+
   if (isAuthLoading || (isAuthenticated && isLoading)) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
@@ -325,14 +373,39 @@ export default function ScheduleGridPage() {
         ?.courts.filter(c => c.match && c.match.id !== match.id)
         .flatMap(c => c.match!.players)
         .filter(p => match.players.includes(p)) ?? [];
+    
+    const scheduleConflicts: string[] = [];
+    if (match.time) {
+        const matchTime = parseTime(match.time);
+        
+        // Check if this match is scheduled before its dependencies
+        for (const depId of match.dependencies) {
+            if (depId.endsWith('-finished')) continue; // Group dependency handled differently
+            const depMatch = scheduledMatchesMap.get(depId);
+            if (depMatch?.time && isBefore(matchTime, parseTime(depMatch.time))) {
+                scheduleConflicts.push(depMatch.id);
+            }
+        }
+        
+        // Check if a dependent match is scheduled before this one
+        allMatches.forEach(otherMatch => {
+            if (otherMatch.dependencies.includes(match.id) && otherMatch.time) {
+                if (isBefore(parseTime(otherMatch.time), matchTime)) {
+                    scheduleConflicts.push(otherMatch.id);
+                }
+            }
+        });
+    }
+
+    const hasConflict = playerConflicts.length > 0 || scheduleConflicts.length > 0;
 
     return (
-        <Card className={cn("p-2 text-xs relative group h-full flex flex-col justify-center", playerConflicts.length > 0 && "bg-destructive/20 border-destructive")}>
+        <Card className={cn("p-2 text-xs relative group h-full flex flex-col justify-center", hasConflict && "bg-destructive/20 border-destructive")}>
              <div className="text-muted-foreground mb-1 text-center truncate">{match.category} - {match.stage}</div>
              <div className="font-bold truncate text-center">{match.team1Name}</div>
              <div className="text-muted-foreground my-0.5 text-center">vs</div>
              <div className="font-bold truncate text-center">{match.team2Name}</div>
-              {playerConflicts.length > 0 && (
+              {hasConflict && (
                 <div className="absolute -top-2 -right-2">
                     <AlertCircle className="h-5 w-5 text-destructive-foreground bg-destructive rounded-full p-0.5" />
                 </div>
