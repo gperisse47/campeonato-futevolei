@@ -23,9 +23,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw, Trash2, FileText } from "lucide-react";
+import { Loader2, Swords, Search, Save, AlertCircle, RefreshCcw, Upload, Download, RotateCcw, Trash2, FileText, Sparkles } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court } from "@/lib/types";
-import { getTournaments, updateMatch, updateMultipleMatches, importScheduleFromCSV, clearAllSchedules } from "@/app/actions";
+import { getTournaments, updateMatch, updateMultipleMatches, importScheduleFromCSV, clearAllSchedules, generateScheduleAction } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
@@ -56,6 +56,7 @@ export default function AdminMatchesPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingAll, setIsSavingAll] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [courts, setCourts] = useState<Court[]>([]);
   const [globalStartTime, setGlobalStartTime] = useState<string>('08:00');
@@ -356,6 +357,25 @@ export default function AdminMatchesPage() {
     setIsClearing(false);
   }
 
+  const handleGenerateSchedule = async () => {
+    setIsGenerating(true);
+    const result = await generateScheduleAction();
+    if (result.success) {
+        toast({
+            title: "Horários Gerados!",
+            description: "O agendamento foi gerado e salvo com sucesso."
+        });
+        await loadMatchesAndSettings();
+    } else {
+         toast({
+            variant: "destructive",
+            title: "Erro ao Gerar Horários",
+            description: result.error || "Não foi possível gerar os horários.",
+        });
+    }
+    setIsGenerating(false);
+  }
+
   const handleExportCSV = () => {
     const csvData = Papa.unparse(
       allMatches.map(m => ({
@@ -492,7 +512,11 @@ export default function AdminMatchesPage() {
             Ajuste os horários e quadras. Você pode salvar linha por linha ou todas as alterações de uma vez.
           </CardDescription>
           <div className="flex flex-col gap-4 mt-4">
-            <div className="flex flex-wrap gap-2 justify-start w-full">
+             <div className="flex flex-wrap gap-2 justify-start w-full">
+                <Button onClick={handleGenerateSchedule} disabled={isGenerating}>
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Gerar Horários
+                </Button>
                 <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
                     {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                     Importar CSV
