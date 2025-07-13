@@ -391,12 +391,19 @@ export default function ScheduleGridPage() {
             fillColor: "#F5F5DC"
         },
         willDrawCell: (data) => {
-            if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw.includes('\n')) {
-                data.cell.text = [];
+            // Se a célula for de um jogo, define uma altura mínima para caber todo o texto
+            if (data.section === 'body' && data.column.index > 0 && typeof data.cell.raw === 'string' && data.cell.raw.includes('\n')) {
+                 const textLines = (data.cell.raw as string).split('\n').length;
+                 const calculatedHeight = textLines * 4 + 4; // 4pt per line + padding
+                 if (data.row.height < calculatedHeight) {
+                    data.row.height = calculatedHeight;
+                 }
             }
         },
         didDrawCell: (data) => {
             if (data.section === 'body' && typeof data.cell.raw === 'string' && data.cell.raw.includes('\n')) {
+                // Previne o desenho do texto padrão, pois desenharemos manualmente
+                data.cell.text = [];
                 const rawString = data.cell.raw as string;
                 const parts = rawString.split('\n');
                 
@@ -405,29 +412,39 @@ export default function ScheduleGridPage() {
                 const cell = data.cell;
                 
                 const originalFontStyle = doc.getFont().fontStyle;
+                const originalFontSize = doc.getFontSize();
 
                 const x = cell.x + cell.padding('left');
-                let y = cell.y + cell.padding('top');
-                const width = cell.width - cell.padding('horizontal');
-                
-                const totalTextHeight = (doc.getLineHeight() / doc.internal.scaleFactor) * 4;
-                y += (cell.height - totalTextHeight) / 2;
+                const cellWidth = cell.width - cell.padding('horizontal');
 
-                const lineSpacing = 4;
+                const lineHeight = originalFontSize * 1.15 / doc.internal.scaleFactor;
+                const totalTextHeight = lineHeight * 4;
+                // Centraliza verticalmente
+                let y = cell.y + (cell.height - totalTextHeight) / 2 + lineHeight;
 
-                doc.setFont(undefined, 'normal');
-                doc.text(phase, x + width / 2, y + lineSpacing, { maxWidth: width, align: 'center' });
-
-                doc.setFont(undefined, 'bold');
-                doc.text(team1, x + width / 2, y + lineSpacing * 2, { align: 'center' });
 
                 doc.setFont(undefined, 'normal');
-                doc.text(vs, x + width / 2, y + lineSpacing * 3, { align: 'center' });
+                doc.setFontSize(8);
+                doc.text(phase, x + cellWidth / 2, y, { maxWidth: cellWidth, align: 'center' });
+                y += lineHeight;
                 
                 doc.setFont(undefined, 'bold');
-                doc.text(team2, x + width / 2, y + lineSpacing * 4, { align: 'center' });
+                doc.setFontSize(8);
+                doc.text(team1, x + cellWidth / 2, y, { align: 'center' });
+                y += lineHeight;
+
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(8);
+                doc.text(vs, x + cellWidth / 2, y, { align: 'center' });
+                y += lineHeight;
                 
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(8);
+                doc.text(team2, x + cellWidth / 2, y, { align: 'center' });
+                
+                // Restaura o estilo da fonte
                 doc.setFont(undefined, originalFontStyle);
+                doc.setFontSize(originalFontSize);
             }
         },
         didDrawPage: (data) => {
@@ -708,5 +725,3 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
-
-    
