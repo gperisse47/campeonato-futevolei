@@ -347,12 +347,8 @@ export default function ScheduleGridPage() {
 
     const doc = new jsPDF({ orientation: "landscape" });
 
-    const primaryColor = "#FF8C00";
-    const headerColor = "#4682B4";
-    const mutedTextColor = "#777";
-
     doc.setFontSize(18);
-    doc.setTextColor(primaryColor);
+    doc.setTextColor("#FF8C00");
     const title = "Grade de Horários do Torneio";
     const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -361,11 +357,10 @@ export default function ScheduleGridPage() {
     const head = [["Horário", ...courts.map((c) => c.name)]];
 
     const body = timeSlots.map((slot) => {
-        const rowData = [
+        return [
             slot.time,
             ...slot.courts.map((courtSlot) => courtSlot.match || ""),
         ];
-        return rowData;
     });
 
     autoTable(doc, {
@@ -374,7 +369,7 @@ export default function ScheduleGridPage() {
         startY: 25,
         theme: "grid",
         headStyles: {
-            fillColor: headerColor,
+            fillColor: "#4682B4",
             textColor: "#FFFFFF",
             fontStyle: "bold",
             halign: "center",
@@ -391,7 +386,7 @@ export default function ScheduleGridPage() {
             fillColor: "#F5F5DC"
         },
         didDrawCell: (data) => {
-            let cellContent = data.cell.raw;
+            const cellContent = data.cell.raw;
             if (typeof cellContent === 'object' && cellContent !== null && 'team1Name' in cellContent) {
                 const match = cellContent as SchedulableMatch;
                 const doc = data.doc;
@@ -401,13 +396,18 @@ export default function ScheduleGridPage() {
                 const originalFontStyle = doc.getFont().fontStyle;
 
                 const x = cell.x + cell.padding('left');
-                const y = cell.y + cell.padding('top');
+                let y = cell.y + cell.padding('top');
                 const width = cell.width - cell.padding('horizontal');
+                
+                // Centralize vertically
+                const totalTextHeight = 12; // Approximate total height of text block
+                y += (cell.height - totalTextHeight) / 2;
+
 
                 // Categoria - Fase (menor)
                 doc.setFontSize(originalFontSize - 2);
                 doc.setFont(undefined, 'normal');
-                doc.text(`${match.category} - ${match.stage}`, x, y + 2, { maxWidth: width, align: 'center' });
+                doc.text(`${match.category} - ${match.stage}`, x + width / 2, y + 2, { maxWidth: width, align: 'center' });
 
                 // Dupla 1 (negrito)
                 doc.setFontSize(originalFontSize);
@@ -432,7 +432,7 @@ export default function ScheduleGridPage() {
         didDrawPage: (data) => {
             const pageCount = doc.getNumberOfPages();
             doc.setFontSize(8);
-            doc.setTextColor(mutedTextColor);
+            doc.setTextColor("#777");
             doc.text(
                 `Página ${data.pageNumber} de ${pageCount}`,
                 data.settings.margin.left,
@@ -493,7 +493,7 @@ export default function ScheduleGridPage() {
     if (match.time) {
         const matchTime = parseTime(match.time);
         
-        // Check if a prerequisite match is scheduled after the current match
+        // Check "backward": is this match scheduled before a dependency?
         for (const depId of match.dependencies) {
             const depMatch = scheduledMatchesMap.get(depId);
             if (depMatch?.time && isBefore(matchTime, parseTime(depMatch.time))) {
@@ -502,7 +502,7 @@ export default function ScheduleGridPage() {
             }
         }
         
-        // Check if the current match is scheduled before a match that depends on it
+        // Check "forward": is another match that depends on this one scheduled earlier?
         if (!scheduleConflict) {
             for (const otherMatch of allMatches) {
                 if (otherMatch.dependencies.includes(match.id) && otherMatch.time) {
