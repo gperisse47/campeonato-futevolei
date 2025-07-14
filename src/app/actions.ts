@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { format, addMinutes, parse, isBefore, startOfDay, isAfter, setHours, setMinutes, differenceInMilliseconds, isEqual, differenceInMinutes } from 'date-fns';
 import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from '@/lib/regeneration';
 import Papa from 'papaparse';
-import { SchedulableMatch, scheduleMatches } from '@/lib/scheduler';
+import { scheduleMatches, type MatchRow } from '@/lib/scheduler';
 
 
 const dbPath = path.resolve(process.cwd(), "db.json")
@@ -799,84 +799,96 @@ export async function clearAllSchedules(): Promise<{ success: boolean; error?: s
     }
 }
 
+function transformDataForScheduler(tournaments: TournamentsState): { matchesInput: MatchRow[], parameters: Record<string, string> } {
+    const matchesInput: MatchRow[] = [];
+    const parameters: Record<string, string> = {};
+
+    // Global settings
+    const { _globalSettings } = tournaments;
+    parameters['estimatedMatchDuration'] = String(_globalSettings.estimatedMatchDuration);
+    parameters['endTime'] = _globalSettings.endTime || "21:00";
+    _globalSettings.courts.forEach((court, courtIndex) => {
+        parameters[`court_${courtIndex + 1}_name`] = court.name;
+        court.slots.forEach((slot, slotIndex) => {
+            parameters[`court_${courtIndex + 1}_slot_${slotIndex + 1}`] = `${slot.startTime}-${slot.endTime}`;
+        });
+    });
+
+    // Category settings and matches
+    for (const categoryName in tournaments) {
+        if (categoryName === '_globalSettings') continue;
+        const categoryData = tournaments[categoryName] as CategoryData;
+        
+        // Category parameters
+        parameters[`${categoryName}__startTime`] = categoryData.formValues.startTime || _globalSettings.startTime || "08:00";
+        parameters[`${categoryName}__playoffPriority`] = String(categoryData.formValues.playoffPriority || 999);
+        if (categoryData.formValues.quarterFinalsStartTime) parameters[`${categoryName}__stageMinTime_Quartas de Final`] = categoryData.formValues.quarterFinalsStartTime;
+        if (categoryData.formValues.semiFinalsStartTime) parameters[`${categoryName}__stageMinTime_Semifinal`] = categoryData.formValues.semiFinalsStartTime;
+        if (categoryData.formValues.finalStartTime) parameters[`${categoryName}__stageMinTime_Final`] = categoryData.formValues.finalStartTime;
+        if (categoryData.formValues.finalStartTime) parameters[`${categoryName}__stageMinTime_Disputa de 3º Lugar`] = categoryData.formValues.finalStartTime;
+
+
+        // Match data
+        const addMatch = (match: MatchWithScore | PlayoffMatch, stage: string) => {
+            if (!match.id) return;
+            matchesInput.push({
+                matchId: match.id,
+                category: categoryName,
+                stage: stage,
+                team1: teamToKey(match.team1) || match.team1Placeholder || '',
+                team2: teamToKey(match.team2) || match.team2Placeholder || '',
+            });
+        };
+
+        categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m, g.name)));
+        
+        const processBracket = (bracket?: PlayoffBracket) => {
+            if (!bracket) return;
+            Object.values(bracket).flat().forEach(m => addMatch(m, m.name));
+        };
+
+        if (categoryData.playoffs) {
+            const playoffs = categoryData.playoffs as PlayoffBracketSet;
+            if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
+                processBracket(playoffs.upper);
+                processBracket(playoffs.lower);
+                processBracket(playoffs.playoffs);
+            } else {
+                processBracket(playoffs as PlayoffBracket);
+            }
+        }
+    }
+
+    return { matchesInput, parameters };
+}
+
+
 export async function generateScheduleAction(): Promise<{ success: boolean; error?: string }> {
     try {
         const db = await readDb();
-        const { _globalSettings } = db;
-        if (!_globalSettings) {
-            return { success: false, error: "Configurações globais não encontradas." };
-        }
+        
+        const { matchesInput, parameters } = transformDataForScheduler(db);
 
-        const allMatches: SchedulableMatch[] = [];
-        const groupCompletionDependencies: Record<string, string[]> = {};
-
-        // Prepare all matches and their dependencies
-        Object.entries(db).forEach(([categoryName, categoryData]) => {
-            if (categoryName === '_globalSettings') return;
-            const cat = categoryData as CategoryData;
-
-            cat.tournamentData?.groups.forEach(group => {
-                const groupIdentifier = `${categoryName.replace(/\s/g, '')}-${group.name.replace(/\s/g, '')}`;
-                groupCompletionDependencies[groupIdentifier] = group.matches.map(m => m.id!);
-
-                group.matches.forEach(match => {
-                    allMatches.push({
-                        ...match,
-                        category: categoryName,
-                        stage: group.name,
-                        players: getPlayersFromMatch(match),
-                    });
-                });
-            });
-            
-            const processPlayoffBracket = (bracket?: PlayoffBracket) => {
-                if (!bracket) return;
-                Object.values(bracket).flat().forEach(match => {
-                    allMatches.push({
-                        ...match,
-                        category: categoryName,
-                        stage: match.name,
-                        players: getPlayersFromMatch(match),
-                    });
-                });
-            };
-            
-            const playoffs = cat.playoffs as PlayoffBracketSet;
-            if (playoffs) {
-                if ('upper' in playoffs || 'lower' in playoffs || 'playoffs' in playoffs) {
-                    processPlayoffBracket(playoffs.upper);
-                    processPlayoffBracket(playoffs.lower);
-                    processPlayoffBracket(playoffs.playoffs);
-                } else {
-                    processPlayoffBracket(playoffs as PlayoffBracket);
-                }
-            }
-        });
-
-        // Use the external scheduler
-        const { scheduledMatches: scheduledMatchObjects, unscheduledMatches } = scheduleMatches(
-            allMatches,
-            _globalSettings.courts,
-            _globalSettings.estimatedMatchDuration,
-            _globalSettings.endTime,
-            groupCompletionDependencies
-        );
+        const scheduledResult = scheduleMatches(matchesInput, parameters);
+        
+        const scheduledMap = new Map(scheduledResult.map(m => [m.id, m]));
+        const unscheduledMatches = matchesInput.filter(m => !scheduledMap.get(m.matchId)?.time);
 
         if (unscheduledMatches.length > 0) {
-            const unscheduledDetails = unscheduledMatches.map(m => {
-                const matchInfo = allMatches.find(am => am.id === m);
-                if (!matchInfo) return m;
-                return `${matchInfo.category} - ${matchInfo.stage}: ${teamToKey(matchInfo.team1) || matchInfo.team1Placeholder} vs ${teamToKey(matchInfo.team2) || matchInfo.team2Placeholder}`;
-            }).join('\n');
+            const unscheduledDetails = unscheduledMatches.map(m => 
+                `${m.category} - ${m.stage}: ${m.team1 || 'A definir'} vs ${m.team2 || 'A definir'}`
+            ).join('\n');
             const errorMessage = `${unscheduledMatches.length} jogos não puderam ser agendados.\nJogos faltantes:\n${unscheduledDetails}`;
             return { success: false, error: errorMessage };
         }
 
-        const updatedMatches: UpdateMatchInputType[] = scheduledMatchObjects.map(m => ({
-            matchId: m.id!,
-            categoryName: m.category,
-            time: m.time || '',
-            court: m.court || ''
+        const updatedMatches: UpdateMatchInputType[] = scheduledResult
+            .filter(m => m.id && m.time && m.court)
+            .map(m => ({
+                matchId: m.id,
+                categoryName: m.category,
+                time: m.time!,
+                court: m.court!
         }));
         
         return await updateMultipleMatches(updatedMatches);
