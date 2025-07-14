@@ -781,7 +781,7 @@ export async function clearAllSchedules(): Promise<{ success: boolean; error?: s
 function transformDataForScheduler(tournaments: TournamentsState): { matchesInput: MatchRow[], parameters: Record<string, string> } {
     const matchesInput: MatchRow[] = [];
     const parameters: Record<string, string> = {};
-    const groupMatchIds = new Map<string, string[]>(); // Key: category-groupName, Value: [matchId1, matchId2, ...]
+    const groupMatchIds = new Map<string, string[]>(); // Key: categoryPrefix-groupName, Value: [matchId1, matchId2, ...]
 
     const { _globalSettings } = tournaments;
 
@@ -813,7 +813,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
 
         // First pass: collect all group match IDs
         categoryData.tournamentData?.groups.forEach(g => {
-            const groupIdentifier = `${categoryPrefix}-${g.name.replace(/\s/g, '')}`;
+            const groupIdentifier = `${categoryPrefix}-${g.name}`;
             const ids = g.matches.map(m => m.id!);
             groupMatchIds.set(groupIdentifier, ids);
         });
@@ -822,21 +822,20 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             if (!match.id) return;
             let allDependencies: string[] = [];
 
-            if ('team1Placeholder' in match) {
+            if ('team1Placeholder' in match && match.team1Placeholder) {
                 const deps = extractDependencies(match.team1Placeholder);
                 deps.forEach(dep => {
-                    // Check if it's a group dependency
-                    if(dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")){
+                    if (dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")) {
                         allDependencies.push(...(groupMatchIds.get(dep) || []));
                     } else {
                         allDependencies.push(dep);
                     }
                 });
             }
-             if ('team2Placeholder' in match) {
+             if ('team2Placeholder' in match && match.team2Placeholder) {
                 const deps = extractDependencies(match.team2Placeholder);
                  deps.forEach(dep => {
-                    if(dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")){
+                    if (dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")) {
                         allDependencies.push(...(groupMatchIds.get(dep) || []));
                     } else {
                         allDependencies.push(dep);
@@ -899,7 +898,8 @@ export async function generateScheduleAction(): Promise<{ success: boolean; erro
                 court: m.court!
         }));
         
-        return await updateMultipleMatches(updatedMatches);
+        await updateMultipleMatches(updatedMatches);
+        return { success: true };
 
     } catch (e: any) {
         console.error("Erro ao gerar horários:", e);

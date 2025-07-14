@@ -1,3 +1,4 @@
+
 // lib/scheduler.ts
 import { parse as parseDate, format as formatDate, addMinutes, isEqual, differenceInMinutes } from "date-fns";
 
@@ -79,7 +80,9 @@ function getStagePriority(stage: string): number {
     if (s.includes("semifinal")) return 98;
     if (s.includes("quartas")) return 97;
     if (s.includes("oitavas")) return 96;
+    // Lower priority for group stage
     if (s.includes("group") || s.includes("grupo")) return 1;
+    // Default for other playoff rounds
     return 50;
 }
 
@@ -160,12 +163,10 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     ).sort((a,b) => a.name.localeCompare(b.name));
 
     const readyMatches: Match[] = [];
-    const tempLogs: Record<string, string[]> = {};
-
+    
     for (const matchId of unscheduled) {
         const m = matchesById.get(matchId)!;
         const reasons: string[] = [];
-        tempLogs[matchId] = reasons;
 
         const dependenciesMet = m.dependencies.every(depId => {
             const depMatch = matchesById.get(depId);
@@ -195,26 +196,22 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
           return !consecutive;
         });
 
-        if (dependenciesMet && canStart && playersAvailable && noConsecutive) {
-          readyMatches.push(m);
-        }
-    }
-    
-     for (const matchId in tempLogs) {
-        if (tempLogs[matchId].length > 0) {
-            const m = matchesById.get(matchId)!;
+        if (reasons.length > 0) {
             logs.push({
                 matchId: m.id,
                 category: m.category,
                 stage: m.stage,
                 team1: m.team1,
                 team2: m.team2,
-                reasons: tempLogs[matchId],
+                reasons: reasons,
                 checkedAtTime: formatDate(currentTime, "HH:mm"),
             });
         }
-    }
 
+        if (dependenciesMet && canStart && playersAvailable && noConsecutive) {
+          readyMatches.push(m);
+        }
+    }
 
     readyMatches.sort((a, b) => {
       const stagePrioA = getStagePriority(a.stage);
@@ -227,7 +224,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
       const rest = (m: Match) => {
         if (m.players.length === 0) return { min: Infinity, sum: Infinity };
-        const rests = m.players.map(p => differenceInMinutes(currentTime, playerAvailability[p] || new Date(0)));
+        const rests = m.players.map(p => differenceInMinutes(currentTime, playerAvailability[p] || currentTime));
         return {
           min: Math.min(...rests),
           sum: rests.reduce((acc, val) => acc + val, 0)
@@ -241,10 +238,36 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     const usedPlayers = new Set<string>();
     for (const court of availableCourts) {
-        if(readyMatches.length === 0) break;
+        if(readyMatches.length === 0) {
+          if (availableCourts.length > 0) {
+                 logs.push({
+                    matchId: `N/A-${court.name}-${formatDate(currentTime, "HHmm")}`,
+                    category: "Sistema",
+                    stage: "Alocação",
+                    team1: "N/A",
+                    team2: "N/A",
+                    reasons: [`Quadra ${court.name} ficou livre, mas nenhum jogo está pronto para ser alocado. Verifique dependências ou descanso de jogadores.`],
+                    checkedAtTime: formatDate(currentTime, "HH:mm"),
+                });
+            }
+          break;
+        };
 
         const matchIndex = readyMatches.findIndex(m => m.players.every(p => !usedPlayers.has(p)));
-        if(matchIndex === -1) continue;
+        if(matchIndex === -1) {
+            if (availableCourts.length > 0) {
+                 logs.push({
+                    matchId: `N/A-${court.name}-${formatDate(currentTime, "HHmm")}`,
+                    category: "Sistema",
+                    stage: "Alocação",
+                    team1: "N/A",
+                    team2: "N/A",
+                    reasons: [`Quadra ${court.name} ficou livre, mas todos os jogadores dos jogos prontos já estão em uso neste horário.`],
+                    checkedAtTime: formatDate(currentTime, "HH:mm"),
+                });
+            }
+            continue;
+        };
         
         const match = readyMatches.splice(matchIndex, 1)[0];
 
