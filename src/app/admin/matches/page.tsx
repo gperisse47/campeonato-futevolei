@@ -481,7 +481,7 @@ export default function ScheduleGridPage() {
                 
                 doc.setFontSize(8);
                 const totalTextHeight = textLines.length * lineHeight;
-                let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight - 2; // Adjusted starting Y
+                let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight - 2;
 
                 textLines.forEach(line => {
                     doc.text(line, cellX + colWidth / 2, textY, { align: 'center' });
