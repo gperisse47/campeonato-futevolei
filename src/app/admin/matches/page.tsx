@@ -30,6 +30,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { SchedulingLog } from "@/lib/scheduler";
+import Papa from 'papaparse';
 
 
 type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
@@ -439,40 +440,38 @@ export default function ScheduleGridPage() {
         alternateRowStyles: {
             fillColor: "#F5F5F5"
         },
-        willDrawCell: (data) => {
-            const cell = data.cell;
-            if (data.section === 'body' && typeof cell.raw === 'string' && cell.raw.includes('\n')) {
-                 cell.text = ''; // Prevent default text rendering
-            }
-        },
         didDrawCell: (data) => {
             if (data.section !== 'body' || !data.cell.raw || typeof data.cell.raw !== 'string' || !data.cell.raw.includes('\n')) {
                 return;
             }
 
             const cell = data.cell;
+            // Erase the default text drawn by autotable
+            doc.setFillColor(data.row.styles.fillColor);
+            doc.rect(cell.x, cell.y, cell.width, cell.height, 'F');
+            
             const lines = (cell.raw as string).split('\n');
             const stage = lines[0] || '';
             const team1 = lines[1] || '';
             const vs = lines[2] || '';
             const team2 = lines[3] || '';
             
-            const x = cell.x + cell.padding('left');
-            const y = cell.y + cell.padding('top') + doc.getLineHeight() / doc.internal.scaleFactor * 1.5;
-            const availableWidth = cell.width - cell.padding('left') - cell.padding('right');
-
+            const x = cell.x + cell.width / 2; // Center horizontally
+            const y = cell.y + cell.height / 2; // Center vertically
+            const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
+            
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
-            doc.text(stage, x + availableWidth / 2, y, { align: 'center' });
+            doc.text(stage, x, y - lineHeight * 1.5, { align: 'center' });
             
             doc.setFont('helvetica', 'bold');
-            doc.text(team1, x + availableWidth / 2, y + 5, { align: 'center' });
+            doc.text(team1, x, y - lineHeight * 0.5, { align: 'center' });
             
             doc.setFont('helvetica', 'normal');
-            doc.text(vs, x + availableWidth / 2, y + 10, { align: 'center' });
+            doc.text(vs, x, y + lineHeight * 0.5, { align: 'center' });
             
             doc.setFont('helvetica', 'bold');
-            doc.text(team2, x + availableWidth / 2, y + 15, { align: 'center' });
+            doc.text(team2, x, y + lineHeight * 1.5, { align: 'center' });
         },
         didDrawPage: (data) => {
             const pageCount = doc.getNumberOfPages();
