@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, FileText, ArrowLeft, Info } from 'lucide-react';
+import { AlertTriangle, FileText, ArrowLeft, Info, Clock } from 'lucide-react';
 import type { SchedulingLog } from '@/lib/scheduler';
 import { Badge } from '@/components/ui/badge';
 
@@ -28,6 +28,18 @@ export default function ScheduleLogPage() {
         }
     }, []);
 
+    const groupedLogs = React.useMemo(() => {
+        const groups: Record<string, SchedulingLog[]> = {};
+        logs.forEach(log => {
+            const time = log.checkedAtTime || 'Não verificado';
+            if (!groups[time]) {
+                groups[time] = [];
+            }
+            groups[time].push(log);
+        });
+        return Object.entries(groups).sort(([timeA], [timeB]) => timeA.localeCompare(timeB));
+    }, [logs]);
+
     if (isLoading) {
         return null;
     }
@@ -43,7 +55,7 @@ export default function ScheduleLogPage() {
                         Log do Agendamento
                     </h1>
                     <p className="text-muted-foreground">
-                        Detalhes sobre por que algumas partidas não puderam ser agendadas.
+                        Detalhes sobre por que cada partida não pôde ser agendada em cada horário verificado.
                     </p>
                 </div>
                 <Button variant="outline" onClick={() => router.back()}>
@@ -54,47 +66,57 @@ export default function ScheduleLogPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Partidas Não Alocadas</CardTitle>
+                    <CardTitle>Log de Verificação</CardTitle>
                     <CardDescription>
-                        A tabela abaixo detalha cada partida que não pôde ser agendada e os motivos.
+                        A tabela abaixo detalha cada verificação feita pelo agendador.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {hasLogs ? (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Duplas Envolvidas</TableHead>
-                                    <TableHead>Categoria / Fase</TableHead>
-                                    <TableHead>Motivos da Falha</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {logs.map((log) => (
-                                    <TableRow key={log.matchId}>
-                                        <TableCell className="font-medium">
-                                            <div className="font-bold">{log.team1}</div>
-                                            <div className="text-xs text-muted-foreground my-1">vs</div>
-                                            <div className="font-bold">{log.team2}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="font-semibold">{log.category}</div>
-                                            <div className="text-sm text-muted-foreground">{log.stage}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <ul className="list-disc list-inside space-y-1 text-sm">
-                                                {log.reasons.map((reason, index) => (
-                                                    <li key={index} className="text-destructive flex items-start gap-2">
-                                                        <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                                                        <span>{reason}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                        <div className="space-y-6">
+                            {groupedLogs.map(([time, timeLogs]) => (
+                                <div key={time}>
+                                     <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
+                                        <Clock className="h-5 w-5 text-primary" />
+                                        <span>Verificação às {time}</span>
+                                    </h3>
+                                    <Table className="border rounded-lg">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Duplas Envolvidas</TableHead>
+                                                <TableHead>Categoria / Fase</TableHead>
+                                                <TableHead>Motivos da Falha</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {timeLogs.map((log) => (
+                                                <TableRow key={log.matchId}>
+                                                    <TableCell className="font-medium align-top">
+                                                        <div className="font-bold">{log.team1}</div>
+                                                        <div className="text-xs text-muted-foreground my-1">vs</div>
+                                                        <div className="font-bold">{log.team2}</div>
+                                                    </TableCell>
+                                                    <TableCell className="align-top">
+                                                        <div className="font-semibold">{log.category}</div>
+                                                        <div className="text-sm text-muted-foreground">{log.stage}</div>
+                                                    </TableCell>
+                                                    <TableCell className="align-top">
+                                                        <ul className="list-disc list-inside space-y-1 text-sm">
+                                                            {log.reasons.map((reason, index) => (
+                                                                <li key={index} className="text-destructive flex items-start gap-2">
+                                                                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                                                                    <span>{reason}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[200px]">
                             <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />

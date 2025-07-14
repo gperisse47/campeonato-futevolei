@@ -1,3 +1,4 @@
+
 // lib/scheduler.ts
 import { parse as parseDate, format as formatDate, addMinutes, isEqual, differenceInMinutes } from "date-fns";
 
@@ -17,6 +18,7 @@ export interface SchedulingLog {
   team1: string;
   team2: string;
   reasons: string[];
+  checkedAtTime?: string;
 }
 
 
@@ -79,9 +81,8 @@ function getStagePriority(stage: string): number {
     if (s.includes("semifinal")) return 98;
     if (s.includes("quartas")) return 97;
     if (s.includes("oitavas")) return 96;
-    // Group stages will have lower priority
     if (s.includes("group") || s.includes("grupo")) return 1;
-    return 50; // Default for other stages
+    return 50;
 }
 
 
@@ -125,29 +126,32 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   const playerAvailability: Record<string, Date> = {};
   let currentTime = new Date(Math.min(...Object.values(categoryStartTimes).map(d => d.getTime() || Infinity)));
   const unscheduled = new Set(matches.map(m => m.id));
-  const tempLogs: Record<string, string[]> = {};
+  const logs: SchedulingLog[] = [];
 
 
   function playedTwoConsecutive(player: string, time: Date): boolean {
     const times = (matchHistory[player] || []).filter(t => t < time).sort((a, b) => a.getTime() - b.getTime());
-    return times.length >= 2 &&
-      isEqual(times[times.length - 1], addMinutes(time, -matchDuration)) &&
-      isEqual(times[times.length - 2], addMinutes(time, -2 * matchDuration));
+    if (times.length < 2) return false;
+
+    const lastMatchTime = times[times.length - 1];
+    const secondLastMatchTime = times[times.length - 2];
+    
+    // Check if the last two games were back-to-back in terms of match duration slots
+    const expectedLastTime = addMinutes(time, -matchDuration);
+    const expectedSecondLastTime = addMinutes(time, -2 * matchDuration);
+
+    return isEqual(lastMatchTime, expectedLastTime) && isEqual(secondLastMatchTime, expectedSecondLastTime);
   }
   
   let loopCounter = 0;
-  const MAX_LOOPS = 5000; // Protection against infinite loops
+  const MAX_LOOPS = 5000; 
 
   while (unscheduled.size > 0 && loopCounter < MAX_LOOPS) {
     loopCounter++;
     const loopStartTime = new Date(currentTime);
     
-    // Clear logs for this iteration
-    Object.keys(tempLogs).forEach(key => delete tempLogs[key]);
-
-
     if (addMinutes(currentTime, matchDuration) > END_OF_DAY) {
-      break; // Stop scheduling if we are past the end of the day
+      break; 
     }
 
     const availableCourts = courts.filter(c =>
@@ -156,47 +160,52 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     ).sort((a,b) => a.name.localeCompare(b.name));
 
     const readyMatches: Match[] = [];
+    const tempLogsForIteration: Record<string, string[]> = {};
 
     for (const matchId of unscheduled) {
         const m = matchesById.get(matchId)!;
-        tempLogs[m.id] = [];
+        const reasons: string[] = [];
         
         if (currentTime < (categoryStartTimes[m.category] || new Date(0))) {
-          tempLogs[m.id].push(`Ainda não atingiu o horário de início da categoria (${formatDate(categoryStartTimes[m.category], 'HH:mm')}).`);
-          continue;
+          reasons.push(`Ainda não atingiu o horário de início da categoria (${formatDate(categoryStartTimes[m.category], 'HH:mm')}).`);
         }
         
         const dependenciesMet = m.dependencies.every(depId => {
             const depMatch = matchesById.get(depId);
             const met = depMatch && !!depMatch.time;
-            if (!met) tempLogs[m.id].push(`Dependência não concluída: Jogo ${depId}.`);
+            if (!met) reasons.push(`Dependência não resolvida: Jogo ${depId}.`);
             return met;
         });
 
-        if (!dependenciesMet) {
-            continue;
-        }
-        
         const canStart = !m.phaseStartTime || currentTime >= m.phaseStartTime;
         if (!canStart) {
-           tempLogs[m.id].push(`Ainda não atingiu o horário mínimo da fase (${formatDate(m.phaseStartTime!, 'HH:mm')}).`);
-           continue;
+           reasons.push(`Ainda não atingiu o horário mínimo da fase (${formatDate(m.phaseStartTime!, 'HH:mm')}).`);
         }
         
         const playersAvailable = m.players.every(p => {
           const available = (playerAvailability[p] || new Date(0)) <= currentTime;
-          if (!available) tempLogs[m.id].push(`Jogador ${p} está em descanso até ${formatDate(playerAvailability[p], 'HH:mm')}.`);
+          if (!available) reasons.push(`Jogador ${p} em descanso até ${formatDate(playerAvailability[p]!, 'HH:mm')}.`);
           return available;
         });
         
         const noConsecutive = m.players.every(p => {
           const consecutive = playedTwoConsecutive(p, currentTime);
-          if (consecutive) tempLogs[m.id].push(`Jogador ${p} jogaria 3 partidas seguidas.`);
+          if (consecutive) reasons.push(`Jogador ${p} jogaria 3 partidas seguidas.`);
           return !consecutive;
         });
 
         if (dependenciesMet && canStart && playersAvailable && noConsecutive) {
           readyMatches.push(m);
+        } else {
+            logs.push({
+                matchId: m.id,
+                category: m.category,
+                stage: m.stage,
+                team1: m.team1,
+                team2: m.team2,
+                reasons: reasons,
+                checkedAtTime: formatDate(currentTime, "HH:mm"),
+            });
         }
     }
     
@@ -246,24 +255,26 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     }
   }
   
-  const logs: SchedulingLog[] = [];
-  for(const id of unscheduled){
-    const match = matchesById.get(id)!;
-    const finalReasons = tempLogs[id] || [];
-    if (addMinutes(currentTime, matchDuration) > END_OF_DAY && finalReasons.length === 0) {
-      finalReasons.push("Não há mais tempo disponível no dia para alocar a partida.");
-    }
-    if (finalReasons.length === 0) {
-      finalReasons.push("Não foi encontrada uma quadra disponível ou jogadores estão em conflito de horário com outros jogos no mesmo slot.");
-    }
-    logs.push({
-      matchId: match.id,
-      category: match.category,
-      stage: match.stage,
-      team1: match.team1,
-      team2: match.team2,
-      reasons: finalReasons,
-    })
+  if (unscheduled.size > 0) {
+      for(const id of unscheduled){
+          const match = matchesById.get(id)!;
+          const hasExistingLogForFinalTime = logs.some(l => l.matchId === id && l.checkedAtTime === formatDate(currentTime, "HH:mm"));
+          if (!hasExistingLogForFinalTime) {
+             const finalReasons = ["Não foi encontrada uma quadra disponível ou jogadores estão em conflito de horário com outros jogos no mesmo slot."];
+              if (addMinutes(currentTime, matchDuration) > END_OF_DAY) {
+                finalReasons.push("Não há mais tempo disponível no dia para alocar a partida.");
+              }
+              logs.push({
+                matchId: match.id,
+                category: match.category,
+                stage: match.stage,
+                team1: match.team1,
+                team2: match.team2,
+                reasons: finalReasons,
+                checkedAtTime: formatDate(currentTime, "HH:mm"),
+              });
+          }
+      }
   }
 
   const scheduledMatches = matches.filter(m => m.time && m.court);
