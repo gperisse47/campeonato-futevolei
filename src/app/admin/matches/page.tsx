@@ -106,7 +106,7 @@ export default function ScheduleGridPage() {
   const [courts, setCourts] = useState<Court[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(isSaving);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
@@ -458,21 +458,26 @@ export default function ScheduleGridPage() {
             const team2 = lines[3] || '';
             
             const x = cell.x + cell.width / 2; // Center horizontally
-            const y = cell.y + cell.height / 2; // Center vertically
-            const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
-            
+            const lineHeight = (doc.getFontSize() * 1.15) / doc.internal.scaleFactor;
+            const totalHeight = lineHeight * 4;
+            let y = cell.y + (cell.height - totalHeight) / 2 + lineHeight * 0.7; // Start y for the first line
+
             doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.text(stage, x, y - lineHeight * 1.5, { align: 'center' });
-            
-            doc.setFont('helvetica', 'bold');
-            doc.text(team1, x, y - lineHeight * 0.5, { align: 'center' });
             
             doc.setFont('helvetica', 'normal');
-            doc.text(vs, x, y + lineHeight * 0.5, { align: 'center' });
+            doc.text(stage, x, y, { align: 'center' });
+            y += lineHeight;
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(team1, x, y, { align: 'center' });
+            y += lineHeight;
+            
+            doc.setFont('helvetica', 'normal');
+            doc.text(vs, x, y, { align: 'center' });
+            y += lineHeight;
             
             doc.setFont('helvetica', 'bold');
-            doc.text(team2, x, y + lineHeight * 1.5, { align: 'center' });
+            doc.text(team2, x, y, { align: 'center' });
         },
         didDrawPage: (data) => {
             const pageCount = doc.getNumberOfPages();
@@ -773,5 +778,7 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
+
+    
 
     
