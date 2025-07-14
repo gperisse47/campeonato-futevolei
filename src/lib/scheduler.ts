@@ -1,5 +1,5 @@
 // lib/scheduler.ts
-import { parse, addMinutes, isBefore, differenceInMinutes, startOfDay } from 'date-fns';
+import { format, parse, addMinutes, isBefore, differenceInMinutes, startOfDay } from 'date-fns';
 import type { Court, MatchWithScore, PlayoffMatch, Team } from '@/lib/types';
 
 export type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
