@@ -1,4 +1,3 @@
-
 // lib/scheduler.ts
 import { parse as parseDate, format as formatDate, addMinutes, isEqual, differenceInMinutes } from "date-fns";
 
@@ -80,8 +79,9 @@ function getStagePriority(stage: string): number {
     if (s.includes("semifinal")) return 98;
     if (s.includes("quartas")) return 97;
     if (s.includes("oitavas")) return 96;
+    // Group stages will have lower priority
     if (s.includes("group") || s.includes("grupo")) return 1;
-    return 50;
+    return 50; // Default for other stages
 }
 
 
@@ -125,7 +125,6 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   const playerAvailability: Record<string, Date> = {};
   let currentTime = new Date(Math.min(...Object.values(categoryStartTimes).map(d => d.getTime() || Infinity)));
   const unscheduled = new Set(matches.map(m => m.id));
-  const logs: SchedulingLog[] = [];
   const tempLogs: Record<string, string[]> = {};
 
 
@@ -137,16 +136,18 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   }
   
   let loopCounter = 0;
-  const MAX_LOOPS = 5000;
+  const MAX_LOOPS = 5000; // Protection against infinite loops
 
   while (unscheduled.size > 0 && loopCounter < MAX_LOOPS) {
     loopCounter++;
     const loopStartTime = new Date(currentTime);
+    
+    // Clear logs for this iteration
     Object.keys(tempLogs).forEach(key => delete tempLogs[key]);
 
 
     if (addMinutes(currentTime, matchDuration) > END_OF_DAY) {
-      break;
+      break; // Stop scheduling if we are past the end of the day
     }
 
     const availableCourts = courts.filter(c =>
@@ -245,6 +246,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     }
   }
   
+  const logs: SchedulingLog[] = [];
   for(const id of unscheduled){
     const match = matchesById.get(id)!;
     const finalReasons = tempLogs[id] || [];
