@@ -1,4 +1,3 @@
-
 // lib/scheduler.ts
 import { parse as parseDate, format as formatDate, addMinutes, isEqual, differenceInMinutes } from "date-fns";
 
@@ -60,10 +59,18 @@ class Match {
     this.team2 = row.team2;
     this.players = this.extractPlayers(this.team1).concat(this.extractPlayers(this.team2));
     this.dependencies = row.dependencies;
-
-    const stageMinTimeKey = `${this.category}__stageMinTime_${this.stage}`;
-    if (parameters[stageMinTimeKey]) {
-      this.phaseStartTime = parseDate(parameters[stageMinTimeKey], "HH:mm", new Date());
+    
+    // Find the correct phase start time by checking if the stage name starts with the key.
+    // This handles "Semifinal 1" and "Semifinal 2" matching a "Semifinal" key.
+    for (const key in parameters) {
+        const match = key.match(/__(stageMinTime)_(.+)/);
+        if (match && this.stage.startsWith(match[2]) && key.startsWith(this.category)) {
+            const timeValue = parameters[key];
+            if (timeValue) {
+                this.phaseStartTime = parseDate(timeValue, "HH:mm", new Date());
+                break; // Found the most specific match
+            }
+        }
     }
   }
 
@@ -137,11 +144,9 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     const lastMatchTime = times[times.length - 1];
     const secondLastMatchTime = times[times.length - 2];
     
-    // Check if the difference between the current time and last match time is exactly matchDuration
     const diffLast = differenceInMinutes(time, lastMatchTime);
     if(diffLast !== matchDuration) return false;
     
-    // Check if the difference between last and second last match is also matchDuration
     const diffSecondLast = differenceInMinutes(lastMatchTime, secondLastMatchTime);
     return diffSecondLast === matchDuration;
   }
@@ -172,54 +177,50 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
             return prioA - prioB;
         });
         
-    for (const cat of eligibleCategories) {
-        const categoryMatches = matches.filter(m => m.category === cat && unscheduled.has(m.id));
-        
-        for (const m of categoryMatches) {
-            const reasons: string[] = [];
-            
-            // Check 1: Dependencies must be met
-            const dependenciesMet = m.dependencies.every(depId => {
-                const depMatch = matchesById.get(depId);
-                const met = depMatch && !!depMatch.time;
-                if (!met) reasons.push(`Dependência não resolvida: Jogo ${depId}.`);
-                return met;
-            });
+    for (const m of matches) {
+      if (!unscheduled.has(m.id)) continue;
+      if (!eligibleCategories.includes(m.category)) continue;
 
-            // Check 2: Must respect phase start time
-            const phaseStartTimeMet = !m.phaseStartTime || currentTime >= m.phaseStartTime;
-            if (!phaseStartTimeMet) {
-               reasons.push(`Ainda não atingiu o horário mínimo da fase (${formatDate(m.phaseStartTime!, 'HH:mm')}).`);
-            }
+      const reasons: string[] = [];
+      
+      const dependenciesMet = m.dependencies.every(depId => {
+          const depMatch = matchesById.get(depId);
+          const met = depMatch && !!depMatch.time;
+          if (!met) reasons.push(`Dependência não resolvida: Jogo ${depId}.`);
+          return met;
+      });
 
-            // Check 3: Players must be available
-            const playersAvailable = m.players.every(p => {
-              const available = (playerAvailability[p] || new Date(0)) <= currentTime;
-              if (!available) reasons.push(`Jogador ${p} em descanso até ${formatDate(playerAvailability[p]!, 'HH:mm')}.`);
-              return available;
-            });
+      const phaseStartTimeMet = !m.phaseStartTime || currentTime >= m.phaseStartTime;
+      if (!phaseStartTimeMet) {
+          reasons.push(`Ainda não atingiu o horário mínimo da fase (${formatDate(m.phaseStartTime!, 'HH:mm')}).`);
+      }
 
-            // Check 4: Players should not play 3 consecutive matches
-            const noConsecutive = m.players.every(p => {
-              const consecutive = playedTwoConsecutive(p, currentTime);
-              if (consecutive) reasons.push(`Jogador ${p} jogaria 3 partidas seguidas.`);
-              return !consecutive;
-            });
+      const playersAvailable = m.players.every(p => {
+        const availableTime = playerAvailability[p] || new Date(0);
+        const available = availableTime <= currentTime;
+        if (!available) reasons.push(`Jogador ${p} em descanso até ${formatDate(availableTime, 'HH:mm')}.`);
+        return available;
+      });
 
-            if (reasons.length > 0) {
-                logs.push({
-                    matchId: m.id,
-                    category: m.category,
-                    stage: m.stage,
-                    team1: m.team1,
-                    team2: m.team2,
-                    reasons: reasons,
-                    checkedAtTime: formatDate(currentTime, "HH:mm"),
-                });
-            } else { // Only if all checks pass, add to ready matches
-              readyMatches.push(m);
-            }
-        }
+      const noConsecutive = m.players.every(p => {
+        const consecutive = playedTwoConsecutive(p, currentTime);
+        if (consecutive) reasons.push(`Jogador ${p} jogaria 3 partidas seguidas.`);
+        return !consecutive;
+      });
+
+      if (dependenciesMet && phaseStartTimeMet && playersAvailable && noConsecutive) {
+        readyMatches.push(m);
+      } else {
+         logs.push({
+              matchId: m.id,
+              category: m.category,
+              stage: m.stage,
+              team1: m.team1,
+              team2: m.team2,
+              reasons: reasons,
+              checkedAtTime: formatDate(currentTime, "HH:mm"),
+          });
+      }
     }
 
 
@@ -235,8 +236,8 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       const rest = (m: Match) => {
         if (m.players.length === 0) return { min: Infinity, sum: Infinity };
         const rests = m.players.map(p => {
-            const pa = playerAvailability[p];
-            return pa ? differenceInMinutes(currentTime, pa) : Infinity;
+            const pa = playerAvailability[p] || new Date(0);
+            return differenceInMinutes(currentTime, pa);
         });
         return {
           min: Math.min(...rests),
@@ -278,7 +279,6 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     if (isEqual(currentTime, loopStartTime)) {
       currentTime = addMinutes(currentTime, matchDuration);
     } else {
-      // If a match was scheduled, re-evaluate from the same time slot
       currentTime = loopStartTime;
     }
   }
@@ -286,22 +286,23 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   if (unscheduled.size > 0 && addMinutes(currentTime, matchDuration) > END_OF_DAY) {
       for(const id of unscheduled){
           const match = matchesById.get(id)!;
-          logs.push({
-              matchId: match.id,
-              category: match.category,
-              stage: match.stage,
-              team1: match.team1,
-              team2: match.team2,
-              reasons: ["Não há mais tempo disponível no dia para alocar a partida."],
-              checkedAtTime: formatDate(currentTime, "HH:mm"),
-          });
+          if (!logs.some(l => l.matchId === id && l.reasons.some(r => r.startsWith("Não há mais tempo")))) {
+             logs.push({
+                  matchId: match.id,
+                  category: match.category,
+                  stage: match.stage,
+                  team1: match.team1,
+                  team2: match.team2,
+                  reasons: ["Não há mais tempo disponível no dia para alocar a partida."],
+                  checkedAtTime: formatDate(currentTime, "HH:mm"),
+              });
+          }
       }
   }
 
   const scheduledMatches = matches.filter(m => m.time && m.court);
   const unscheduledMatches = matches.filter(m => !m.time || !m.court);
   
-  // Convert class instances to plain objects before returning, safe for Server->Client passing
   const plainPartialSchedule = matches.map(m => ({
     id: m.id,
     category: m.category,
