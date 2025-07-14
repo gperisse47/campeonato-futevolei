@@ -32,7 +32,7 @@ class Court {
 class Match {
   id: string;
   category: string;
-  stage: string;
+  stage: string; 
   team1: string;
   team2: string;
   players: string[];
@@ -46,8 +46,8 @@ class Match {
     this.stage = row.stage;
     this.team1 = row.team1;
     this.team2 = row.team2;
-    this.dependencies = row.dependencies;
     this.players = this.extractPlayers(this.team1).concat(this.extractPlayers(this.team2));
+    this.dependencies = row.dependencies;
   }
 
   private extractPlayers(team: string): string[] {
@@ -59,8 +59,8 @@ class Match {
 
 function getStagePriority(stage: string): number {
   const s = stage.toLowerCase();
-  if (s.includes("final") && !s.includes("semifinal")) return 100;
-  if (s.includes("disputa de 3")) return 99;
+  if (s.includes("final") && !s.includes("disputa")) return 100;
+  if (s.includes("disputa de 3") || s.includes("disputa3")) return 99;
   if (s.includes("semifinal")) return 98;
   if (s.includes("quartas")) return 97;
   if (s.includes("oitavas")) return 96;
@@ -113,13 +113,6 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   const matches = matchesInput.map(row => new Match(row));
   const matchesById = new Map(matches.map(m => [m.id, m]));
   
-  const matchesByCatStage: Record<string, Record<string, Match[]>> = {};
-  for (const match of matches) {
-    if (!matchesByCatStage[match.category]) matchesByCatStage[match.category] = {};
-    if (!matchesByCatStage[match.category][match.stage]) matchesByCatStage[match.category][match.stage] = [];
-    matchesByCatStage[match.category][match.stage].push(match);
-  }
-  
   const matchHistory: Record<string, Date[]> = {};
   const playerAvailability: Record<string, Date> = {};
   let currentTime = new Date(Math.min(...Object.values(categoryStartTimes).map(d => d.getTime() || Infinity)));
@@ -132,8 +125,12 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       isEqual(times[times.length - 2], addMinutes(time, -2 * matchDuration));
   }
   
-  while (unscheduled.size > 0) {
-    const loopStartTime = currentTime;
+  let loopCounter = 0;
+  const MAX_LOOPS = 500; // Safety break
+
+  while (unscheduled.size > 0 && loopCounter < MAX_LOOPS) {
+    loopCounter++;
+    const loopStartTime = new Date(currentTime);
 
     if (addMinutes(currentTime, matchDuration) > END_OF_DAY) {
       console.warn(`[ALERTA] Horário final do campeonato ultrapassado: ${formatDate(currentTime, 'HH:mm')}`);
@@ -145,29 +142,24 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       c.nextAvailable <= currentTime
     ).sort((a,b) => a.name.localeCompare(b.name));
 
-
     const readyMatches: Match[] = [];
-    for (const cat in matchesByCatStage) {
-        if (currentTime < (categoryStartTimes[cat] || new Date(0))) continue;
+    for (const matchId of unscheduled) {
+        const m = matchesById.get(matchId)!;
         
-        for (const stage in matchesByCatStage[cat]) {
-            const stageMatches = matchesByCatStage[cat][stage].filter(m => unscheduled.has(m.id));
-            const minStageStart = stageMinStartTimes[cat]?.[stage];
-            
-            for (const m of stageMatches) {
-                 const dependenciesMet = m.dependencies.every(depId => {
-                    const depMatch = matchesById.get(depId);
-                    return depMatch && depMatch.time; // Check if dependency is scheduled
-                });
-                
-                const canStart = !minStageStart || currentTime >= minStageStart;
-                
-                if (dependenciesMet && canStart &&
-                    m.players.every(p => (playerAvailability[p] || new Date(0)) <= currentTime) &&
-                    m.players.every(p => !playedTwoConsecutive(p, currentTime))) {
-                  readyMatches.push(m);
-                }
-            }
+        if (currentTime < (categoryStartTimes[m.category] || new Date(0))) continue;
+        
+        const dependenciesMet = m.dependencies.every(depId => {
+            const depMatch = matchesById.get(depId);
+            return depMatch && !!depMatch.time; // Check if dependency is scheduled
+        });
+        
+        const minStageStart = stageMinStartTimes[m.category]?.[m.stage];
+        const canStart = !minStageStart || currentTime >= minStageStart;
+
+        if (dependenciesMet && canStart &&
+            m.players.every(p => (playerAvailability[p] || new Date(0)) <= currentTime) &&
+            m.players.every(p => !playedTwoConsecutive(p, currentTime))) {
+          readyMatches.push(m);
         }
     }
     
@@ -176,9 +168,10 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       const stagePrioB = getStagePriority(b.stage);
       if (stagePrioA !== stagePrioB) return stagePrioB - stagePrioA;
 
-      const prioA = (stagePrioA > 1 && categoryPlayoffPriority[a.category]) ? categoryPlayoffPriority[a.category]! : 999;
-      const prioB = (stagePrioB > 1 && categoryPlayoffPriority[b.category]) ? categoryPlayoffPriority[b.category]! : 999;
-      if (prioA !== prioB) return prioA - prioB;
+      // Se a prioridade da fase for a mesma, usa a prioridade da categoria como desempate
+      const catPrioA = categoryPlayoffPriority[a.category] ?? 999;
+      const catPrioB = categoryPlayoffPriority[b.category] ?? 999;
+      if (catPrioA !== catPrioB) return catPrioA - catPrioB;
       
       const rest = (m: Match) => {
         if (m.players.length === 0) return { min: Infinity, sum: Infinity };
@@ -205,12 +198,14 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
         
         for (const p of match.players) {
             playerAvailability[p] = addMinutes(currentTime, matchDuration);
-            matchHistory[p] = [...(matchHistory[p] || []), currentTime];
+            if (!matchHistory[p]) matchHistory[p] = [];
+            matchHistory[p].push(currentTime);
             usedPlayers.add(p);
         }
         unscheduled.delete(match.id);
     }
 
+    // Avança o tempo se nenhum jogo foi agendado neste slot
     if (isEqual(currentTime, loopStartTime)) {
       currentTime = addMinutes(currentTime, matchDuration);
     }
