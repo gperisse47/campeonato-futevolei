@@ -131,22 +131,6 @@ export function SidebarNav() {
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <Link href="/admin/schedule-log" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/schedule-log'} tooltip="Log do Agendador">
-                            <FileWarning />
-                            <span>Log do Agendador</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <Link href="/admin/schedule-snapshot" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/schedule-snapshot'} tooltip="Snapshot do Agendamento">
-                            <BarChartHorizontal />
-                            <span>Snapshot do Agendamento</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
             </SidebarMenu>
 
             <SidebarSeparator className="my-4" />
