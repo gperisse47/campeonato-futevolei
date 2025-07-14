@@ -31,7 +31,6 @@ class Court {
 class Match {
   id: string;
   category: string;
-  group: string;
   team1: string;
   team2: string;
   stage: string;
@@ -42,10 +41,9 @@ class Match {
   constructor(row: MatchRow) {
     this.id = row.matchId;
     this.category = row.category;
-    this.group = row.stage;
+    this.stage = row.stage;
     this.team1 = row.team1;
     this.team2 = row.team2;
-    this.stage = normalizeStageName(row.stage);
     this.players = this.extractPlayers(this.team1).concat(this.extractPlayers(this.team2));
   }
 
@@ -55,16 +53,14 @@ class Match {
   }
 }
 
-function normalizeStageName(stage: string): string {
-  if (!stage) return "desconhecido";
-  stage = stage.trim().toLowerCase();
-  if (stage.includes("grupo") || stage.includes("group")) return "grupos";
-  if (stage.includes("oitava")) return "oitavas";
-  if (stage.includes("quart")) return "quartas";
-  if (stage.includes("semi")) return "semifinal";
-  if (stage.includes("final") && stage.includes("3")) return "3º lugar";
-  if (stage.includes("final")) return "final";
-  return stage;
+function getStagePriority(stage: string): number {
+  const s = stage.toLowerCase();
+  if (s.includes("final") && !s.includes("semifinal")) return 5;
+  if (s.includes("disputa")) return 4;
+  if (s.includes("semifinal")) return 3;
+  if (s.includes("quartas")) return 2;
+  if (s.includes("oitavas")) return 1;
+  return 0; // Fase de grupos
 }
 
 export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<string, string>): Match[] {
@@ -102,8 +98,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     const stageMinTime = key.match(/^(.+)__stageMinTime_(.+)$/);
     if (stageMinTime) {
-      const [_, category, stageRaw] = stageMinTime;
-      const stage = normalizeStageName(stageRaw);
+      const [_, category, stage] = stageMinTime;
       if (!stageMinStartTimes[category]) stageMinStartTimes[category] = {};
       stageMinStartTimes[category][stage] = parseDate(val, "HH:mm", new Date());
     }
@@ -111,9 +106,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
   const matches = matchesInput.map(row => new Match(row));
   const matchesByCatStage: Record<string, Record<string, Match[]>> = {};
-  const STAGE_ORDER = ["grupos", "oitavas", "quartas", "semifinal", "final", "3º lugar", "3o lugar"];
-  const stagePriority = Object.fromEntries(STAGE_ORDER.map((s, i) => [s, i]));
-
+  
   for (const match of matches) {
     if (!matchesByCatStage[match.category]) matchesByCatStage[match.category] = {};
     if (!matchesByCatStage[match.category][match.stage]) matchesByCatStage[match.category][match.stage] = [];
@@ -123,7 +116,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   const stagesPerCat: Record<string, string[]> = {};
   const currentStageIdx: Record<string, number> = {};
   for (const cat in matchesByCatStage) {
-    const stages = Object.keys(matchesByCatStage[cat]).sort((a, b) => (stagePriority[a] ?? 99) - (stagePriority[b] ?? 99));
+    const stages = Object.keys(matchesByCatStage[cat]).sort((a, b) => getStagePriority(a) - getStagePriority(b));
     stagesPerCat[cat] = stages;
     currentStageIdx[cat] = 0;
   }
@@ -164,7 +157,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       const stageIdx = currentStageIdx[cat];
       if (stageIdx >= stagesPerCat[cat].length) continue;
       const stage = stagesPerCat[cat][stageIdx];
-      const stageMatches = matchesByCatStage[cat][stage].filter(m => unscheduled.has(m.id));
+      const stageMatches = matchesByCatStage[cat][stage]?.filter(m => unscheduled.has(m.id)) || [];
       const minStageStart = stageMinStartTimes[cat]?.[stage];
 
       for (const m of stageMatches) {
@@ -176,27 +169,15 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
         }
       }
     }
-
-    const isPlayoff = (stage: string): boolean =>
-      ["oitavas", "quartas", "semifinal", "final", "3º lugar", "3o lugar"].includes(stage.toLowerCase());
-
-    const getStagePriority = (stage: string): number =>
-      stagePriority[stage.toLowerCase()] ?? 0;
-
+    
     readyMatches.sort((a, b) => {
-      const aIsPlayoff = isPlayoff(a.stage);
-      const bIsPlayoff = isPlayoff(b.stage);
-
-      if (aIsPlayoff && !bIsPlayoff) return -1;
-      if (!aIsPlayoff && bIsPlayoff) return 1;
+      const stageA = getStagePriority(a.stage);
+      const stageB = getStagePriority(b.stage);
+      if (stageA !== stageB) return stageB - stageA; // Higher stage first
 
       const pa = playoffPriority[a.category] ?? 999;
       const pb = playoffPriority[b.category] ?? 999;
       if (pa !== pb) return pa - pb;
-
-      const stageA = getStagePriority(a.stage);
-      const stageB = getStagePriority(b.stage);
-      if (stageA !== stageB) return stageB - stageA;
 
       const rest = (m: Match) => {
         const rests = m.players.map(p => differenceInMinutes(currentTime, playerAvailability[p] || new Date(0)));
