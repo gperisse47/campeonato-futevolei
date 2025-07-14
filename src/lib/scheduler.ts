@@ -84,7 +84,7 @@ function getStagePriority(stage: string): number {
 }
 
 
-export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<string, string>): { scheduled: Match[], unscheduled: Match[], logs: SchedulingLog[], partialSchedule: Match[] } {
+export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<string, string>): { scheduled: Match[], unscheduled: Match[], logs: SchedulingLog[], partialSchedule: any[] } {
   const matchDuration = parseInt(parameters["estimatedMatchDuration"] || "20", 10);
   const END_OF_DAY = parseDate(parameters["endTime"] || "21:00", "HH:mm", new Date());
 
@@ -133,11 +133,14 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     const lastMatchTime = times[times.length - 1];
     const secondLastMatchTime = times[times.length - 2];
-
-    const expectedLastTime = addMinutes(time, -matchDuration);
-    const expectedSecondLastTime = addMinutes(time, -2 * matchDuration);
-
-    return isEqual(lastMatchTime, expectedLastTime) && isEqual(secondLastMatchTime, expectedSecondLastTime);
+    
+    // Check if the difference between the current time and last match time is exactly matchDuration
+    const diffLast = differenceInMinutes(time, lastMatchTime);
+    if(diffLast !== matchDuration) return false;
+    
+    // Check if the difference between last and second last match is also matchDuration
+    const diffSecondLast = differenceInMinutes(lastMatchTime, secondLastMatchTime);
+    return diffSecondLast === matchDuration;
   }
 
   let loopCounter = 0;
@@ -157,10 +160,12 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     ).sort((a,b) => a.name.localeCompare(b.name));
 
     const readyMatches: Match[] = [];
+    const tempLogs: Record<string, string[]> = {};
 
     for (const matchId of unscheduled) {
         const m = matchesById.get(matchId)!;
         const reasons: string[] = [];
+        tempLogs[matchId] = reasons;
 
         const dependenciesMet = m.dependencies.every(depId => {
             const depMatch = matchesById.get(depId);
@@ -192,18 +197,24 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
         if (dependenciesMet && canStart && playersAvailable && noConsecutive) {
           readyMatches.push(m);
-        } else if (reasons.length > 0) {
+        }
+    }
+    
+     for (const matchId in tempLogs) {
+        if (tempLogs[matchId].length > 0) {
+            const m = matchesById.get(matchId)!;
             logs.push({
                 matchId: m.id,
                 category: m.category,
                 stage: m.stage,
                 team1: m.team1,
                 team2: m.team2,
-                reasons: reasons,
+                reasons: tempLogs[matchId],
                 checkedAtTime: formatDate(currentTime, "HH:mm"),
             });
         }
     }
+
 
     readyMatches.sort((a, b) => {
       const stagePrioA = getStagePriority(a.stage);
@@ -230,8 +241,12 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     const usedPlayers = new Set<string>();
     for (const court of availableCourts) {
-        const match = readyMatches.find(m => m.players.every(p => !usedPlayers.has(p)));
-        if (!match) continue;
+        if(readyMatches.length === 0) break;
+
+        const matchIndex = readyMatches.findIndex(m => m.players.every(p => !usedPlayers.has(p)));
+        if(matchIndex === -1) continue;
+        
+        const match = readyMatches.splice(matchIndex, 1)[0];
 
         match.time = formatDate(currentTime, "HH:mm");
         match.court = court.name;
@@ -251,30 +266,38 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     }
   }
 
-  if (unscheduled.size > 0) {
+  if (unscheduled.size > 0 && addMinutes(currentTime, matchDuration) > END_OF_DAY) {
       for(const id of unscheduled){
           const match = matchesById.get(id)!;
-          const hasExistingLogForFinalTime = logs.some(l => l.matchId === id && l.checkedAtTime === formatDate(currentTime, "HH:mm"));
-          if (!hasExistingLogForFinalTime) {
-             const finalReasons = ["Não foi encontrada uma quadra disponível ou jogadores estão em conflito de horário com outros jogos no mesmo slot."];
-              if (addMinutes(currentTime, matchDuration) > END_OF_DAY) {
-                finalReasons.push("Não há mais tempo disponível no dia para alocar a partida.");
-              }
-              logs.push({
-                matchId: match.id,
-                category: match.category,
-                stage: match.stage,
-                team1: match.team1,
-                team2: match.team2,
-                reasons: finalReasons,
-                checkedAtTime: formatDate(currentTime, "HH:mm"),
-              });
-          }
+          logs.push({
+              matchId: match.id,
+              category: match.category,
+              stage: match.stage,
+              team1: match.team1,
+              team2: match.team2,
+              reasons: ["Não há mais tempo disponível no dia para alocar a partida."],
+              checkedAtTime: formatDate(currentTime, "HH:mm"),
+          });
       }
   }
 
   const scheduledMatches = matches.filter(m => m.time && m.court);
   const unscheduledMatches = matches.filter(m => !m.time || !m.court);
+  
+  // Convert class instances to plain objects before returning, safe for Server->Client passing
+  const plainPartialSchedule = matches.map(m => ({
+    id: m.id,
+    category: m.category,
+    stage: m.stage,
+    team1: m.team1,
+    team2: m.team2,
+    players: m.players,
+    dependencies: m.dependencies,
+    time: m.time,
+    court: m.court,
+    phaseStartTime: m.phaseStartTime ? formatDate(m.phaseStartTime, 'HH:mm') : undefined,
+  }));
 
-  return { scheduled: scheduledMatches, unscheduled: unscheduledMatches, logs, partialSchedule: matches };
+
+  return { scheduled: scheduledMatches, unscheduled: unscheduledMatches, logs, partialSchedule: plainPartialSchedule };
 }
