@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import Papa from "papaparse";
 import type { SchedulingLog } from "@/lib/scheduler";
 
 
@@ -441,26 +440,18 @@ export default function ScheduleGridPage() {
             fillColor: "#F5F5F5"
         },
         willDrawCell: (data) => {
-            const row = data.row;
             const cell = data.cell;
             if (data.section === 'body' && typeof cell.raw === 'string' && cell.raw.includes('\n')) {
-                const lines = cell.raw.split('\n');
-                const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
-                const requiredHeight = lines.length * lineHeight + 8; // Adjust padding
-                 if (row.height < requiredHeight) {
-                    row.height = requiredHeight;
-                 }
+                 cell.text = ''; // Prevent default text rendering
             }
         },
         didDrawCell: (data) => {
-            if (data.section !== 'body' || !data.cell.raw || typeof data.cell.raw !== 'string') {
+            if (data.section !== 'body' || !data.cell.raw || typeof data.cell.raw !== 'string' || !data.cell.raw.includes('\n')) {
                 return;
             }
-            // Clear the original text to prevent duplication
-            data.cell.text = [];
 
             const cell = data.cell;
-            const lines = cell.raw.split('\n');
+            const lines = (cell.raw as string).split('\n');
             const stage = lines[0] || '';
             const team1 = lines[1] || '';
             const vs = lines[2] || '';
