@@ -133,42 +133,24 @@ const teamToKey = (team?: Team): string => {
     return `${players[0]} e ${players[1]}`;
 };
 
-function getPlayersFromMatch(match: MatchWithScore | PlayoffMatch): string[] {
-    const players = new Set<string>();
-    const addTeamPlayers = (team?: Team | string) => {
-        if (!team) return;
-        if (typeof team === 'string') {
-            if(team.includes(' e ')) {
-                team.split(' e ').forEach(p => players.add(p.trim()));
-            }
-        } else {
-             if (team.player1) players.add(team.player1.trim());
-             if (team.player2) players.add(team.player2.trim());
-        }
-    };
-    addTeamPlayers(match.team1);
-    addTeamPlayers(match.team2);
-    // Add players from placeholders too if teams are not yet defined
-    if (!match.team1 && match.team1Placeholder) addTeamPlayers(match.team1Placeholder);
-    if (!match.team2 && match.team2Placeholder) addTeamPlayers(match.team2Placeholder);
-    return Array.from(players);
-}
-
-function extractDependencies(placeholder: string | undefined, categoryName: string): string[] {
+function extractDependencies(placeholder: string | undefined): string[] {
     if (!placeholder) return [];
     
-    // For "Vencedor Categoria-QuartasdeFinal-Jogo1" or "Perdedor Categoria-U-R1-J1"
-    const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
-    if (matchDepMatch && matchDepMatch[1]) {
-        return [matchDepMatch[1].trim()];
+    const winnerMatch = placeholder.match(/Vencedor (.+)/);
+    if (winnerMatch) return [winnerMatch[1].trim()];
+
+    const loserMatch = placeholder.match(/Perdedor (.+)/);
+    if (loserMatch) return [loserMatch[1].trim()];
+
+    // Dependencies for groups are handled by checking if all group matches are done.
+    // This is implicitly handled by the scheduler ensuring playoff matches depend on group stage matches.
+    // However, if we need explicit dependencies:
+    const groupMatch = placeholder.match(/\d+º do (.+)/);
+    if (groupMatch) {
+      // This dependency is more complex as it depends on a whole group finishing.
+      // The scheduler logic handles this by stage priority rather than explicit match dependencies.
     }
     
-    // For "1º do Categoria-GroupA"
-    const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
-    if (groupDepMatch && groupDepMatch[1]) {
-        return [`${groupDepMatch[1].trim()}-finished`];
-    }
-
     return [];
 }
 
@@ -803,7 +785,6 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
     const matchesInput: MatchRow[] = [];
     const parameters: Record<string, string> = {};
 
-    // Global settings
     const { _globalSettings } = tournaments;
     parameters['estimatedMatchDuration'] = String(_globalSettings.estimatedMatchDuration);
     parameters['endTime'] = _globalSettings.endTime || "21:00";
@@ -814,29 +795,49 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
         });
     });
 
-    // Category settings and matches
     for (const categoryName in tournaments) {
         if (categoryName === '_globalSettings') continue;
         const categoryData = tournaments[categoryName] as CategoryData;
         
-        // Category parameters
         parameters[`${categoryName}__startTime`] = categoryData.formValues.startTime || _globalSettings.startTime || "08:00";
         parameters[`${categoryName}__playoffPriority`] = String(categoryData.formValues.playoffPriority || 999);
         if (categoryData.formValues.quarterFinalsStartTime) parameters[`${categoryName}__stageMinTime_Quartas de Final`] = categoryData.formValues.quarterFinalsStartTime;
         if (categoryData.formValues.semiFinalsStartTime) parameters[`${categoryName}__stageMinTime_Semifinal`] = categoryData.formValues.semiFinalsStartTime;
-        if (categoryData.formValues.finalStartTime) parameters[`${categoryName}__stageMinTime_Final`] = categoryData.formValues.finalStartTime;
-        if (categoryData.formValues.finalStartTime) parameters[`${categoryName}__stageMinTime_Disputa de 3º Lugar`] = categoryData.formValues.finalStartTime;
+        if (categoryData.formValues.finalStartTime) {
+             parameters[`${categoryName}__stageMinTime_Final`] = categoryData.formValues.finalStartTime;
+             parameters[`${categoryName}__stageMinTime_Disputa de 3º Lugar`] = categoryData.formValues.finalStartTime;
+        }
 
-
-        // Match data
         const addMatch = (match: MatchWithScore | PlayoffMatch, stage: string) => {
             if (!match.id) return;
+            let dependencies: string[] = [];
+
+            if ('team1Placeholder' in match) {
+                dependencies.push(...extractDependencies(match.team1Placeholder));
+            }
+             if ('team2Placeholder' in match) {
+                dependencies.push(...extractDependencies(match.team2Placeholder));
+            }
+            // For group dependencies, we need a special marker or logic in scheduler
+            // For now, we rely on stage priority. But if explicit deps are needed:
+            if(match.team1Placeholder?.includes('º do')){
+                const groupName = match.team1Placeholder.split(' do ')[1];
+                const groupMatches = categoryData.tournamentData?.groups.find(g => g.name === groupName)?.matches;
+                if(groupMatches) dependencies.push(...groupMatches.map(m => m.id!));
+            }
+            if(match.team2Placeholder?.includes('º do')){
+                const groupName = match.team2Placeholder.split(' do ')[1];
+                const groupMatches = categoryData.tournamentData?.groups.find(g => g.name === groupName)?.matches;
+                if(groupMatches) dependencies.push(...groupMatches.map(m => m.id!));
+            }
+
             matchesInput.push({
                 matchId: match.id,
                 category: categoryName,
                 stage: stage,
                 team1: teamToKey(match.team1) || match.team1Placeholder || '',
                 team2: teamToKey(match.team2) || match.team2Placeholder || '',
+                dependencies: [...new Set(dependencies)]
             });
         };
 
@@ -871,14 +872,13 @@ export async function generateScheduleAction(): Promise<{ success: boolean; erro
 
         const scheduledResult = scheduleMatches(matchesInput, parameters);
         
-        const scheduledMap = new Map(scheduledResult.map(m => [m.id, m]));
-        const unscheduledMatches = matchesInput.filter(m => !scheduledMap.get(m.matchId)?.time);
+        const unscheduledMatches = scheduledResult.filter(m => !m.time);
 
         if (unscheduledMatches.length > 0) {
             const unscheduledDetails = unscheduledMatches.map(m => 
                 `${m.category} - ${m.stage}: ${m.team1 || 'A definir'} vs ${m.team2 || 'A definir'}`
-            ).join('\n');
-            const errorMessage = `${unscheduledMatches.length} jogos não puderam ser agendados.\nJogos faltantes:\n${unscheduledDetails}`;
+            ).slice(0, 10).join('\n');
+            const errorMessage = `${unscheduledMatches.length} jogos não puderam ser agendados.\nExemplos de jogos faltantes:\n${unscheduledDetails}`;
             return { success: false, error: errorMessage };
         }
 
