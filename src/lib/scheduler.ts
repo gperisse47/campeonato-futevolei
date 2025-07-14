@@ -1,3 +1,4 @@
+
 // lib/scheduler.ts
 import { parse as parseDate, format as formatDate, addMinutes, isEqual, differenceInMinutes } from "date-fns";
 
@@ -73,16 +74,14 @@ class Match {
 }
 
 function getStagePriority(stage: string): number {
-  const s = stage.toLowerCase();
-  if (s.includes("final") && !s.includes("disputa")) return 100;
-  if (s.includes("disputa de 3") || s.includes("disputa3")) return 99;
-  if (s.includes("semifinal")) return 98;
-  if (s.includes("quartas")) return 97;
-  if (s.includes("oitavas")) return 96;
-  // Group matches will have lower priority
-  if (s.includes("group") || s.includes("grupo")) return 1;
-  // Default for other playoff rounds
-  return 50; 
+    const s = stage.toLowerCase();
+    if (s.includes("final") && !s.includes("disputa")) return 100;
+    if (s.includes("disputa de 3") || s.includes("disputa3")) return 99;
+    if (s.includes("semifinal")) return 98;
+    if (s.includes("quartas")) return 97;
+    if (s.includes("oitavas")) return 96;
+    if (s.includes("group") || s.includes("grupo")) return 1;
+    return 50;
 }
 
 
@@ -127,6 +126,8 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   let currentTime = new Date(Math.min(...Object.values(categoryStartTimes).map(d => d.getTime() || Infinity)));
   const unscheduled = new Set(matches.map(m => m.id));
   const logs: SchedulingLog[] = [];
+  const tempLogs: Record<string, string[]> = {};
+
 
   function playedTwoConsecutive(player: string, time: Date): boolean {
     const times = (matchHistory[player] || []).filter(t => t < time).sort((a, b) => a.getTime() - b.getTime());
@@ -141,6 +142,8 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   while (unscheduled.size > 0 && loopCounter < MAX_LOOPS) {
     loopCounter++;
     const loopStartTime = new Date(currentTime);
+    Object.keys(tempLogs).forEach(key => delete tempLogs[key]);
+
 
     if (addMinutes(currentTime, matchDuration) > END_OF_DAY) {
       break;
@@ -152,7 +155,6 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     ).sort((a,b) => a.name.localeCompare(b.name));
 
     const readyMatches: Match[] = [];
-    const tempLogs: Record<string, string[]> = {};
 
     for (const matchId of unscheduled) {
         const m = matchesById.get(matchId)!;
