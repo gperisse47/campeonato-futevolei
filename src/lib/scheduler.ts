@@ -125,7 +125,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
   const matchHistory: Record<string, Date[]> = {};
   const playerAvailability: Record<string, Date> = {};
-  let currentTime = new Date(Math.min(...Object.values(categoryStartTimes).map(d => d.getTime() || Infinity), END_OF_DAY.getTime()));
+  let currentTime = new Date(Math.min(...Object.values(categoryStartTimes).map(d => d ? d.getTime() : Infinity).filter(isFinite), END_OF_DAY.getTime()));
   const unscheduled = new Set(matches.map(m => m.id));
   const logs: SchedulingLog[] = [];
 
@@ -164,20 +164,21 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     const readyMatches: Match[] = [];
     
-    // Filter categories that can start, then sort them
-    const categoriesSorted = Object.keys(categoryStartTimes)
-        .filter(cat => currentTime >= categoryStartTimes[cat])
+    const eligibleCategories = Object.keys(categoryStartTimes)
+        .filter(cat => currentTime >= (categoryStartTimes[cat] || new Date(8640000000000000))) // Filter out categories that haven't started
         .sort((a, b) => {
             const prioA = categoryPlayoffPriority[a] ?? 999;
             const prioB = categoryPlayoffPriority[b] ?? 999;
             return prioA - prioB;
         });
         
-    for (const cat of categoriesSorted) {
+    for (const cat of eligibleCategories) {
         const categoryMatches = matches.filter(m => m.category === cat && unscheduled.has(m.id));
+        
         for (const m of categoryMatches) {
             const reasons: string[] = [];
-
+            
+            // Check 1: Dependencies must be met
             const dependenciesMet = m.dependencies.every(depId => {
                 const depMatch = matchesById.get(depId);
                 const met = depMatch && !!depMatch.time;
@@ -185,21 +186,20 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
                 return met;
             });
 
-            if (currentTime < (categoryStartTimes[m.category] || new Date(0))) {
-              reasons.push(`Ainda não atingiu o horário de início da categoria (${formatDate(categoryStartTimes[m.category], 'HH:mm')}).`);
-            }
-
-            const canStart = !m.phaseStartTime || currentTime >= m.phaseStartTime;
-            if (!canStart) {
+            // Check 2: Must respect phase start time
+            const phaseStartTimeMet = !m.phaseStartTime || currentTime >= m.phaseStartTime;
+            if (!phaseStartTimeMet) {
                reasons.push(`Ainda não atingiu o horário mínimo da fase (${formatDate(m.phaseStartTime!, 'HH:mm')}).`);
             }
 
+            // Check 3: Players must be available
             const playersAvailable = m.players.every(p => {
               const available = (playerAvailability[p] || new Date(0)) <= currentTime;
               if (!available) reasons.push(`Jogador ${p} em descanso até ${formatDate(playerAvailability[p]!, 'HH:mm')}.`);
               return available;
             });
 
+            // Check 4: Players should not play 3 consecutive matches
             const noConsecutive = m.players.every(p => {
               const consecutive = playedTwoConsecutive(p, currentTime);
               if (consecutive) reasons.push(`Jogador ${p} jogaria 3 partidas seguidas.`);
@@ -216,9 +216,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
                     reasons: reasons,
                     checkedAtTime: formatDate(currentTime, "HH:mm"),
                 });
-            }
-
-            if (dependenciesMet && canStart && playersAvailable && noConsecutive) {
+            } else { // Only if all checks pass, add to ready matches
               readyMatches.push(m);
             }
         }
@@ -254,33 +252,11 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     const usedPlayers = new Set<string>();
     for (const court of availableCourts) {
         if(readyMatches.length === 0) {
-          if (availableCourts.length > 0) {
-                 logs.push({
-                    matchId: `N/A-${court.name}-${formatDate(currentTime, "HHmm")}`,
-                    category: "Sistema",
-                    stage: "Alocação",
-                    team1: "N/A",
-                    team2: "N/A",
-                    reasons: [`Quadra ${court.name} ficou livre, mas nenhum jogo está pronto para ser alocado. Verifique dependências ou descanso de jogadores.`],
-                    checkedAtTime: formatDate(currentTime, "HH:mm"),
-                });
-            }
-          break;
+            break;
         };
 
         const matchIndex = readyMatches.findIndex(m => m.players.every(p => !usedPlayers.has(p)));
         if(matchIndex === -1) {
-            if (availableCourts.length > 0) {
-                 logs.push({
-                    matchId: `N/A-${court.name}-${formatDate(currentTime, "HHmm")}`,
-                    category: "Sistema",
-                    stage: "Alocação",
-                    team1: "N/A",
-                    team2: "N/A",
-                    reasons: [`Quadra ${court.name} ficou livre, mas todos os jogadores dos jogos prontos já estão em uso neste horário.`],
-                    checkedAtTime: formatDate(currentTime, "HH:mm"),
-                });
-            }
             continue;
         };
         
@@ -298,9 +274,12 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
         }
         unscheduled.delete(match.id);
     }
-
+    
     if (isEqual(currentTime, loopStartTime)) {
       currentTime = addMinutes(currentTime, matchDuration);
+    } else {
+      // If a match was scheduled, re-evaluate from the same time slot
+      currentTime = loopStartTime;
     }
   }
 
