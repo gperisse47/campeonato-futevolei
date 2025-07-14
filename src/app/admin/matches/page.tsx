@@ -447,7 +447,7 @@ export default function ScheduleGridPage() {
 
             const cell = data.cell;
             // Erase the default text drawn by autotable by drawing a rectangle over it
-            const fillColor = data.row.styles.fillColor || '#FFFFFF'; // Fallback to white
+            const fillColor = data.row.styles?.fillColor || '#FFFFFF'; // Fallback to white
             doc.setFillColor(fillColor);
             doc.rect(cell.x, cell.y, cell.width, cell.height, 'F');
             
