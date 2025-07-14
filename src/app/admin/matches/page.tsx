@@ -3,7 +3,8 @@
 
 import * as React from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle, FileText, Download, Upload, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Swords, AlertCircle, CalendarClock, GripVertical, Sparkles, PlusCircle, FileText, Download, Upload, Trash2, FileWarning } from "lucide-react";
 import type { PlayoffBracket, PlayoffBracketSet, CategoryData, TournamentsState, Court, MatchWithScore, PlayoffMatch, Team, GlobalSettings } from "@/lib/types";
 import { getTournaments, updateMultipleMatches, generateScheduleAction, clearAllSchedules, importScheduleFromCSV } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
@@ -29,6 +30,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Papa from "papaparse";
+import type { SchedulingLog } from "@/lib/scheduler";
 
 
 type SchedulableMatch = (MatchWithScore | PlayoffMatch) & {
@@ -109,6 +111,7 @@ export default function ScheduleGridPage() {
   const { toast } = useToast();
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -295,6 +298,19 @@ export default function ScheduleGridPage() {
       setIsSaving(false);
   }
 
+  const handleShowLog = (logs: SchedulingLog[]) => {
+      try {
+        sessionStorage.setItem('schedulingLogs', JSON.stringify(logs));
+        router.push('/admin/schedule-log');
+      } catch (error) {
+          toast({
+            variant: "destructive",
+            title: "Erro ao exibir log",
+            description: "Não foi possível abrir a página de logs.",
+          });
+      }
+  };
+
   const handleGenerateSchedule = async () => {
     setIsSaving(true);
     const result = await generateScheduleAction();
@@ -302,7 +318,17 @@ export default function ScheduleGridPage() {
         toast({ title: "Horários gerados com sucesso!", description: "A grade foi atualizada."});
         await loadData();
     } else {
-        toast({ variant: "destructive", title: "Erro ao gerar horários", description: result.error });
+        toast({ 
+            variant: "destructive",
+            title: "Erro ao gerar horários", 
+            description: result.error,
+            action: result.logs && (
+                <Button variant="secondary" size="sm" onClick={() => handleShowLog(result.logs!)}>
+                    Ver Log de Erros
+                </Button>
+            ),
+            duration: 10000,
+        });
     }
     setIsSaving(false);
   };

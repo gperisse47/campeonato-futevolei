@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { format, addMinutes, parse, isBefore, startOfDay, isAfter, setHours, setMinutes, differenceInMilliseconds, isEqual, differenceInMinutes } from 'date-fns';
 import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from '@/lib/regeneration';
 import Papa from 'papaparse';
-import { scheduleMatches, type MatchRow } from '@/lib/scheduler';
+import { scheduleMatches, type MatchRow, type SchedulingLog } from '@/lib/scheduler';
 
 
 const dbPath = path.resolve(process.cwd(), "db.json")
@@ -142,13 +142,10 @@ function extractDependencies(placeholder: string | undefined): string[] {
     const loserMatch = placeholder.match(/Perdedor (.+)/);
     if (loserMatch) return [loserMatch[1].trim()];
 
-    // Dependencies for groups are handled by checking if all group matches are done.
-    // This is implicitly handled by the scheduler ensuring playoff matches depend on group stage matches.
-    // However, if we need explicit dependencies:
     const groupMatch = placeholder.match(/\d+º do (.+)/);
     if (groupMatch) {
-      // This dependency is more complex as it depends on a whole group finishing.
-      // The scheduler logic handles this by stage priority rather than explicit match dependencies.
+      const groupIdentifier = groupMatch[1];
+      return [groupIdentifier];
     }
     
     return [];
@@ -784,14 +781,18 @@ export async function clearAllSchedules(): Promise<{ success: boolean; error?: s
 function transformDataForScheduler(tournaments: TournamentsState): { matchesInput: MatchRow[], parameters: Record<string, string> } {
     const matchesInput: MatchRow[] = [];
     const parameters: Record<string, string> = {};
+    const groupMatchIds = new Map<string, string[]>(); // Key: category-groupName, Value: [matchId1, matchId2, ...]
 
     const { _globalSettings } = tournaments;
+
     parameters['estimatedMatchDuration'] = String(_globalSettings.estimatedMatchDuration);
     parameters['endTime'] = _globalSettings.endTime || "21:00";
+    
     _globalSettings.courts.forEach((court, courtIndex) => {
-        parameters[`court_${courtIndex + 1}_name`] = court.name;
+        parameters[`court_${courtIndex}_name`] = court.name;
+    
         court.slots.forEach((slot, slotIndex) => {
-            parameters[`court_${courtIndex + 1}_slot_${slotIndex + 1}`] = `${slot.startTime}-${slot.endTime}`;
+            parameters[`court_${courtIndex}_slot_${slotIndex}`] = `${slot.startTime}-${slot.endTime}`;
         });
     });
 
@@ -799,6 +800,8 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
         if (categoryName === '_globalSettings') continue;
         const categoryData = tournaments[categoryName] as CategoryData;
         
+        const categoryPrefix = categoryName.replace(/\s/g, '');
+
         parameters[`${categoryName}__startTime`] = categoryData.formValues.startTime || _globalSettings.startTime || "08:00";
         parameters[`${categoryName}__playoffPriority`] = String(categoryData.formValues.playoffPriority || 999);
         if (categoryData.formValues.quarterFinalsStartTime) parameters[`${categoryName}__stageMinTime_Quartas de Final`] = categoryData.formValues.quarterFinalsStartTime;
@@ -808,36 +811,46 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
              parameters[`${categoryName}__stageMinTime_Disputa de 3º Lugar`] = categoryData.formValues.finalStartTime;
         }
 
+        // First pass: collect all group match IDs
+        categoryData.tournamentData?.groups.forEach(g => {
+            const groupIdentifier = `${categoryPrefix}-${g.name.replace(/\s/g, '')}`;
+            const ids = g.matches.map(m => m.id!);
+            groupMatchIds.set(groupIdentifier, ids);
+        });
+
         const addMatch = (match: MatchWithScore | PlayoffMatch, stage: string) => {
             if (!match.id) return;
-            let dependencies: string[] = [];
+            let allDependencies: string[] = [];
 
             if ('team1Placeholder' in match) {
-                dependencies.push(...extractDependencies(match.team1Placeholder));
+                const deps = extractDependencies(match.team1Placeholder);
+                deps.forEach(dep => {
+                    // Check if it's a group dependency
+                    if(dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")){
+                        allDependencies.push(...(groupMatchIds.get(dep) || []));
+                    } else {
+                        allDependencies.push(dep);
+                    }
+                });
             }
              if ('team2Placeholder' in match) {
-                dependencies.push(...extractDependencies(match.team2Placeholder));
+                const deps = extractDependencies(match.team2Placeholder);
+                 deps.forEach(dep => {
+                    if(dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")){
+                        allDependencies.push(...(groupMatchIds.get(dep) || []));
+                    } else {
+                        allDependencies.push(dep);
+                    }
+                });
             }
-            // For group dependencies, we need a special marker or logic in scheduler
-            // For now, we rely on stage priority. But if explicit deps are needed:
-            if(match.team1Placeholder?.includes('º do')){
-                const groupName = match.team1Placeholder.split(' do ')[1];
-                const groupMatches = categoryData.tournamentData?.groups.find(g => g.name === groupName)?.matches;
-                if(groupMatches) dependencies.push(...groupMatches.map(m => m.id!));
-            }
-            if(match.team2Placeholder?.includes('º do')){
-                const groupName = match.team2Placeholder.split(' do ')[1];
-                const groupMatches = categoryData.tournamentData?.groups.find(g => g.name === groupName)?.matches;
-                if(groupMatches) dependencies.push(...groupMatches.map(m => m.id!));
-            }
-
+           
             matchesInput.push({
                 matchId: match.id,
                 category: categoryName,
                 stage: stage,
                 team1: teamToKey(match.team1) || match.team1Placeholder || '',
                 team2: teamToKey(match.team2) || match.team2Placeholder || '',
-                dependencies: [...new Set(dependencies)]
+                dependencies: [...new Set(allDependencies)]
             });
         };
 
@@ -864,28 +877,26 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
 }
 
 
-export async function generateScheduleAction(): Promise<{ success: boolean; error?: string }> {
+export async function generateScheduleAction(): Promise<{ success: boolean; error?: string; logs?: SchedulingLog[] }> {
     try {
         const db = await readDb();
         
         const { matchesInput, parameters } = transformDataForScheduler(db);
 
-        const scheduledResult = scheduleMatches(matchesInput, parameters);
+        const { scheduled, unscheduled, logs } = scheduleMatches(matchesInput, parameters);
         
-        const unscheduledMatches = scheduledResult.filter(m => !m.time);
-
-        if (unscheduledMatches.length > 0) {
-            const unscheduledDetails = unscheduledMatches.map(m => 
+        if (unscheduled.length > 0) {
+            const unscheduledDetails = unscheduled.map(m => 
                 `${m.category} - ${m.stage}: ${m.team1 || 'A definir'} vs ${m.team2 || 'A definir'}`
-            ).slice(0, 10).join('\n');
-            const errorMessage = `${unscheduledMatches.length} jogos não puderam ser agendados.\nExemplos de jogos faltantes:\n${unscheduledDetails}`;
-            return { success: false, error: errorMessage };
+            ).slice(0, 5).join('\n');
+            const errorMessage = `${unscheduled.length} jogos não puderam ser agendados. Verifique o log para mais detalhes.`;
+            return { success: false, error: errorMessage, logs };
         }
 
-        const updatedMatches: UpdateMatchInputType[] = scheduledResult
+        const updatedMatches: UpdateMatchInputType[] = scheduled
             .filter(m => m.id && m.time && m.court)
             .map(m => ({
-                matchId: m.id,
+                matchId: m.id!,
                 categoryName: m.category,
                 time: m.time!,
                 court: m.court!
