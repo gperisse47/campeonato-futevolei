@@ -459,10 +459,10 @@ export default function ScheduleGridPage() {
             data.cell.text = [];
             const cell = data.cell;
             const lines = cell.raw.split('\n');
-            const stage = lines[0];
-            const team1 = lines[1];
-            const vs = lines[2];
-            const team2 = lines[3];
+            const stage = lines[0] || '';
+            const team1 = lines[1] || '';
+            const vs = lines[2] || '';
+            const team2 = lines[3] || '';
             
             const x = cell.x + cell.padding('left');
             const y = cell.y + cell.padding('top') + doc.getLineHeight() / doc.internal.scaleFactor * 1.5;
