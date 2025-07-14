@@ -75,6 +75,10 @@ export const formSchema = z
     includeThirdPlace: z.boolean().default(true),
     updatedAt: z.string().optional(),
     startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional().or(z.literal('')),
+    playoffPriority: z.coerce.number().int().optional(),
+    quarterFinalsStartTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional().or(z.literal('')),
+    semiFinalsStartTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional().or(z.literal('')),
+    finalStartTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM).").optional().or(z.literal('')),
   })
   .refine(
     (data) => {
@@ -223,6 +227,7 @@ export type PlayoffMatch = {
   court?: string;
   roundOrder: number; // Used for sorting rounds
   dependencies?: string[];
+  phaseStartTime?: string;
 };
 
 export type PlayoffBracket = {
@@ -259,4 +264,12 @@ export type ConsolidatedMatch = {
     score2?: number;
     time?: string;
     court?: string;
+};
+
+export type UpdateMatchInput = {
+    matchId: string;
+    categoryName: string;
+    time: string;
+    court: string;
+    phaseStartTime?: string;
 };

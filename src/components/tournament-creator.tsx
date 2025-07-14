@@ -3,7 +3,7 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "./ui/switch"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Separator } from "./ui/separator"
 
 
 const defaultFormValues: TournamentFormValues = {
@@ -42,6 +43,10 @@ const defaultFormValues: TournamentFormValues = {
   groupFormationStrategy: "order",
   includeThirdPlace: true,
   startTime: "",
+  playoffPriority: 10,
+  quarterFinalsStartTime: "",
+  semiFinalsStartTime: "",
+  finalStartTime: "",
 };
 
 
@@ -78,6 +83,29 @@ export function TournamentCreator() {
   
   const tournamentType = form.watch("tournamentType");
   const teamsList = form.watch("teams");
+  const numberOfTeams = form.watch("numberOfTeams");
+  const numberOfGroups = form.watch("numberOfGroups");
+  const teamsPerGroupToAdvance = form.watch("teamsPerGroupToAdvance");
+
+
+  const playoffPhases = useMemo(() => {
+    let qualifiers = 0;
+    if (tournamentType === "groups") {
+      qualifiers = (numberOfGroups || 0) * (teamsPerGroupToAdvance || 0);
+    } else {
+      qualifiers = numberOfTeams;
+    }
+
+    if( (qualifiers & (qualifiers - 1)) !== 0 && tournamentType !== 'doubleElimination') return {};
+    if (qualifiers < 2) return {};
+
+    return {
+      hasQuarterFinals: qualifiers >= 8,
+      hasSemiFinals: qualifiers >= 4,
+      hasFinal: qualifiers >= 2,
+    };
+  }, [tournamentType, numberOfTeams, numberOfGroups, teamsPerGroupToAdvance]);
+
 
   useEffect(() => {
     const teamsArray = teamsList.split('\n').map(t => t.trim()).filter(Boolean);
@@ -89,7 +117,10 @@ export function TournamentCreator() {
     if (categoryName) {
         const existingCategoryData = tournaments[categoryName];
         if (existingCategoryData) {
-            form.reset(existingCategoryData.formValues);
+            form.reset({
+                ...defaultFormValues,
+                ...existingCategoryData.formValues
+            });
              toast({
                 title: "Categoria Carregada",
                 description: `Os dados de "${categoryName}" foram carregados no formulário.`,
@@ -289,13 +320,13 @@ export function TournamentCreator() {
               )}
             />
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
                 name="startTime"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Início (Opcional)</FormLabel>
+                    <FormLabel>Início da Categoria / 1ª Fase</FormLabel>
                     <FormControl>
                         <Input type="time" {...field} />
                     </FormControl>
@@ -306,7 +337,76 @@ export function TournamentCreator() {
                     </FormItem>
                 )}
                 />
+                 <FormField
+                  control={form.control}
+                  name="playoffPriority"
+                  render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Prioridade dos Playoffs</FormLabel>
+                          <FormControl>
+                              <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)} placeholder="Ex: 1 (maior)" />
+                          </FormControl>
+                          <FormDescription>
+                            Menor número = maior prioridade.
+                          </FormDescription>
+                          <FormMessage />
+                      </FormItem>
+                  )}
+              />
             </div>
+            
+            {(playoffPhases.hasQuarterFinals || playoffPhases.hasSemiFinals || playoffPhases.hasFinal) && (
+              <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium">Horários Mínimos dos Playoffs (Opcional)</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {playoffPhases.hasQuarterFinals && (
+                        <FormField
+                            control={form.control}
+                            name="quarterFinalsStartTime"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Quartas de Final</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                      )}
+                      {playoffPhases.hasSemiFinals && (
+                        <FormField
+                            control={form.control}
+                            name="semiFinalsStartTime"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Semifinal</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                      )}
+                      {playoffPhases.hasFinal && (
+                          <FormField
+                            control={form.control}
+                            name="finalStartTime"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Final</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                      )}
+                  </div>
+              </div>
+            )}
 
 
             <FormField

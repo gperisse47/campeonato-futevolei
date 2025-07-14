@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { useCallback } from "react";
@@ -389,6 +390,12 @@ export async function initializePlayoffs(values: TournamentFormValues, categoryN
                     const match = currentMatchups[i];
                     const matchName = `${roundName} ${i + 1}`;
                     const matchId = `${categoryPrefix}-${roundNameKey}-Jogo${i + 1}`;
+
+                    let phaseStartTime = '';
+                    if (roundName === 'Quartas de Final') phaseStartTime = values.quarterFinalsStartTime || '';
+                    if (roundName === 'Semifinal') phaseStartTime = values.semiFinalsStartTime || '';
+                    if (roundName === 'Final') phaseStartTime = values.finalStartTime || '';
+                    
                      bracket[roundName].push({
                         id: matchId,
                         name: matchName,
@@ -396,7 +403,8 @@ export async function initializePlayoffs(values: TournamentFormValues, categoryN
                         team2Placeholder: match.team2Placeholder,
                         time: '',
                         court: '',
-                        roundOrder
+                        roundOrder,
+                        phaseStartTime,
                     });
                     nextRoundPlaceholders.push(`Vencedor ${matchId}`);
                 }
@@ -432,7 +440,7 @@ export async function initializePlayoffs(values: TournamentFormValues, categoryN
                 const semiFinalLosers = bracket['Semifinal'].map(m => `Perdedor ${m.id}`);
                 
                 bracket['Disputa de 3º Lugar'] = [
-                    { id: `${categoryPrefix}-Disputa3Lugar-Jogo1`, name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0 }
+                    { id: `${categoryPrefix}-Disputa3Lugar-Jogo1`, name: 'Disputa de 3º Lugar', team1Placeholder: semiFinalLosers[0], team2Placeholder: semiFinalLosers[1], time: '', court: '', roundOrder: 0, phaseStartTime: values.finalStartTime || '' }
                 ];
             }
 
