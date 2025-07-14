@@ -6,20 +6,25 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, FileText, ArrowLeft, Info, Clock } from 'lucide-react';
+import { AlertTriangle, FileText, ArrowLeft, Info, Clock, BarChartHorizontal } from 'lucide-react';
 import type { SchedulingLog } from '@/lib/scheduler';
 import { Badge } from '@/components/ui/badge';
 
 export default function ScheduleLogPage() {
     const [logs, setLogs] = React.useState<SchedulingLog[]>([]);
+    const [hasPartialSchedule, setHasPartialSchedule] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const router = useRouter();
 
     React.useEffect(() => {
         try {
             const storedLogs = sessionStorage.getItem('schedulingLogs');
+            const storedSchedule = sessionStorage.getItem('partialSchedule');
             if (storedLogs) {
                 setLogs(JSON.parse(storedLogs));
+            }
+            if(storedSchedule) {
+                setHasPartialSchedule(true);
             }
         } catch (error) {
             console.error("Could not access sessionStorage or parse logs:", error);
@@ -40,6 +45,10 @@ export default function ScheduleLogPage() {
         return Object.entries(groups).sort(([timeA], [timeB]) => timeA.localeCompare(timeB));
     }, [logs]);
 
+    const handleViewSnapshot = () => {
+        router.push('/admin/schedule-snapshot');
+    };
+
     if (isLoading) {
         return null;
     }
@@ -48,7 +57,7 @@ export default function ScheduleLogPage() {
 
     return (
         <div className="flex flex-col gap-8">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start flex-wrap gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight flex items-center">
                         <FileText className="mr-2 h-8 w-8" />
@@ -58,10 +67,18 @@ export default function ScheduleLogPage() {
                         Detalhes sobre por que cada partida não pôde ser agendada em cada horário verificado.
                     </p>
                 </div>
-                <Button variant="outline" onClick={() => router.back()}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.back()}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Voltar
+                    </Button>
+                    {hasPartialSchedule && (
+                         <Button onClick={handleViewSnapshot}>
+                            <BarChartHorizontal className="mr-2 h-4 w-4" />
+                            Ver Snapshot da Grade
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <Card>

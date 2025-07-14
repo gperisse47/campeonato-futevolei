@@ -11,7 +11,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutGrid, Users, Trophy, Loader2, Swords, Home, Settings, PlusCircle, Lock, FileWarning } from "lucide-react"
+import { LayoutGrid, Users, Trophy, Loader2, Swords, Home, Settings, PlusCircle, Lock, FileWarning, BarChartHorizontal } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { getTournaments } from "@/app/actions"
@@ -136,6 +136,14 @@ export function SidebarNav() {
                         <SidebarMenuButton isActive={pathname === '/admin/schedule-log'} tooltip="Log do Agendador">
                             <FileWarning />
                             <span>Log do Agendador</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <Link href="/admin/schedule-snapshot" passHref>
+                        <SidebarMenuButton isActive={pathname === '/admin/schedule-snapshot'} tooltip="Snapshot do Agendamento">
+                            <BarChartHorizontal />
+                            <span>Snapshot do Agendamento</span>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>

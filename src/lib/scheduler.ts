@@ -1,4 +1,3 @@
-
 // lib/scheduler.ts
 import { parse as parseDate, format as formatDate, addMinutes, isEqual, differenceInMinutes } from "date-fns";
 
@@ -20,7 +19,6 @@ export interface SchedulingLog {
   reasons: string[];
   checkedAtTime?: string;
 }
-
 
 interface CourtSlot {
   start: Date;
@@ -44,7 +42,7 @@ class Court {
 class Match {
   id: string;
   category: string;
-  stage: string; 
+  stage: string;
   team1: string;
   team2: string;
   players: string[];
@@ -61,7 +59,7 @@ class Match {
     this.team2 = row.team2;
     this.players = this.extractPlayers(this.team1).concat(this.extractPlayers(this.team2));
     this.dependencies = row.dependencies;
-    
+
     const stageMinTimeKey = `${this.category}__stageMinTime_${this.stage}`;
     if (parameters[stageMinTimeKey]) {
       this.phaseStartTime = parseDate(parameters[stageMinTimeKey], "HH:mm", new Date());
@@ -86,7 +84,7 @@ function getStagePriority(stage: string): number {
 }
 
 
-export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<string, string>): { scheduled: Match[], unscheduled: Match[], logs: SchedulingLog[] } {
+export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<string, string>): { scheduled: Match[], unscheduled: Match[], logs: SchedulingLog[], partialSchedule: Match[] } {
   const matchDuration = parseInt(parameters["estimatedMatchDuration"] || "20", 10);
   const END_OF_DAY = parseDate(parameters["endTime"] || "21:00", "HH:mm", new Date());
 
@@ -121,7 +119,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
   const matches = matchesInput.map(row => new Match(row, parameters));
   const matchesById = new Map(matches.map(m => [m.id, m]));
-  
+
   const matchHistory: Record<string, Date[]> = {};
   const playerAvailability: Record<string, Date> = {};
   let currentTime = new Date(Math.min(...Object.values(categoryStartTimes).map(d => d.getTime() || Infinity)));
@@ -135,23 +133,22 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     const lastMatchTime = times[times.length - 1];
     const secondLastMatchTime = times[times.length - 2];
-    
-    // Check if the last two games were back-to-back in terms of match duration slots
+
     const expectedLastTime = addMinutes(time, -matchDuration);
     const expectedSecondLastTime = addMinutes(time, -2 * matchDuration);
 
     return isEqual(lastMatchTime, expectedLastTime) && isEqual(secondLastMatchTime, expectedSecondLastTime);
   }
-  
+
   let loopCounter = 0;
-  const MAX_LOOPS = 5000; 
+  const MAX_LOOPS = 5000;
 
   while (unscheduled.size > 0 && loopCounter < MAX_LOOPS) {
     loopCounter++;
     const loopStartTime = new Date(currentTime);
-    
+
     if (addMinutes(currentTime, matchDuration) > END_OF_DAY) {
-      break; 
+      break;
     }
 
     const availableCourts = courts.filter(c =>
@@ -160,16 +157,11 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     ).sort((a,b) => a.name.localeCompare(b.name));
 
     const readyMatches: Match[] = [];
-    const tempLogsForIteration: Record<string, string[]> = {};
 
     for (const matchId of unscheduled) {
         const m = matchesById.get(matchId)!;
         const reasons: string[] = [];
-        
-        if (currentTime < (categoryStartTimes[m.category] || new Date(0))) {
-          reasons.push(`Ainda não atingiu o horário de início da categoria (${formatDate(categoryStartTimes[m.category], 'HH:mm')}).`);
-        }
-        
+
         const dependenciesMet = m.dependencies.every(depId => {
             const depMatch = matchesById.get(depId);
             const met = depMatch && !!depMatch.time;
@@ -177,17 +169,21 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
             return met;
         });
 
+        if (currentTime < (categoryStartTimes[m.category] || new Date(0))) {
+          reasons.push(`Ainda não atingiu o horário de início da categoria (${formatDate(categoryStartTimes[m.category], 'HH:mm')}).`);
+        }
+
         const canStart = !m.phaseStartTime || currentTime >= m.phaseStartTime;
         if (!canStart) {
            reasons.push(`Ainda não atingiu o horário mínimo da fase (${formatDate(m.phaseStartTime!, 'HH:mm')}).`);
         }
-        
+
         const playersAvailable = m.players.every(p => {
           const available = (playerAvailability[p] || new Date(0)) <= currentTime;
           if (!available) reasons.push(`Jogador ${p} em descanso até ${formatDate(playerAvailability[p]!, 'HH:mm')}.`);
           return available;
         });
-        
+
         const noConsecutive = m.players.every(p => {
           const consecutive = playedTwoConsecutive(p, currentTime);
           if (consecutive) reasons.push(`Jogador ${p} jogaria 3 partidas seguidas.`);
@@ -196,7 +192,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
         if (dependenciesMet && canStart && playersAvailable && noConsecutive) {
           readyMatches.push(m);
-        } else {
+        } else if (reasons.length > 0) {
             logs.push({
                 matchId: m.id,
                 category: m.category,
@@ -208,7 +204,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
             });
         }
     }
-    
+
     readyMatches.sort((a, b) => {
       const stagePrioA = getStagePriority(a.stage);
       const stagePrioB = getStagePriority(b.stage);
@@ -217,7 +213,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       const catPrioA = categoryPlayoffPriority[a.category] ?? 999;
       const catPrioB = categoryPlayoffPriority[b.category] ?? 999;
       if (catPrioA !== catPrioB) return catPrioA - catPrioB;
-      
+
       const rest = (m: Match) => {
         if (m.players.length === 0) return { min: Infinity, sum: Infinity };
         const rests = m.players.map(p => differenceInMinutes(currentTime, playerAvailability[p] || new Date(0)));
@@ -231,7 +227,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       const br = rest(b);
       return br.sum - ar.sum || br.min - ar.min;
     });
-    
+
     const usedPlayers = new Set<string>();
     for (const court of availableCourts) {
         const match = readyMatches.find(m => m.players.every(p => !usedPlayers.has(p)));
@@ -240,7 +236,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
         match.time = formatDate(currentTime, "HH:mm");
         match.court = court.name;
         court.nextAvailable = addMinutes(currentTime, matchDuration);
-        
+
         for (const p of match.players) {
             playerAvailability[p] = addMinutes(currentTime, matchDuration);
             if (!matchHistory[p]) matchHistory[p] = [];
@@ -254,7 +250,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       currentTime = addMinutes(currentTime, matchDuration);
     }
   }
-  
+
   if (unscheduled.size > 0) {
       for(const id of unscheduled){
           const match = matchesById.get(id)!;
@@ -280,5 +276,5 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
   const scheduledMatches = matches.filter(m => m.time && m.court);
   const unscheduledMatches = matches.filter(m => !m.time || !m.court);
 
-  return { scheduled: scheduledMatches, unscheduled: unscheduledMatches, logs };
+  return { scheduled: scheduledMatches, unscheduled: unscheduledMatches, logs, partialSchedule: matches };
 }

@@ -877,20 +877,17 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
 }
 
 
-export async function generateScheduleAction(): Promise<{ success: boolean; error?: string; logs?: SchedulingLog[] }> {
+export async function generateScheduleAction(): Promise<{ success: boolean; error?: string; logs?: SchedulingLog[]; partialSchedule?: any[] }> {
     try {
         const db = await readDb();
         
         const { matchesInput, parameters } = transformDataForScheduler(db);
 
-        const { scheduled, unscheduled, logs } = scheduleMatches(matchesInput, parameters);
+        const { scheduled, unscheduled, logs, partialSchedule } = scheduleMatches(matchesInput, parameters);
         
         if (unscheduled.length > 0) {
-            const unscheduledDetails = unscheduled.map(m => 
-                `${m.category} - ${m.stage}: ${m.team1 || 'A definir'} vs ${m.team2 || 'A definir'}`
-            ).slice(0, 5).join('\n');
             const errorMessage = `${unscheduled.length} jogos não puderam ser agendados. Verifique o log para mais detalhes.`;
-            return { success: false, error: errorMessage, logs };
+            return { success: false, error: errorMessage, logs, partialSchedule };
         }
 
         const updatedMatches: UpdateMatchInputType[] = scheduled

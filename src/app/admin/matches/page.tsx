@@ -298,9 +298,14 @@ export default function ScheduleGridPage() {
       setIsSaving(false);
   }
 
-  const handleShowLog = (logs: SchedulingLog[]) => {
+  const handleShowLog = (logs: SchedulingLog[], partialSchedule?: any[]) => {
       try {
         sessionStorage.setItem('schedulingLogs', JSON.stringify(logs));
+        if (partialSchedule) {
+            sessionStorage.setItem('partialSchedule', JSON.stringify(partialSchedule));
+        } else {
+            sessionStorage.removeItem('partialSchedule');
+        }
         router.push('/admin/schedule-log');
       } catch (error) {
           toast({
@@ -323,7 +328,7 @@ export default function ScheduleGridPage() {
             title: "Erro ao gerar horários", 
             description: result.error,
             action: result.logs && (
-                <Button variant="secondary" size="sm" onClick={() => handleShowLog(result.logs!)}>
+                <Button variant="secondary" size="sm" onClick={() => handleShowLog(result.logs!, result.partialSchedule)}>
                     Ver Log de Erros
                 </Button>
             ),
