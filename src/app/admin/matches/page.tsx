@@ -456,7 +456,9 @@ export default function ScheduleGridPage() {
             if (data.section !== 'body' || !data.cell.raw || typeof data.cell.raw !== 'string') {
                 return;
             }
+            // Clear the original text to prevent duplication
             data.cell.text = [];
+
             const cell = data.cell;
             const lines = cell.raw.split('\n');
             const stage = lines[0] || '';
