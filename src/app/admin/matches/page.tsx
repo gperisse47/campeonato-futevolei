@@ -28,7 +28,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import type { SchedulingLog } from "@/lib/scheduler";
 import Papa from 'papaparse';
 
@@ -410,92 +409,82 @@ export default function ScheduleGridPage() {
     if (!courts.length || !timeSlots.length) return;
 
     const doc = new jsPDF({ orientation: "landscape" });
-    autoTable(doc, {
-        head: [["Horário", ...courts.map((c) => c.name)]],
-        body: timeSlots.map((slot) => {
-            return [
-                slot.time,
-                ...slot.courts.map((courtSlot) => {
-                    if (!courtSlot.match) return "";
-                    const match = courtSlot.match;
-                    return `${match.stage}\n${match.team1Name}\nvs\n${match.team2Name}`;
-                }),
-            ];
-        }),
-        startY: 25,
-        theme: "grid",
-        headStyles: {
-            fillColor: "#4682B4",
-            textColor: "#FFFFFF",
-            fontStyle: "bold",
-            halign: "center",
-        },
-        styles: {
-            font: "helvetica",
-            cellPadding: 2,
-            valign: 'middle',
-            halign: 'center',
-            fontSize: 8,
-        },
-        alternateRowStyles: {
-            fillColor: "#F5F5F5"
-        },
-        didDrawCell: (data) => {
-            if (data.section !== 'body' || !data.cell.raw || typeof data.cell.raw !== 'string' || !data.cell.raw.includes('\n')) {
-                return;
-            }
+    doc.setFontSize(10);
+    const margin = 10;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const contentWidth = pageWidth - 2 * margin;
 
-            const cell = data.cell;
-            // Erase the default text drawn by autotable by drawing a rectangle over it
-            const fillColor = data.row.styles?.fillColor || '#FFFFFF'; // Fallback to white
-            doc.setFillColor(fillColor);
-            doc.rect(cell.x, cell.y, cell.width, cell.height, 'F');
-            
-            const lines = (cell.raw as string).split('\n');
-            const stage = lines[0] || '';
-            const team1 = lines[1] || '';
-            const vs = lines[2] || '';
-            const team2 = lines[3] || '';
-            
-            const x = cell.x;
-            const availableWidth = cell.width - (cell.padding('left') + cell.padding('right'));
-            const lineHeight = (doc.getFontSize() * 1.15) / doc.internal.scaleFactor;
-            const totalHeight = lineHeight * 4;
-            let y = cell.y + (cell.height - totalHeight) / 2;
+    const allColumns = ["Horário", ...courts.map((c) => c.name)];
+    const colCount = allColumns.length;
+    const colWidth = contentWidth / colCount;
+    const rowHeight = 15;
+    let yPos = margin + 20;
 
-            doc.setFontSize(8);
-            
-            doc.setFont('helvetica', 'normal');
-            doc.text(stage, x + availableWidth / 2, y + lineHeight, { align: 'center' });
-            
-            doc.setFont('helvetica', 'bold');
-            doc.text(team1, x + availableWidth / 2, y + 2 * lineHeight, { align: 'center' });
-            
-            doc.setFont('helvetica', 'normal');
-            doc.text(vs, x + availableWidth / 2, y + 2.5 * lineHeight, { align: 'center' });
-            
-            doc.setFont('helvetica', 'bold');
-            doc.text(team2, x + availableWidth / 2, y + 3.5 * lineHeight, { align: 'center' });
-        },
-        didDrawPage: (data) => {
-            const pageCount = doc.getNumberOfPages();
-            doc.setFontSize(18);
-            doc.setTextColor("#4682B4");
-            const title = "Grade de Horários do Torneio";
-            const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
-            const pageWidth = doc.internal.pageSize.getWidth();
-            doc.text(title, (pageWidth - titleWidth) / 2, 15);
-            doc.setFontSize(8);
-            doc.setTextColor("#777");
-            doc.text(
-                `Página ${data.pageNumber} de ${pageCount}`,
-                data.settings.margin.left,
-                doc.internal.pageSize.getHeight() - 10
-            );
-        },
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor("#4682B4");
+    const title = "Grade de Horários do Torneio";
+    const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+    doc.text(title, (pageWidth - titleWidth) / 2, margin + 5);
+    
+    // Header
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setFillColor("#4682B4");
+    doc.setTextColor("#FFFFFF");
+    doc.rect(margin, yPos, contentWidth, 10, "F");
+    allColumns.forEach((col, index) => {
+        doc.text(col, margin + index * colWidth + colWidth / 2, yPos + 7, { align: 'center' });
     });
+    yPos += 10;
+    
+    // Rows
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor("#000000");
+
+    timeSlots.forEach((slot, rowIndex) => {
+        if (yPos + rowHeight > pageHeight - margin) {
+            doc.addPage();
+            yPos = margin;
+        }
+
+        const fillColor = rowIndex % 2 === 0 ? "#F5F5F5" : "#FFFFFF";
+        doc.setFillColor(fillColor);
+        doc.rect(margin, yPos, contentWidth, rowHeight, "F");
+        
+        // Time cell
+        doc.text(slot.time, margin + colWidth / 2, yPos + rowHeight / 2 + 3, { align: 'center' });
+
+        // Match cells
+        slot.courts.forEach((courtSlot, colIndex) => {
+            const cellX = margin + (colIndex + 1) * colWidth;
+            if (courtSlot.match) {
+                const match = courtSlot.match;
+                const textLines = [
+                    match.stage || '',
+                    match.team1Name || '',
+                    'vs',
+                    match.team2Name || ''
+                ];
+                
+                doc.setFontSize(8);
+                const lineHeight = 4;
+                const totalTextHeight = textLines.length * lineHeight;
+                let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight;
+
+                textLines.forEach(line => {
+                    doc.text(line, cellX + colWidth / 2, textY, { align: 'center' });
+                    textY += lineHeight;
+                });
+            }
+        });
+
+        yPos += rowHeight;
+    });
+
     doc.save("grade_horarios.pdf");
-};
+  };
 
 
   const unscheduledMatches = useMemo(() => {
@@ -776,6 +765,8 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
+
+    
 
     
 
