@@ -79,7 +79,9 @@ function getStagePriority(stage: string): number {
   if (s.includes("semifinal")) return 98;
   if (s.includes("quartas")) return 97;
   if (s.includes("oitavas")) return 96;
+  // Group matches will have lower priority
   if (s.includes("group") || s.includes("grupo")) return 1;
+  // Default for other playoff rounds
   return 50; 
 }
 
@@ -167,10 +169,15 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
             if (!met) tempLogs[m.id].push(`Dependência não concluída: Jogo ${depId}.`);
             return met;
         });
+
+        if (!dependenciesMet) {
+            continue;
+        }
         
         const canStart = !m.phaseStartTime || currentTime >= m.phaseStartTime;
         if (!canStart) {
            tempLogs[m.id].push(`Ainda não atingiu o horário mínimo da fase (${formatDate(m.phaseStartTime!, 'HH:mm')}).`);
+           continue;
         }
         
         const playersAvailable = m.players.every(p => {
