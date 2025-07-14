@@ -418,7 +418,8 @@ export default function ScheduleGridPage() {
     const allColumns = ["Horário", ...courts.map((c) => c.name)];
     const colCount = allColumns.length;
     const colWidth = contentWidth / colCount;
-    const rowHeight = 15;
+    const rowHeight = 25; // Increased row height
+    const lineHeight = 5; // Increased line height
     let yPos = margin + 20;
 
     // Title
@@ -447,6 +448,17 @@ export default function ScheduleGridPage() {
         if (yPos + rowHeight > pageHeight - margin) {
             doc.addPage();
             yPos = margin;
+            // Redraw header on new page
+            doc.setFont("helvetica", "bold");
+            doc.setFillColor("#4682B4");
+            doc.setTextColor("#FFFFFF");
+            doc.rect(margin, yPos, contentWidth, 10, "F");
+            allColumns.forEach((col, index) => {
+                doc.text(col, margin + index * colWidth + colWidth / 2, yPos + 7, { align: 'center' });
+            });
+            yPos += 10;
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor("#000000");
         }
 
         const fillColor = rowIndex % 2 === 0 ? "#F5F5F5" : "#FFFFFF";
@@ -462,16 +474,14 @@ export default function ScheduleGridPage() {
             if (courtSlot.match) {
                 const match = courtSlot.match;
                 const textLines = [
-                    match.stage || '',
                     match.team1Name || '',
                     'vs',
                     match.team2Name || ''
                 ];
                 
                 doc.setFontSize(8);
-                const lineHeight = 4;
                 const totalTextHeight = textLines.length * lineHeight;
-                let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight;
+                let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight - 2; // Adjusted starting Y
 
                 textLines.forEach(line => {
                     doc.text(line, cellX + colWidth / 2, textY, { align: 'center' });
@@ -765,11 +775,3 @@ export default function ScheduleGridPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
-
-    
