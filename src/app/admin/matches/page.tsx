@@ -409,7 +409,6 @@ export default function ScheduleGridPage() {
     if (!courts.length || !timeSlots.length) return;
 
     const doc = new jsPDF({ orientation: "landscape" });
-    doc.setFontSize(10);
     const margin = 10;
     const pageHeight = doc.internal.pageSize.getHeight();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -418,7 +417,7 @@ export default function ScheduleGridPage() {
     const allColumns = ["Horário", ...courts.map((c) => c.name)];
     const colCount = allColumns.length;
     const colWidth = contentWidth / colCount;
-    const rowHeight = 25; 
+    const rowHeight = 25; // Increased row height
     const lineHeight = 5;
     let yPos = margin + 20;
 
@@ -457,12 +456,12 @@ export default function ScheduleGridPage() {
         }
 
         const baseFillColor = rowIndex % 2 === 0 ? "#F5F5F5" : "#FFFFFF";
-        doc.setTextColor("#000000");
 
         // Time cell
         doc.setFillColor(baseFillColor);
         doc.rect(margin, yPos, colWidth, rowHeight, "F");
-        doc.setFont("helvetica", "normal");
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor("#000000");
         doc.text(slot.time, margin + colWidth / 2, yPos + rowHeight / 2 + 3, { align: 'center' });
 
         // Match cells
@@ -473,20 +472,29 @@ export default function ScheduleGridPage() {
 
             if (courtSlot.match) {
                 const match = courtSlot.match;
+                const info = `${match.category} - ${match.stage}`;
                 const team1 = match.team1Name || '';
                 const vs = 'vs';
                 const team2 = match.team2Name || '';
-                
-                doc.setFontSize(8);
 
-                const totalTextHeight = 3 * lineHeight;
+                const totalTextHeight = 4 * lineHeight;
                 let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight;
 
+                doc.setFontSize(7);
                 doc.setFont('helvetica', 'normal');
+                doc.text(info, cellX + colWidth / 2, textY, { align: 'center' });
+                
+                textY += lineHeight;
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
                 doc.text(team1, cellX + colWidth / 2, textY, { align: 'center' });
+                
                 textY += lineHeight;
+                doc.setFont('helvetica', 'normal');
                 doc.text(vs, cellX + colWidth / 2, textY, { align: 'center' });
+                
                 textY += lineHeight;
+                doc.setFont('helvetica', 'bold');
                 doc.text(team2, cellX + colWidth / 2, textY, { align: 'center' });
             }
         });
