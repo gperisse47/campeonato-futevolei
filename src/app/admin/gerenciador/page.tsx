@@ -27,7 +27,7 @@ export default function TournamentManagerPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Gerenciador de Categorias</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Gerenciador de Resultados</h1>
         <p className="text-muted-foreground">
           Gerencie os jogos, resultados e horários das categorias existentes. Para criar uma nova, vá para o {' '}
           <Button variant="link" asChild className="p-0 h-auto">
