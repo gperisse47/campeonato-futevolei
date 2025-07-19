@@ -460,6 +460,7 @@ export default function ScheduleGridPage() {
         // Time cell
         doc.setFillColor(baseFillColor);
         doc.rect(margin, yPos, colWidth, rowHeight, "F");
+        doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
         doc.setTextColor("#000000");
         doc.text(slot.time, margin + colWidth / 2, yPos + rowHeight / 2 + 3, { align: 'center' });
@@ -481,12 +482,12 @@ export default function ScheduleGridPage() {
                 let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight;
 
                 doc.setFontSize(7);
-                doc.setFont('helvetica', 'normal');
+                doc.setFont('helvetica', 'bold');
                 doc.text(info, cellX + colWidth / 2, textY, { align: 'center' });
                 
                 textY += lineHeight;
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'normal');
                 doc.text(team1, cellX + colWidth / 2, textY, { align: 'center' });
                 
                 textY += lineHeight;
@@ -494,7 +495,7 @@ export default function ScheduleGridPage() {
                 doc.text(vs, cellX + colWidth / 2, textY, { align: 'center' });
                 
                 textY += lineHeight;
-                doc.setFont('helvetica', 'bold');
+                doc.setFont('helvetica', 'normal');
                 doc.text(team2, cellX + colWidth / 2, textY, { align: 'center' });
             }
         });

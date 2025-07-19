@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Swords, Search, Download, FileText } from "lucide-react";
 import type { ConsolidatedMatch, PlayoffBracket, PlayoffBracketSet, CategoryData } from "@/lib/types";
 import { getTournaments } from "@/app/actions";
+import { cn } from "@/lib/utils";
 
 export default function MatchesPage() {
   const [allMatches, setAllMatches] = useState<ConsolidatedMatch[]>([]);
@@ -255,7 +256,7 @@ export default function MatchesPage() {
                     <TableHead>Categoria</TableHead>
                     <TableHead>Fase</TableHead>
                     <TableHead className="text-right">Dupla 1</TableHead>
-                    <TableHead className="text-center">Placar</TableHead>
+                    <TableHead className="text-center w-[100px]">Placar</TableHead>
                     <TableHead>Dupla 2</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -267,7 +268,7 @@ export default function MatchesPage() {
                         <TableCell className="font-medium">{match.category}</TableCell>
                         <TableCell>{match.stage}</TableCell>
                         <TableCell className="text-right">{match.team1}</TableCell>
-                        <TableCell className="text-center font-bold">
+                        <TableCell className="text-center font-bold w-[100px]">
                             {match.score1 !== undefined && match.score2 !== undefined ? (
                             `${match.score1} x ${match.score2}`
                             ) : (
