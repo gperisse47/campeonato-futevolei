@@ -62,15 +62,17 @@ class Match {
     
     // Find the correct phase start time by checking if the stage name starts with the key.
     // This handles "Semifinal 1" and "Semifinal 2" matching a "Semifinal" key.
-    for (const key in parameters) {
-        const match = key.match(/__(stageMinTime)_(.+)/);
-        if (match && this.stage.startsWith(match[2]) && key.startsWith(this.category)) {
-            const timeValue = parameters[key];
-            if (timeValue) {
-                this.phaseStartTime = parseDate(timeValue, "HH:mm", new Date());
-                break; // Found the most specific match
-            }
-        }
+    if (this.stage) {
+      for (const key in parameters) {
+          const match = key.match(/__(stageMinTime)_(.+)/);
+          if (match && this.stage.startsWith(match[2]) && key.startsWith(this.category)) {
+              const timeValue = parameters[key];
+              if (timeValue) {
+                  this.phaseStartTime = parseDate(timeValue, "HH:mm", new Date());
+                  break; // Found the most specific match
+              }
+          }
+      }
     }
   }
 
