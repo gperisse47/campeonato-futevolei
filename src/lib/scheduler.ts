@@ -83,6 +83,7 @@ class Match {
 }
 
 function getStagePriority(stage: string): number {
+    if (!stage) return 50; // Default priority for undefined stages
     const s = stage.toLowerCase();
     if (s.includes("final") && !s.includes("disputa")) return 100;
     if (s.includes("disputa de 3") || s.includes("disputa3")) return 99;
