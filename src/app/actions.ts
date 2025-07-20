@@ -133,22 +133,24 @@ const teamToKey = (team?: Team): string => {
     return `${players[0]} e ${players[1]}`;
 };
 
-function extractDependencies(placeholder: string | undefined): string[] {
-    if (!placeholder) return [];
+function extractDependencies(placeholder: string | undefined): { matchDeps: string[], groupDeps: string[] } {
+    const deps = { matchDeps: [] as string[], groupDeps: [] as string[] };
+    if (!placeholder) return deps;
     
-    const winnerMatch = placeholder.match(/Vencedor (.+)/);
-    if (winnerMatch) return [winnerMatch[1].trim()];
-
-    const loserMatch = placeholder.match(/Perdedor (.+)/);
-    if (loserMatch) return [loserMatch[1].trim()];
-
-    const groupMatch = placeholder.match(/\d+º do (.+)/);
-    if (groupMatch) {
-      const groupIdentifier = groupMatch[1];
-      return [groupIdentifier];
+    // For "Vencedor Categoria-QuartasdeFinal-Jogo1" or "Perdedor Categoria-U-R1-J1"
+    const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
+    if (matchDepMatch && matchDepMatch[1]) {
+        deps.matchDeps.push(matchDepMatch[1].trim());
+        return deps;
     }
     
-    return [];
+    // For "1º do MistoAvançado-GroupA"
+    const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
+    if (groupDepMatch && groupDepMatch[1]) {
+        deps.groupDeps.push(groupDepMatch[1].trim());
+    }
+    
+    return deps;
 }
 
 
@@ -226,7 +228,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groupsData: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groupsData: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
@@ -822,26 +824,21 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             if (!match.id) return;
             let allDependencies: string[] = [];
 
-            if ('team1Placeholder' in match && match.team1Placeholder) {
-                const deps = extractDependencies(match.team1Placeholder);
-                deps.forEach(dep => {
-                    if (groupMatchIds.has(dep)) {
-                        allDependencies.push(...(groupMatchIds.get(dep) || []));
-                    } else {
-                        allDependencies.push(dep);
+            const processPlaceholder = (placeholder?: string) => {
+                if (!placeholder) return;
+                const { matchDeps, groupDeps } = extractDependencies(placeholder);
+                
+                matchDeps.forEach(dep => allDependencies.push(dep));
+                
+                groupDeps.forEach(groupDep => {
+                    if (groupMatchIds.has(groupDep)) {
+                        allDependencies.push(...(groupMatchIds.get(groupDep) || []));
                     }
                 });
-            }
-             if ('team2Placeholder' in match && match.team2Placeholder) {
-                const deps = extractDependencies(match.team2Placeholder);
-                 deps.forEach(dep => {
-                    if (groupMatchIds.has(dep)) {
-                        allDependencies.push(...(groupMatchIds.get(dep) || []));
-                    } else {
-                        allDependencies.push(dep);
-                    }
-                });
-            }
+            };
+
+            processPlaceholder(match.team1Placeholder);
+            processPlaceholder(match.team2Placeholder);
            
             matchesInput.push({
                 matchId: match.id,
@@ -855,19 +852,19 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
 
         categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m, g.name, categoryName)));
         
-        const processBracket = (bracket?: PlayoffBracket) => {
-            if (!bracket) return;
-            Object.values(bracket).flat().forEach(m => addMatch(m, m.name, categoryName));
+        const processBracket = (bracket?: PlayoffBracket, catName?: string) => {
+            if (!bracket || !catName) return;
+            Object.values(bracket).flat().forEach(m => addMatch(m, m.name, catName));
         };
 
         if (categoryData.playoffs) {
             const playoffs = categoryData.playoffs as PlayoffBracketSet;
             if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
-                processBracket(playoffs.upper);
-                processBracket(playoffs.lower);
-                processBracket(playoffs.playoffs);
+                processBracket(playoffs.upper, categoryName);
+                processBracket(playoffs.lower, categoryName);
+                processBracket(playoffs.playoffs, categoryName);
             } else {
-                processBracket(playoffs as PlayoffBracket);
+                processBracket(playoffs as PlayoffBracket, categoryName);
             }
         }
     }
