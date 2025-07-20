@@ -428,8 +428,8 @@ export function CategoryManager() {
     const team1Key = match.team1 ? teamToKey(match.team1) : null;
     const team2Key = match.team2 ? teamToKey(match.team2) : null;
       
-    const placeholder1 = (match.team1Placeholder || '').replace(/Vencedor Semifinal-\d/, 'Vencedor Semifinal').replace(/Perdedor Semifinal-\d/, 'Perdedor Semifinal');
-    const placeholder2 = (match.team2Placeholder || '').replace(/Vencedor Semifinal-\d/, 'Vencedor Semifinal').replace(/Perdedor Semifinal-\d/, 'Perdedor Semifinal');
+    const placeholder1 = (match.team1Placeholder || '');
+    const placeholder2 = (match.team2Placeholder || '');
   
     const isFinalRound = roundName === 'Final' || roundName === 'Disputa de 3º Lugar';
     const showMatchName = roundName !== 'Final' && roundName !== 'Disputa de 3º Lugar';

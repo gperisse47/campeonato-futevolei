@@ -137,12 +137,14 @@ function extractDependencies(placeholder: string | undefined): { matchDeps: stri
     const deps = { matchDeps: [] as string[], groupDeps: [] as string[] };
     if (!placeholder) return deps;
     
+    // For "Vencedor Categoria-QuartasdeFinal-Jogo1" or "Perdedor Categoria-U-R1-J1"
     const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
     if (matchDepMatch && matchDepMatch[1]) {
         deps.matchDeps.push(matchDepMatch[1].trim());
         return deps;
     }
     
+    // For "1º do MistoAvançado-GroupA"
     const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
     if (groupDepMatch && groupDepMatch[1]) {
         deps.groupDeps.push(groupDepMatch[1].trim());
@@ -818,7 +820,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             groupMatchIds.set(groupIdentifier, ids);
         });
 
-        const addMatch = (match: MatchWithScore | PlayoffMatch, stage: string, category: string) => {
+        const addMatch = (match: MatchWithScore | PlayoffMatch) => {
             if (!match.id) return;
             let allDependencies: string[] = [];
 
@@ -840,29 +842,29 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
            
             matchesInput.push({
                 matchId: match.id,
-                category: category,
-                stage: stage,
+                category: categoryName,
+                stage: match.name,
                 team1: match.team1Placeholder || teamToKey(match.team1) || '',
                 team2: match.team2Placeholder || teamToKey(match.team2) || '',
                 dependencies: [...new Set(allDependencies)]
             });
         };
 
-        categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m, g.name, categoryName)));
+        categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m)));
         
-        const processBracket = (bracket?: PlayoffBracket, catName?: string) => {
-            if (!bracket || !catName) return;
-            Object.values(bracket).flat().forEach(m => addMatch(m, m.name, catName));
+        const processBracket = (bracket?: PlayoffBracket) => {
+            if (!bracket) return;
+            Object.values(bracket).flat().forEach(m => addMatch(m));
         };
 
         if (categoryData.playoffs) {
             const playoffs = categoryData.playoffs as PlayoffBracketSet;
             if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
-                processBracket(playoffs.upper, categoryName);
-                processBracket(playoffs.lower, categoryName);
-                processBracket(playoffs.playoffs, categoryName);
+                processBracket(playoffs.upper);
+                processBracket(playoffs.lower);
+                processBracket(playoffs.playoffs);
             } else {
-                processBracket(playoffs as PlayoffBracket, categoryName);
+                processBracket(playoffs as PlayoffBracket);
             }
         }
     }
@@ -903,3 +905,4 @@ export async function generateScheduleAction(): Promise<{ success: boolean; erro
 }
 
     
+

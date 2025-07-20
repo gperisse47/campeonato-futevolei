@@ -191,6 +191,9 @@ type AIOutputGroup = {
 // Types for state management within the component
 export type MatchWithScore = AIOutputGroup['matches'][0] & {
   id?: string;
+  name?: string;
+  team1Placeholder?: string;
+  team2Placeholder?: string;
   score1?: number;
   score2?: number;
   time?: string;
@@ -217,8 +220,8 @@ export type TeamStanding = {
 export type PlayoffMatch = {
   id: string;
   name: string;
-  team1Placeholder: string;
-  team2Placeholder: string;
+  team1Placeholder?: string;
+  team2Placeholder?: string;
   team1?: Team;
   team2?: Team;
   score1?: number;
