@@ -813,7 +813,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
 
         // First pass: collect all group match IDs
         categoryData.tournamentData?.groups.forEach(g => {
-            const groupIdentifier = `${categoryPrefix}-${g.name}`;
+            const groupIdentifier = `${categoryPrefix}-${g.name.replace(/\s/g, '')}`;
             const ids = g.matches.map(m => m.id!);
             groupMatchIds.set(groupIdentifier, ids);
         });
@@ -825,7 +825,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             if ('team1Placeholder' in match && match.team1Placeholder) {
                 const deps = extractDependencies(match.team1Placeholder);
                 deps.forEach(dep => {
-                    if (dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")) {
+                    if (groupMatchIds.has(dep)) {
                         allDependencies.push(...(groupMatchIds.get(dep) || []));
                     } else {
                         allDependencies.push(dep);
@@ -835,7 +835,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
              if ('team2Placeholder' in match && match.team2Placeholder) {
                 const deps = extractDependencies(match.team2Placeholder);
                  deps.forEach(dep => {
-                    if (dep.startsWith(categoryPrefix) && !dep.includes("-Jogo")) {
+                    if (groupMatchIds.has(dep)) {
                         allDependencies.push(...(groupMatchIds.get(dep) || []));
                     } else {
                         allDependencies.push(dep);

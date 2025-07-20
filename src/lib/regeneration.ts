@@ -334,9 +334,8 @@ export async function initializePlayoffs(values: TournamentFormValues, categoryN
 
         } else if (values.tournamentType === 'groups') {
             const getTeamPlaceholder = (groupIndex: number, position: number) => {
-                const groupLetter = String.fromCharCode(65 + groupIndex);
-                const groupName = `Group ${groupLetter}`;
-                return `${position}º do ${categoryPrefix}-${groupName}`;
+                const groupNameId = `Group${String.fromCharCode(65 + groupIndex)}`;
+                return `${position}º do ${categoryPrefix}-${groupNameId}`;
             };
 
             const { numberOfGroups, teamsPerGroupToAdvance, includeThirdPlace } = values;

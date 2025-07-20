@@ -63,9 +63,6 @@ export function CategoryManager() {
   const { toast } = useToast()
   
   const activeCategoryData = activeTab ? tournaments[activeTab] : null;
-  const activeTournamentData = activeCategoryData?.tournamentData;
-  const activePlayoffs = activeCategoryData?.playoffs;
-  const activeFormValues = activeCategoryData?.formValues;
 
   const getFirstMatchTime = (categoryData: CategoryData | null): string | null => {
     if (!categoryData) return null;
@@ -218,192 +215,95 @@ export function CategoryManager() {
     setIsLoading(false);
 };
   
-  const getTeamPlaceholder = useCallback((groupIndex: number, position: number) => {
-    const groupLetter = String.fromCharCode(65 + groupIndex);
-    return `${position}º do Grupo ${groupLetter}`;
-  }, []);
+  const updatePlayoffs = (categoryData: CategoryData): CategoryData => {
+    const { playoffs, formValues, tournamentData } = categoryData;
+    if (!playoffs) return categoryData;
 
-  const updatePlayoffs = useCallback(() => {
-    if (!activeTab || !activeCategoryData) return;
+    const newPlayoffs = JSON.parse(JSON.stringify(playoffs));
+    const winners: { [matchId: string]: Team } = {};
+    const losers: { [matchId: string]: Team } = {};
+    const groupQualifiers: { [placeholder: string]: Team } = {};
 
-    const { playoffs, formValues, tournamentData } = activeCategoryData;
-    if (!playoffs) return;
-
-    const newPlayoffs = JSON.parse(JSON.stringify(playoffs)) as PlayoffBracketSet;
-    const winners: { [matchName: string]: Team | undefined } = {};
-    const losers: { [matchName: string]: Team | undefined } = {};
-    const teamNameMap: { [key: string]: Team } = {};
-    if (formValues.tournamentType === 'doubleElimination') {
-        const teamsArray: Team[] = formValues.teams
-          .split("\n")
-          .map((t) => t.trim())
-          .filter(Boolean)
-          .map((teamString) => {
-            const players = teamString.split(/\s+e\s+/i).map((p) => p.trim())
-            return { player1: players[0] || "", player2: players[1] || "" }
-        });
-        teamsArray.forEach(t => teamNameMap[teamToKey(t)] = t);
+    // 1. Populate group qualifiers if groups are finished
+    if (tournamentData?.groups) {
+      tournamentData.groups.forEach(group => {
+        const allMatchesFinished = group.matches.every(m => typeof m.score1 === 'number' && typeof m.score2 === 'number');
+        if (allMatchesFinished) {
+          group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, index) => {
+            const categoryPrefix = formValues.category.replace(/\s/g, '');
+            const groupNameId = group.name.replace(/\s/g, '');
+            const placeholder = `${index + 1}º do ${categoryPrefix}-${groupNameId}`;
+            groupQualifiers[placeholder] = standing.team;
+          });
+        }
+      });
     }
     
-    const finishedGroups = new Set<string>();
-    if (tournamentData && tournamentData.groups) {
-        const groupsToCheck = Array.isArray(tournamentData.groups) ? tournamentData.groups : Object.values(tournamentData.groups);
-        groupsToCheck.forEach(group => {
-            const allMatchesFinished = group.matches.every(
-                m => typeof m.score1 === 'number' && typeof m.score2 === 'number'
-            );
-            if (allMatchesFinished) {
-                finishedGroups.add(group.name);
-            }
-        });
-    }
-    
-    // Function to find a match in any bracket structure
-    const findMatchById = (bracket: any, matchId: string): PlayoffMatch | undefined => {
-        if (!bracket) return undefined;
-
-        if (Array.isArray(bracket)) {
-            return bracket.find((m: PlayoffMatch) => m.id === matchId);
+    // 2. Populate winners and losers from playoff matches
+    const processBracketForWinners = (bracket?: PlayoffBracket) => {
+      if (!bracket) return;
+      Object.values(bracket).flat().forEach(match => {
+        if (match.team1 && match.team2 && typeof match.score1 === 'number' && typeof match.score2 === 'number') {
+          if (match.score1 > match.score2) {
+            winners[match.id] = match.team1;
+            losers[match.id] = match.team2;
+          } else if (match.score2 > match.score1) {
+            winners[match.id] = match.team2;
+            losers[match.id] = match.team1;
+          }
         }
-        
-        if (typeof bracket === 'object') {
-             for (const key in bracket) {
-                const found = findMatchById(bracket[key], matchId);
-                if (found) return found;
-            }
-        }
-        return undefined;
+      });
     };
 
+    if ('upper' in newPlayoffs || 'lower' in newPlayoffs || 'playoffs' in newPlayoffs) {
+      processBracketForWinners((newPlayoffs as PlayoffBracketSet).upper);
+      processBracketForWinners((newPlayoffs as PlayoffBracketSet).lower);
+      processBracketForWinners((newPlayoffs as PlayoffBracketSet).playoffs);
+    } else {
+      processBracketForWinners(newPlayoffs as PlayoffBracket);
+    }
 
-    const processBracket = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
-        if (!bracket) return;
-
-        if (formValues.tournamentType === 'doubleElimination' && ('upper' in bracket || 'lower' in bracket || 'playoffs' in bracket)) {
-            const bracketSet = bracket as PlayoffBracketSet;
-            processBracket(bracketSet.upper);
-            processBracket(bracketSet.lower);
-            processBracket(bracketSet.playoffs);
-            return;
+    // 3. Resolve placeholders iteratively
+    const resolvePlaceholdersInBracket = (bracket?: PlayoffBracket) => {
+      if (!bracket) return;
+      Object.values(bracket).flat().forEach(match => {
+        if (!match.team1 && match.team1Placeholder) {
+          if (groupQualifiers[match.team1Placeholder]) {
+            match.team1 = groupQualifiers[match.team1Placeholder];
+          } else if (match.team1Placeholder.startsWith('Vencedor')) {
+            const depId = match.team1Placeholder.replace('Vencedor ', '').trim();
+            if (winners[depId]) match.team1 = winners[depId];
+          } else if (match.team1Placeholder.startsWith('Perdedor')) {
+            const depId = match.team1Placeholder.replace('Perdedor ', '').trim();
+            if (losers[depId]) match.team1 = losers[depId];
+          }
         }
-
-        if (typeof bracket !== 'object' || bracket === null) {
-          return;
+        if (!match.team2 && match.team2Placeholder) {
+          if (groupQualifiers[match.team2Placeholder]) {
+            match.team2 = groupQualifiers[match.team2Placeholder];
+          } else if (match.team2Placeholder.startsWith('Vencedor')) {
+            const depId = match.team2Placeholder.replace('Vencedor ', '').trim();
+            if (winners[depId]) match.team2 = winners[depId];
+          } else if (match.team2Placeholder.startsWith('Perdedor')) {
+            const depId = match.team2Placeholder.replace('Perdedor ', '').trim();
+            if (losers[depId]) match.team2 = losers[depId];
+          }
         }
-        
-        const roundOrder = Object.keys(bracket).sort((a, b) => ((bracket as PlayoffBracket)[b]?.[0]?.roundOrder || 0) - ((bracket as PlayoffBracket)[a]?.[0]?.roundOrder || 0));
-        
-        roundOrder.forEach(roundName => {
-            const roundMatches = (bracket as PlayoffBracket)[roundName];
-            if (Array.isArray(roundMatches)) {
-                roundMatches.forEach(match => {
-                     if (match.team1 && match.team2 && typeof match.score1 === 'number' && typeof match.score2 === 'number') {
-                        if (match.score1 > match.score2) {
-                            winners[match.id] = match.team1;
-                            losers[match.id] = match.team2;
-                        } else if (match.score2 > match.score1) {
-                            winners[match.id] = match.team2;
-                            losers[match.id] = match.team1;
-                        }
-                    }
-                });
-            }
-        });
-    };
-    
-    const resolvePlaceholders = (bracket: PlayoffBracket | PlayoffBracketSet | undefined) => {
-        if (!bracket) return;
-        
-         if (formValues.tournamentType === 'doubleElimination' && ('upper' in bracket || 'lower' in bracket || 'playoffs' in bracket)) {
-            const bracketSet = bracket as PlayoffBracketSet;
-            resolvePlaceholders(bracketSet.upper);
-            resolvePlaceholders(bracketSet.lower);
-            resolvePlaceholders(bracketSet.playoffs);
-            return;
-        }
-        
-        if (typeof bracket !== 'object' || bracket === null) return;
-
-        const roundOrder = Object.keys(bracket).sort((a,b) => (((bracket as PlayoffBracket)[b]?.[0]?.roundOrder || 0) - ((bracket as PlayoffBracket)[a]?.[0]?.roundOrder || 0)));
-
-        roundOrder.forEach(roundName => {
-            const currentRound = (bracket as PlayoffBracket)[roundName];
-             if (Array.isArray(currentRound)) {
-                currentRound.forEach(match => {
-                    // Resolve team 1
-                    if (!match.team1 && match.team1Placeholder) {
-                        const placeholder = match.team1Placeholder;
-                        if (placeholder.startsWith('Vencedor ')) {
-                            const dependencyId = placeholder.replace('Vencedor ', '').trim();
-                            match.team1 = winners[dependencyId];
-                        } else if (placeholder.startsWith('Perdedor ')) {
-                             const dependencyId = placeholder.replace('Perdedor ', '').trim();
-                            match.team1 = losers[dependencyId];
-                        } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
-                            match.team1 = teamNameMap[placeholder];
-                        } else if (formValues.tournamentType === 'groups' && tournamentData) {
-                            const placeholderParts = placeholder.match(/(\d+)º do (Group \w)/);
-                            if (placeholderParts && finishedGroups.has(placeholderParts[2])) {
-                                const qualifiedTeams: { [p: string]: Team } = {};
-                                const groupsToProcess = Array.isArray(tournamentData.groups) ? tournamentData.groups : Object.values(tournamentData.groups);
-                                groupsToProcess.forEach((group, groupIndex) => {
-                                    group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                        qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
-                                    });
-                                });
-                                match.team1 = qualifiedTeams[placeholder] || undefined;
-                            }
-                        }
-                    }
-                    // Resolve team 2
-                     if (!match.team2 && match.team2Placeholder) {
-                        const placeholder = match.team2Placeholder;
-                         if (placeholder.startsWith('Vencedor ')) {
-                            const dependencyId = placeholder.replace('Vencedor ', '').trim();
-                            match.team2 = winners[dependencyId];
-                        } else if (placeholder.startsWith('Perdedor ')) {
-                             const dependencyId = placeholder.replace('Perdedor ', '').trim();
-                            match.team2 = losers[dependencyId];
-                        } else if (formValues.tournamentType === 'doubleElimination' && teamNameMap[placeholder]) {
-                            match.team2 = teamNameMap[placeholder];
-                        } else if (formValues.tournamentType === 'groups' && tournamentData) {
-                             const placeholderParts = placeholder.match(/(\d+)º do (Group \w)/);
-                             if (placeholderParts && finishedGroups.has(placeholderParts[2])) {
-                                const qualifiedTeams: { [p: string]: Team } = {};
-                                const groupsToProcess = Array.isArray(tournamentData.groups) ? tournamentData.groups : Object.values(tournamentData.groups);
-                                groupsToProcess.forEach((group, groupIndex) => {
-                                    group.standings.slice(0, formValues.teamsPerGroupToAdvance).forEach((standing, standingIndex) => {
-                                        qualifiedTeams[getTeamPlaceholder(groupIndex, standingIndex + 1)] = standing.team;
-                                    });
-                                });
-                                match.team2 = qualifiedTeams[placeholder] || undefined;
-                             }
-                        }
-                    }
-                });
-            }
-        });
+      });
     };
 
-    const passes = formValues.tournamentType === 'doubleElimination' ? 10 : 5;
-    for (let i = 0; i < passes; i++) {
-        processBracket(newPlayoffs);
-        resolvePlaceholders(newPlayoffs);
+    for (let i = 0; i < 5; i++) { // Iterate multiple times to resolve chained dependencies
+       if ('upper' in newPlayoffs || 'lower' in newPlayoffs || 'playoffs' in newPlayoffs) {
+          resolvePlaceholdersInBracket((newPlayoffs as PlayoffBracketSet).upper);
+          resolvePlaceholdersInBracket((newPlayoffs as PlayoffBracketSet).lower);
+          resolvePlaceholdersInBracket((newPlayoffs as PlayoffBracketSet).playoffs);
+      } else {
+          resolvePlaceholdersInBracket(newPlayoffs as PlayoffBracket);
+      }
     }
-  
-    if (JSON.stringify(playoffs) !== JSON.stringify(newPlayoffs)) {
-      const updatedCategoryData = {
-        ...activeCategoryData,
-        playoffs: newPlayoffs,
-      };
-      setTournaments(prev => ({
-        ...prev,
-        [activeTab!]: updatedCategoryData,
-      }))
-      saveData(activeTab!, updatedCategoryData);
-    }
-  
-  }, [activeTab, activeCategoryData, getTeamPlaceholder, tournaments]);
+
+    return { ...categoryData, playoffs: newPlayoffs };
+  };
 
 
   const calculateStandings = (currentTournamentData: TournamentData): TournamentData => {
@@ -467,61 +367,54 @@ export function CategoryManager() {
   };
 
   const handleGroupMatchChange = (groupIndex: number, matchIndex: number, field: 'score1' | 'score2', value: string) => {
-    if (!activeTab || !activeTournamentData) return;
+    if (!activeTab || !activeCategoryData) return;
     
-    let newTournamentData = JSON.parse(JSON.stringify(activeTournamentData));
+    let currentCategoryData = JSON.parse(JSON.stringify(activeCategoryData));
     const score = value === '' ? undefined : parseInt(value, 10);
     
     // Ensure groups is an array before modification
-    const groupsArray = Array.isArray(newTournamentData.groups) 
-        ? newTournamentData.groups
-        : Object.values(newTournamentData.groups);
+    const groupsArray = Array.isArray(currentCategoryData.tournamentData.groups) 
+        ? currentCategoryData.tournamentData.groups
+        : Object.values(currentCategoryData.tournamentData.groups);
 
     groupsArray[groupIndex].matches[matchIndex][field] = isNaN(score!) ? undefined : score;
-    newTournamentData.groups = groupsArray; // Assign back the array
+    currentCategoryData.tournamentData.groups = groupsArray; // Assign back the array
 
-    const updatedDataWithStandings = calculateStandings(newTournamentData);
-    const updatedCategoryData = {
-      ...activeCategoryData!,
-      tournamentData: updatedDataWithStandings
-    };
+    const updatedDataWithStandings = calculateStandings(currentCategoryData.tournamentData);
+    currentCategoryData.tournamentData = updatedDataWithStandings;
+
+    const finalUpdatedCategoryData = updatePlayoffs(currentCategoryData);
 
     setTournaments(prev => ({
         ...prev,
-        [activeTab!]: updatedCategoryData,
+        [activeTab!]: finalUpdatedCategoryData,
     }));
 
-    saveData(activeTab!, updatedCategoryData);
+    saveData(activeTab!, finalUpdatedCategoryData);
   };
 
   const handlePlayoffMatchChange = (bracketKey: keyof PlayoffBracketSet | null, roundName: string, matchIndex: number, field: 'score1' | 'score2', value: string) => {
-    if (!activeTab || !activePlayoffs) return;
-    let newPlayoffs = JSON.parse(JSON.stringify(activePlayoffs));
+    if (!activeTab || !activeCategoryData) return;
 
+    let currentCategoryData = JSON.parse(JSON.stringify(activeCategoryData));
     let matchToUpdate;
-    if (activeFormValues?.tournamentType === 'doubleElimination' && bracketKey && (newPlayoffs as PlayoffBracketSet)[bracketKey]) {
-        matchToUpdate = (newPlayoffs as PlayoffBracketSet)[bracketKey]![roundName][matchIndex];
+    if (currentCategoryData.formValues?.tournamentType === 'doubleElimination' && bracketKey && (currentCategoryData.playoffs as PlayoffBracketSet)[bracketKey]) {
+        matchToUpdate = (currentCategoryData.playoffs as PlayoffBracketSet)[bracketKey]![roundName][matchIndex];
     } else {
-        matchToUpdate = (newPlayoffs as PlayoffBracket)[roundName][matchIndex];
+        matchToUpdate = (currentCategoryData.playoffs as PlayoffBracket)[roundName][matchIndex];
     }
     
     const score = value === '' ? undefined : parseInt(value, 10);
     matchToUpdate[field] = isNaN(score!) ? undefined : score;
     
-    const updatedCategoryData = {
-        ...activeCategoryData!,
-        playoffs: newPlayoffs
-    };
+    const finalUpdatedCategoryData = updatePlayoffs(currentCategoryData);
+
     setTournaments(prev => ({
         ...prev,
-        [activeTab!]: updatedCategoryData,
+        [activeTab!]: finalUpdatedCategoryData
     }));
-    saveData(activeTab!, updatedCategoryData);
+    saveData(activeTab!, finalUpdatedCategoryData);
   };
-
-  useEffect(() => {
-    updatePlayoffs();
-  }, [JSON.stringify(tournaments), activeTab, updatePlayoffs]);
 
   const PlayoffMatchCard = ({ match, roundName, matchIndex, bracketKey }: { match: PlayoffMatch, roundName: string, matchIndex: number, bracketKey: keyof PlayoffBracketSet | null }) => {
     const getWinner = (m: PlayoffMatch) => {
