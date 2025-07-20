@@ -749,75 +749,75 @@
           "name": "Group A",
           "teams": [
             {
-              "player1": "Carla",
-              "player2": "Henrique"
+              "player1": "Jordana",
+              "player2": "Fabinho"
+            },
+            {
+              "player1": "Mari",
+              "player2": "Neves"
             },
             {
               "player1": "Ana",
               "player2": "Brenner"
-            },
-            {
-              "player1": "Paula",
-              "player2": "Carelli"
             }
           ],
           "matches": [
             {
               "team1": {
-                "player1": "Carla",
-                "player2": "Henrique"
+                "player1": "Jordana",
+                "player2": "Fabinho"
               },
               "team2": {
-                "player1": "Ana",
-                "player2": "Brenner"
+                "player1": "Mari",
+                "player2": "Neves"
               },
               "id": "MistoIniciante-GroupA-Jogo1",
-              "time": "08:00",
-              "court": "GP1",
+              "time": "",
+              "court": "",
               "score1": 18,
               "score2": 5
             },
             {
               "team1": {
-                "player1": "Carla",
-                "player2": "Henrique"
+                "player1": "Jordana",
+                "player2": "Fabinho"
               },
               "team2": {
-                "player1": "Paula",
-                "player2": "Carelli"
-              },
-              "id": "MistoIniciante-GroupA-Jogo2",
-              "time": "10:05",
-              "court": "GP2",
-              "score1": 18,
-              "score2": 4
-            },
-            {
-              "team1": {
                 "player1": "Ana",
                 "player2": "Brenner"
               },
+              "id": "MistoIniciante-GroupA-Jogo2",
+              "time": "",
+              "court": "",
+              "score1": 18,
+              "score2": 16
+            },
+            {
+              "team1": {
+                "player1": "Mari",
+                "player2": "Neves"
+              },
               "team2": {
-                "player1": "Paula",
-                "player2": "Carelli"
+                "player1": "Ana",
+                "player2": "Brenner"
               },
               "id": "MistoIniciante-GroupA-Jogo3",
-              "time": "09:40",
-              "court": "GP1",
-              "score2": 5,
-              "score1": 18
+              "time": "",
+              "court": "",
+              "score1": 10,
+              "score2": 18
             }
           ],
           "standings": [
             {
               "team": {
-                "player1": "Carla",
-                "player2": "Henrique"
+                "player1": "Jordana",
+                "player2": "Fabinho"
               },
               "played": 2,
               "wins": 2,
               "setsWon": 36,
-              "setDifference": 27
+              "setDifference": 15
             },
             {
               "team": {
@@ -826,18 +826,18 @@
               },
               "played": 2,
               "wins": 1,
-              "setsWon": 23,
-              "setDifference": 0
+              "setsWon": 34,
+              "setDifference": 6
             },
             {
               "team": {
-                "player1": "Paula",
-                "player2": "Carelli"
+                "player1": "Mari",
+                "player2": "Neves"
               },
               "played": 2,
               "wins": 0,
-              "setsWon": 9,
-              "setDifference": -27
+              "setsWon": 15,
+              "setDifference": -21
             }
           ]
         },
@@ -849,12 +849,12 @@
               "player2": "Caio"
             },
             {
-              "player1": "Mari",
-              "player2": "Neves"
+              "player1": "Carla",
+              "player2": "Henrique"
             },
             {
-              "player1": "Jordana",
-              "player2": "Fabinho"
+              "player1": "Paula",
+              "player2": "Carelli"
             }
           ],
           "matches": [
@@ -864,12 +864,12 @@
                 "player2": "Caio"
               },
               "team2": {
-                "player1": "Mari",
-                "player2": "Neves"
+                "player1": "Carla",
+                "player2": "Henrique"
               },
               "id": "MistoIniciante-GroupB-Jogo1",
-              "time": "08:00",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -877,25 +877,25 @@
                 "player2": "Caio"
               },
               "team2": {
-                "player1": "Jordana",
-                "player2": "Fabinho"
+                "player1": "Paula",
+                "player2": "Carelli"
               },
               "id": "MistoIniciante-GroupB-Jogo2",
-              "time": "08:25",
-              "court": "HD1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
-                "player1": "Mari",
-                "player2": "Neves"
+                "player1": "Carla",
+                "player2": "Henrique"
               },
               "team2": {
-                "player1": "Jordana",
-                "player2": "Fabinho"
+                "player1": "Paula",
+                "player2": "Carelli"
               },
               "id": "MistoIniciante-GroupB-Jogo3",
-              "time": "09:15",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             }
           ],
           "standings": [
@@ -911,8 +911,8 @@
             },
             {
               "team": {
-                "player1": "Mari",
-                "player2": "Neves"
+                "player1": "Carla",
+                "player2": "Henrique"
               },
               "played": 0,
               "wins": 0,
@@ -921,8 +921,8 @@
             },
             {
               "team": {
-                "player1": "Jordana",
-                "player2": "Fabinho"
+                "player1": "Paula",
+                "player2": "Carelli"
               },
               "played": 0,
               "wins": 0,
@@ -938,22 +938,30 @@
         {
           "id": "MistoIniciante-Semifinal-Jogo1",
           "name": "Semifinal 1",
-          "team1Placeholder": "1º do MistoIniciante-Group A",
-          "team2Placeholder": "2º do MistoIniciante-Group B",
-          "time": "10:30",
-          "court": "GP1",
+          "team1Placeholder": "1º do MistoIniciante-GroupA",
+          "team2Placeholder": "2º do MistoIniciante-GroupB",
+          "time": "",
+          "court": "",
           "roundOrder": 2,
-          "phaseStartTime": "10:30"
+          "phaseStartTime": "10:30",
+          "team1": {
+            "player1": "Jordana",
+            "player2": "Fabinho"
+          }
         },
         {
           "id": "MistoIniciante-Semifinal-Jogo2",
           "name": "Semifinal 2",
-          "team1Placeholder": "2º do MistoIniciante-Group A",
-          "team2Placeholder": "1º do MistoIniciante-Group B",
-          "time": "10:30",
-          "court": "GP2",
+          "team1Placeholder": "2º do MistoIniciante-GroupA",
+          "team2Placeholder": "1º do MistoIniciante-GroupB",
+          "time": "",
+          "court": "",
           "roundOrder": 2,
-          "phaseStartTime": "10:30"
+          "phaseStartTime": "10:30",
+          "team1": {
+            "player1": "Mari",
+            "player2": "Neves"
+          }
         }
       ],
       "Final": [
@@ -962,8 +970,8 @@
           "name": "Final 1",
           "team1Placeholder": "Vencedor MistoIniciante-Semifinal-Jogo1",
           "team2Placeholder": "Vencedor MistoIniciante-Semifinal-Jogo2",
-          "time": "11:20",
-          "court": "GP1",
+          "time": "",
+          "court": "",
           "roundOrder": 1,
           "phaseStartTime": "11:00"
         }
@@ -974,8 +982,8 @@
           "name": "Disputa de 3º Lugar",
           "team1Placeholder": "Perdedor MistoIniciante-Semifinal-Jogo1",
           "team2Placeholder": "Perdedor MistoIniciante-Semifinal-Jogo2",
-          "time": "11:20",
-          "court": "HD2",
+          "time": "",
+          "court": "",
           "roundOrder": 0,
           "phaseStartTime": "11:00"
         }
@@ -1028,8 +1036,8 @@
                 "player2": "Henrique"
               },
               "id": "MistoAvançado-GroupA-Jogo1",
-              "time": "08:50",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1041,8 +1049,8 @@
                 "player2": "Russo"
               },
               "id": "MistoAvançado-GroupA-Jogo2",
-              "time": "08:00",
-              "court": "HD1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1054,8 +1062,8 @@
                 "player2": "Russo"
               },
               "id": "MistoAvançado-GroupA-Jogo3",
-              "time": "09:15",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             }
           ],
           "standings": [
@@ -1118,8 +1126,8 @@
                 "player2": "Gularte"
               },
               "id": "MistoAvançado-GroupB-Jogo1",
-              "time": "08:00",
-              "court": "HD2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1131,8 +1139,8 @@
                 "player2": "Peri"
               },
               "id": "MistoAvançado-GroupB-Jogo2",
-              "time": "08:25",
-              "court": "HD2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1144,8 +1152,8 @@
                 "player2": "Peri"
               },
               "id": "MistoAvançado-GroupB-Jogo3",
-              "time": "08:50",
-              "court": "HD2"
+              "time": "",
+              "court": ""
             }
           ],
           "standings": [
@@ -1208,8 +1216,8 @@
                 "player2": "Bia"
               },
               "id": "MistoAvançado-GroupC-Jogo1",
-              "time": "08:50",
-              "court": "HD1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1221,8 +1229,8 @@
                 "player2": "João"
               },
               "id": "MistoAvançado-GroupC-Jogo2",
-              "time": "10:05",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1234,8 +1242,8 @@
                 "player2": "João"
               },
               "id": "MistoAvançado-GroupC-Jogo3",
-              "time": "08:25",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             }
           ],
           "standings": [
@@ -1298,8 +1306,8 @@
                 "player2": "Yan"
               },
               "id": "MistoAvançado-GroupD-Jogo1",
-              "time": "08:25",
-              "court": "GP2"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1311,8 +1319,8 @@
                 "player2": "Alex"
               },
               "id": "MistoAvançado-GroupD-Jogo2",
-              "time": "08:50",
-              "court": "GP1"
+              "time": "",
+              "court": ""
             },
             {
               "team1": {
@@ -1324,8 +1332,8 @@
                 "player2": "Alex"
               },
               "id": "MistoAvançado-GroupD-Jogo3",
-              "time": "09:15",
-              "court": "HD1"
+              "time": "",
+              "court": ""
             }
           ],
           "standings": [
@@ -1370,8 +1378,8 @@
           "name": "Quartas de Final 1",
           "team1Placeholder": "1º do MistoAvançado-Group A",
           "team2Placeholder": "2º do MistoAvançado-Group D",
-          "time": "10:30",
-          "court": "HD1",
+          "time": "",
+          "court": "",
           "roundOrder": 3,
           "phaseStartTime": "10:30"
         },
@@ -1380,8 +1388,8 @@
           "name": "Quartas de Final 2",
           "team1Placeholder": "2º do MistoAvançado-Group B",
           "team2Placeholder": "1º do MistoAvançado-Group C",
-          "time": "10:30",
-          "court": "HD2",
+          "time": "",
+          "court": "",
           "roundOrder": 3,
           "phaseStartTime": "10:30"
         },
@@ -1390,8 +1398,8 @@
           "name": "Quartas de Final 3",
           "team1Placeholder": "1º do MistoAvançado-Group B",
           "team2Placeholder": "2º do MistoAvançado-Group C",
-          "time": "10:55",
-          "court": "GP1",
+          "time": "",
+          "court": "",
           "roundOrder": 3,
           "phaseStartTime": "10:30"
         },
@@ -1400,8 +1408,8 @@
           "name": "Quartas de Final 4",
           "team1Placeholder": "2º do MistoAvançado-Group A",
           "team2Placeholder": "1º do MistoAvançado-Group D",
-          "time": "10:55",
-          "court": "GP2",
+          "time": "",
+          "court": "",
           "roundOrder": 3,
           "phaseStartTime": "10:30"
         }
@@ -1412,8 +1420,8 @@
           "name": "Semifinal 1",
           "team1Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo1",
           "team2Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo4",
-          "time": "11:20",
-          "court": "GP2",
+          "time": "",
+          "court": "",
           "roundOrder": 2,
           "phaseStartTime": "10:30"
         },
@@ -1422,8 +1430,8 @@
           "name": "Semifinal 2",
           "team1Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo3",
           "team2Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo2",
-          "time": "11:20",
-          "court": "HD1",
+          "time": "",
+          "court": "",
           "roundOrder": 2,
           "phaseStartTime": "10:30"
         }
@@ -1434,8 +1442,8 @@
           "name": "Final 1",
           "team1Placeholder": "Vencedor MistoAvançado-Semifinal-Jogo1",
           "team2Placeholder": "Vencedor MistoAvançado-Semifinal-Jogo2",
-          "time": "11:45",
-          "court": "GP1",
+          "time": "",
+          "court": "",
           "roundOrder": 1,
           "phaseStartTime": "11:30"
         }
@@ -1446,8 +1454,8 @@
           "name": "Disputa de 3º Lugar",
           "team1Placeholder": "Perdedor MistoAvançado-Semifinal-Jogo1",
           "team2Placeholder": "Perdedor MistoAvançado-Semifinal-Jogo2",
-          "time": "11:45",
-          "court": "GP2",
+          "time": "",
+          "court": "",
           "roundOrder": 0,
           "phaseStartTime": "11:30"
         }

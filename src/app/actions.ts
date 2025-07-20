@@ -226,7 +226,7 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
         }
     }
     
-    const groupsData: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] }[] = Array.from({ length: numberOfGroups }, (_, i) => ({
+    const groupsData: { name: string; teams: Team[]; matches: { team1: Team; team2: Team }[] } = Array.from({ length: numberOfGroups }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
         teams: [],
         matches: []
@@ -847,8 +847,8 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
                 matchId: match.id,
                 category: categoryName,
                 stage: stage,
-                team1: teamToKey(match.team1) || match.team1Placeholder || '',
-                team2: teamToKey(match.team2) || match.team2Placeholder || '',
+                team1: match.team1Placeholder || teamToKey(match.team1) || '',
+                team2: match.team2Placeholder || teamToKey(match.team2) || '',
                 dependencies: [...new Set(allDependencies)]
             });
         };
@@ -861,7 +861,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
         };
 
         if (categoryData.playoffs) {
-            const playoffs = categoryData.playoffs as PlayoffBracketSet;
+            const playoffs = category.playoffs as PlayoffBracketSet;
             if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
                 processBracket(playoffs.upper);
                 processBracket(playoffs.lower);
@@ -906,3 +906,5 @@ export async function generateScheduleAction(): Promise<{ success: boolean; erro
         return { success: false, error: e.message || "Erro desconhecido ao gerar horários." };
     }
 }
+
+    
