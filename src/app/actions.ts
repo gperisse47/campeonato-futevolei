@@ -137,14 +137,12 @@ function extractDependencies(placeholder: string | undefined): { matchDeps: stri
     const deps = { matchDeps: [] as string[], groupDeps: [] as string[] };
     if (!placeholder) return deps;
     
-    // For "Vencedor Categoria-QuartasdeFinal-Jogo1" or "Perdedor Categoria-U-R1-J1"
     const matchDepMatch = placeholder.match(/(?:Vencedor|Perdedor)\s(.+)/);
     if (matchDepMatch && matchDepMatch[1]) {
         deps.matchDeps.push(matchDepMatch[1].trim());
         return deps;
     }
     
-    // For "1º do MistoAvançado-GroupA"
     const groupDepMatch = placeholder.match(/\d+º\sdo\s(.+)/);
     if (groupDepMatch && groupDepMatch[1]) {
         deps.groupDeps.push(groupDepMatch[1].trim());
