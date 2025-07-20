@@ -818,7 +818,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             groupMatchIds.set(groupIdentifier, ids);
         });
 
-        const addMatch = (match: MatchWithScore | PlayoffMatch, stage: string) => {
+        const addMatch = (match: MatchWithScore | PlayoffMatch, stage: string, category: string) => {
             if (!match.id) return;
             let allDependencies: string[] = [];
 
@@ -845,7 +845,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
            
             matchesInput.push({
                 matchId: match.id,
-                category: categoryName,
+                category: category,
                 stage: stage,
                 team1: match.team1Placeholder || teamToKey(match.team1) || '',
                 team2: match.team2Placeholder || teamToKey(match.team2) || '',
@@ -853,15 +853,15 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             });
         };
 
-        categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m, g.name)));
+        categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m, g.name, categoryName)));
         
         const processBracket = (bracket?: PlayoffBracket) => {
             if (!bracket) return;
-            Object.values(bracket).flat().forEach(m => addMatch(m, m.name));
+            Object.values(bracket).flat().forEach(m => addMatch(m, m.name, categoryName));
         };
 
         if (categoryData.playoffs) {
-            const playoffs = category.playoffs as PlayoffBracketSet;
+            const playoffs = categoryData.playoffs as PlayoffBracketSet;
             if (playoffs.upper || playoffs.lower || playoffs.playoffs) {
                 processBracket(playoffs.upper);
                 processBracket(playoffs.lower);
