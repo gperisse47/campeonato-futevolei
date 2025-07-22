@@ -792,7 +792,9 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
     
     _globalSettings.courts.forEach((court, courtIndex) => {
         parameters[`court_${courtIndex}_name`] = court.name;
-    
+        if (court.priority !== undefined) {
+             parameters[`court_${courtIndex}_priority`] = String(court.priority);
+        }
         court.slots.forEach((slot, slotIndex) => {
             parameters[`court_${courtIndex}_slot_${slotIndex}`] = `${slot.startTime}-${slot.endTime}`;
         });
@@ -820,7 +822,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             groupMatchIds.set(groupIdentifier, ids);
         });
 
-        const addMatch = (match: MatchWithScore | PlayoffMatch) => {
+        const addMatch = (match: MatchWithScore | PlayoffMatch, category: string) => {
             if (!match.id) return;
             let allDependencies: string[] = [];
 
@@ -842,7 +844,7 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
            
             matchesInput.push({
                 matchId: match.id,
-                category: categoryName,
+                category: category,
                 stage: match.name,
                 team1: match.team1Placeholder || teamToKey(match.team1) || '',
                 team2: match.team2Placeholder || teamToKey(match.team2) || '',
@@ -850,11 +852,11 @@ function transformDataForScheduler(tournaments: TournamentsState): { matchesInpu
             });
         };
 
-        categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m)));
+        categoryData.tournamentData?.groups.forEach(g => g.matches.forEach(m => addMatch(m, categoryName)));
         
         const processBracket = (bracket?: PlayoffBracket) => {
             if (!bracket) return;
-            Object.values(bracket).flat().forEach(m => addMatch(m));
+            Object.values(bracket).flat().forEach(m => addMatch(m, categoryName));
         };
 
         if (categoryData.playoffs) {
@@ -905,4 +907,5 @@ export async function generateScheduleAction(): Promise<{ success: boolean; erro
 }
 
     
+
 
