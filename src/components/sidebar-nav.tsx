@@ -69,18 +69,18 @@ export function SidebarNav() {
                 </Link>
               </SidebarMenuItem>
                <SidebarMenuItem>
-                <Link href="/matches" passHref>
-                    <SidebarMenuButton isActive={pathname === '/matches'} tooltip="Jogos">
-                        <Swords/>
-                        <span>Jogos</span>
-                    </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
                 <Link href="/teams" passHref>
                     <SidebarMenuButton isActive={pathname === '/teams'} tooltip="Duplas">
                         <Users/>
                         <span>Duplas</span>
+                    </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <Link href="/matches" passHref>
+                    <SidebarMenuButton isActive={pathname === '/matches'} tooltip="Jogos">
+                        <Swords/>
+                        <span>Jogos</span>
                     </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
