@@ -87,60 +87,7 @@ export function SidebarNav() {
             </SidebarMenu>
             
             <SidebarSeparator className="my-4" />
-
-            {isAuthenticated && (
-              <SidebarMenu>
-                <SidebarMenuItem>
-                    <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider flex items-center justify-between">
-                        <span>ADMINISTRAÇÃO</span>
-                        <Lock className="h-3 w-3"/>
-                    </div>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <Link href="/admin/settings" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/settings'} tooltip="Configurações do Campeonato">
-                            <Settings />
-                            <span>Configurações do Campeonato</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <Link href="/admin" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Criar/Atualizar Categoria">
-                            <PlusCircle />
-                            <span>Criar/Atualizar Categoria</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <Link href="/admin/teams" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/teams'} tooltip="Gerenciador de Duplas">
-                            <Users/>
-                            <span>Gerenciador de Duplas</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <Link href="/admin/gerenciador" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/gerenciador'} tooltip="Gerenciador de Resultados">
-                            <LayoutGrid />
-                            <span>Gerenciador de Resultados</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <Link href="/admin/matches" passHref>
-                        <SidebarMenuButton isActive={pathname === '/admin/matches'} tooltip="Gerenciador de Jogos">
-                            <Swords />
-                            <span>Gerenciador de Jogos</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            )}
             
-            <SidebarSeparator className="my-4" />
-
             <SidebarMenu>
                 <SidebarMenuItem>
                   <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider">CATEGORIAS</div>
@@ -168,6 +115,60 @@ export function SidebarNav() {
                     </SidebarMenuItem>
                 )}
             </SidebarMenu>
+
+            {isAuthenticated && (
+              <>
+                <SidebarSeparator className="my-4" />
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                      <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider flex items-center justify-between">
+                          <span>ADMINISTRAÇÃO</span>
+                          <Lock className="h-3 w-3"/>
+                      </div>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <Link href="/admin/settings" passHref>
+                          <SidebarMenuButton isActive={pathname === '/admin/settings'} tooltip="Configurações do Campeonato">
+                              <Settings />
+                              <span>Configurações do Campeonato</span>
+                          </SidebarMenuButton>
+                      </Link>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <Link href="/admin" passHref>
+                          <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Criar/Atualizar Categoria">
+                              <PlusCircle />
+                              <span>Criar/Atualizar Categoria</span>
+                          </SidebarMenuButton>
+                      </Link>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <Link href="/admin/teams" passHref>
+                          <SidebarMenuButton isActive={pathname === '/admin/teams'} tooltip="Gerenciador de Duplas">
+                              <Users/>
+                              <span>Gerenciador de Duplas</span>
+                          </SidebarMenuButton>
+                      </Link>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <Link href="/admin/gerenciador" passHref>
+                          <SidebarMenuButton isActive={pathname === '/admin/gerenciador'} tooltip="Gerenciador de Resultados">
+                              <LayoutGrid />
+                              <span>Gerenciador de Resultados</span>
+                          </SidebarMenuButton>
+                      </Link>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <Link href="/admin/matches" passHref>
+                          <SidebarMenuButton isActive={pathname === '/admin/matches'} tooltip="Gerenciador de Jogos">
+                              <Swords />
+                              <span>Gerenciador de Jogos</span>
+                          </SidebarMenuButton>
+                      </Link>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </>
+            )}
         </ScrollArea>
       </SidebarContent>
     </>
