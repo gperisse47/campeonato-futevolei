@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Trophy, ArrowRight } from "lucide-react";
 import { getTournaments } from "@/app/actions";
 import type { TournamentsState } from "@/lib/types";
+import Image from "next/image";
 
 export default function Home() {
   const [tournaments, setTournaments] = useState<TournamentsState>({});
@@ -32,11 +33,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-8 items-center text-center">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4 items-center">
+         <Image src="/logo.png" alt="Logo Amigos do Peri" width={150} height={150} />
          <div className="flex items-center justify-center gap-3">
-            <div className="p-2 rounded-lg bg-primary text-primary-foreground">
-                <Trophy className="h-8 w-8" />
-            </div>
             <h1 className="text-4xl font-bold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h1>
          </div>
         <p className="text-muted-foreground text-lg">
