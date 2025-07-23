@@ -138,7 +138,7 @@ export function SidebarNav() {
                       <Link href="/admin/settings" passHref>
                           <SidebarMenuButton isActive={pathname === '/admin/settings'} tooltip="Configurações do Campeonato">
                               <Settings />
-                              <span>Configurações</span>
+                              <span>Configurações do Campeonato</span>
                           </SidebarMenuButton>
                       </Link>
                   </SidebarMenuItem>
@@ -146,7 +146,7 @@ export function SidebarNav() {
                       <Link href="/admin" passHref>
                           <SidebarMenuButton isActive={pathname === '/admin'} tooltip="Criar/Atualizar Categoria">
                               <PlusCircle />
-                              <span>Criar/Atualizar</span>
+                              <span>Criar/Atualizar Categoria</span>
                           </SidebarMenuButton>
                       </Link>
                   </SidebarMenuItem>
@@ -154,7 +154,7 @@ export function SidebarNav() {
                       <Link href="/admin/teams" passHref>
                           <SidebarMenuButton isActive={pathname === '/admin/teams'} tooltip="Gerenciador de Duplas">
                               <Users/>
-                              <span>Duplas</span>
+                              <span>Gerenciador de Duplas</span>
                           </SidebarMenuButton>
                       </Link>
                   </SidebarMenuItem>
@@ -162,7 +162,7 @@ export function SidebarNav() {
                       <Link href="/admin/gerenciador" passHref>
                           <SidebarMenuButton isActive={pathname === '/admin/gerenciador'} tooltip="Gerenciador de Resultados">
                               <LayoutGrid />
-                              <span>Resultados</span>
+                              <span>Gerenciador de Resultados</span>
                           </SidebarMenuButton>
                       </Link>
                   </SidebarMenuItem>
@@ -170,7 +170,7 @@ export function SidebarNav() {
                       <Link href="/admin/matches" passHref>
                           <SidebarMenuButton isActive={pathname === '/admin/matches'} tooltip="Gerenciador de Jogos">
                               <Swords />
-                              <span>Jogos</span>
+                              <span>Gerenciador de Jogos</span>
                           </SidebarMenuButton>
                       </Link>
                   </SidebarMenuItem>
