@@ -2,6 +2,7 @@
 "use client"
 
 import * as React from "react";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from "@/context/AuthContext";
+import { Lock } from "lucide-react";
 
 export function Header() {
   const { isAuthenticated, logout } = useAuth();
@@ -24,7 +26,7 @@ export function Header() {
       <div className="flex-1">
         {/* Can be used for breadcrumbs or page titles */}
       </div>
-      {isAuthenticated && (
+      {isAuthenticated ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -43,6 +45,13 @@ export function Header() {
             <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      ) : (
+         <Button asChild variant="outline">
+            <Link href="/admin">
+              <Lock className="mr-2 h-4 w-4" />
+              Login
+            </Link>
+          </Button>
       )}
     </header>
   )

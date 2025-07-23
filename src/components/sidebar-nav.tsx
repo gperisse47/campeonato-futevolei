@@ -137,21 +137,7 @@ export function SidebarNav() {
                     </SidebarMenuItem>
                 </SidebarMenu>
               </>
-            ) : (
-                <>
-                <SidebarSeparator className="my-4" />
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <Link href="/admin" passHref>
-                            <SidebarMenuButton isActive={pathname.startsWith('/admin')} tooltip="Login de Administrador">
-                                <Lock />
-                                <span>Login de Administrador</span>
-                            </SidebarMenuButton>
-                        </Link>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-              </>
-            )}
+            ) : null}
 
             <SidebarSeparator className="my-4" />
 
