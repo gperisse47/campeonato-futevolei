@@ -86,15 +86,17 @@ export function SidebarNav() {
               </SidebarMenuItem>
             </SidebarMenu>
             
-            {isAuthenticated ? (
-              <>
-                <SidebarSeparator className="my-4" />
-                
-                <SidebarMenu>
-                    <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider flex items-center justify-between">
-                        <span>ADMINISTRAÇÃO</span>
-                        <Lock className="h-3 w-3"/>
-                    </div>
+            <SidebarSeparator className="my-4" />
+
+            <SidebarMenu>
+                {isAuthenticated ? (
+                <>
+                    <SidebarMenuItem>
+                        <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider flex items-center justify-between">
+                            <span>ADMINISTRAÇÃO</span>
+                            <Lock className="h-3 w-3"/>
+                        </div>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <Link href="/admin/settings" passHref>
                             <SidebarMenuButton isActive={pathname === '/admin/settings'} tooltip="Configurações do Campeonato">
@@ -135,18 +137,31 @@ export function SidebarNav() {
                             </SidebarMenuButton>
                         </Link>
                     </SidebarMenuItem>
-                </SidebarMenu>
-              </>
-            ) : null}
-
+                </>
+                ) : (
+                    <SidebarMenuItem>
+                        <Link href="/admin" passHref>
+                            <SidebarMenuButton isActive={pathname.startsWith('/admin')} tooltip="Login de Administrador">
+                                <Lock />
+                                <span>Login de Administrador</span>
+                            </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
+                )}
+            </SidebarMenu>
+            
             <SidebarSeparator className="my-4" />
 
             <SidebarMenu>
-                <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider">CATEGORIAS</div>
+                <SidebarMenuItem>
+                  <div className="px-2 mb-2 text-xs font-semibold text-muted-foreground tracking-wider">CATEGORIAS</div>
+                </SidebarMenuItem>
                 {isLoading ? (
-                    <div className="p-2 flex items-center justify-center">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                    </div>
+                    <SidebarMenuItem>
+                        <div className="p-2 flex items-center justify-center">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                        </div>
+                    </SidebarMenuItem>
                 ) : categories.length > 0 ? (
                     categories.map((category) => (
                          <SidebarMenuItem key={category}>
@@ -159,7 +174,9 @@ export function SidebarNav() {
                         </SidebarMenuItem>
                     ))
                 ) : (
-                    <div className="px-2 text-xs text-muted-foreground">Nenhuma categoria gerada.</div>
+                    <SidebarMenuItem>
+                      <div className="px-2 text-xs text-muted-foreground">Nenhuma categoria gerada.</div>
+                    </SidebarMenuItem>
                 )}
             </SidebarMenu>
         </ScrollArea>
