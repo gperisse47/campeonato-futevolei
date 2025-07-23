@@ -252,7 +252,8 @@ export default function ScheduleGridPage() {
                 doc.text(team1, cellX + colWidth / 2, textY, { align: 'center' });
                 
                 textY += lineHeight;
-                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(6);
+                doc.setFont('helvetica', 'normal');
                 doc.text(vs, cellX + colWidth / 2, textY, { align: 'center' });
                 
                 textY += lineHeight;
@@ -279,7 +280,7 @@ export default function ScheduleGridPage() {
              {match.score1 !== undefined && match.score2 !== undefined ? (
                  <>
                     <div className="text-muted-foreground mb-0.5 truncate text-center">{match.team1Name}</div>
-                    <div className="font-bold text-lg my-0.5 text-center">{`${match.score1} x ${match.score2}`}</div>
+                    <div className="font-bold my-0.5 text-center">{`${match.score1} x ${match.score2}`}</div>
                     <div className="text-muted-foreground mb-0.5 truncate text-center">{match.team2Name}</div>
                  </>
              ) : (
