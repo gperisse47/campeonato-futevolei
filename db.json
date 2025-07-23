@@ -715,7 +715,7 @@
           "team1Placeholder": "Vencedor MasculinoAvançado-Semifinal-Jogo1",
           "team2Placeholder": "Vencedor MasculinoAvançado-Semifinal-Jogo2",
           "time": "16:20",
-          "court": "GP2",
+          "court": "GP1",
           "roundOrder": 1,
           "phaseStartTime": ""
         }
@@ -727,7 +727,7 @@
           "team1Placeholder": "Perdedor MasculinoAvançado-Semifinal-Jogo1",
           "team2Placeholder": "Perdedor MasculinoAvançado-Semifinal-Jogo2",
           "time": "16:20",
-          "court": "GP1",
+          "court": "GP2",
           "roundOrder": 0,
           "phaseStartTime": ""
         }
@@ -979,7 +979,7 @@
           "team1Placeholder": "Vencedor MistoIniciante-Semifinal-Jogo1",
           "team2Placeholder": "Vencedor MistoIniciante-Semifinal-Jogo2",
           "time": "11:20",
-          "court": "GP2",
+          "court": "GP1",
           "roundOrder": 1,
           "phaseStartTime": "11:00"
         }
@@ -991,7 +991,7 @@
           "team1Placeholder": "Perdedor MistoIniciante-Semifinal-Jogo1",
           "team2Placeholder": "Perdedor MistoIniciante-Semifinal-Jogo2",
           "time": "11:20",
-          "court": "GP1",
+          "court": "HD2",
           "roundOrder": 0,
           "phaseStartTime": "11:00"
         }
@@ -1435,7 +1435,7 @@
           "team1Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo1",
           "team2Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo4",
           "time": "11:20",
-          "court": "HD1",
+          "court": "GP2",
           "roundOrder": 2,
           "phaseStartTime": "10:30"
         },
@@ -1445,7 +1445,7 @@
           "team1Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo3",
           "team2Placeholder": "Vencedor MistoAvançado-QuartasdeFinal-Jogo2",
           "time": "11:20",
-          "court": "HD2",
+          "court": "HD1",
           "roundOrder": 2,
           "phaseStartTime": "10:30"
         }
@@ -1457,7 +1457,7 @@
           "team1Placeholder": "Vencedor MistoAvançado-Semifinal-Jogo1",
           "team2Placeholder": "Vencedor MistoAvançado-Semifinal-Jogo2",
           "time": "11:45",
-          "court": "GP2",
+          "court": "GP1",
           "roundOrder": 1,
           "phaseStartTime": "11:30"
         }
@@ -1469,7 +1469,7 @@
           "team1Placeholder": "Perdedor MistoAvançado-Semifinal-Jogo1",
           "team2Placeholder": "Perdedor MistoAvançado-Semifinal-Jogo2",
           "time": "11:45",
-          "court": "GP1",
+          "court": "GP2",
           "roundOrder": 0,
           "phaseStartTime": "11:30"
         }

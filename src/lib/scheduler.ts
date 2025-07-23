@@ -67,7 +67,7 @@ class Match {
     if (this.stage) {
       for (const key in parameters) {
           const match = key.match(/__(stageMinTime)_(.+)/);
-          if (this.stage && match && this.stage.startsWith(match[2]) && key.startsWith(this.category)) {
+          if (match && this.stage.startsWith(match[2]) && key.startsWith(this.category)) {
               const timeValue = parameters[key];
               if (timeValue) {
                   this.phaseStartTime = parseDate(timeValue, "HH:mm", new Date());
@@ -84,7 +84,7 @@ class Match {
   }
 }
 
-function getStagePriority(stage: string | undefined): number {
+function getStagePriority(stage: string): number {
     if (!stage) return 50; // Default priority for undefined stages
     const s = stage.toLowerCase();
     if (s.includes("final") && !s.includes("disputa")) return 100;
@@ -239,43 +239,57 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       // Prioridade #1: Fase do Jogo (Final > Semi > Quartas)
       const stagePrioA = getStagePriority(a.stage);
       const stagePrioB = getStagePriority(b.stage);
-      if (stagePrioA !== stagePrioB) return stagePrioB - stagePrioA;
+      if (a.category !== b.category){
+        if (stagePrioA !== stagePrioB) return stagePrioB - stagePrioA;}
+        else
+        {if (stagePrioA !== stagePrioB) return stagePrioA - stagePrioB;}
     
       // Prioridade #2: Prioridade da Categoria (menor é melhor)
       const catPrioA = categoryPlayoffPriority[a.category] ?? 999;
       const catPrioB = categoryPlayoffPriority[b.category] ?? 999;
       if (catPrioA !== catPrioB) return catPrioA - catPrioB;
-    
-      // Prioridade #3: Menor tempo de descanso (quem está esperando há mais tempo)
-      const getMinRest = (m: Match) => {
-        if (m.players.length === 0) return Infinity;
+
+      const rest = (m: Match) => {
+        if (m.players.length === 0) return { min: Infinity, sum: Infinity };
         const rests = m.players.map(p => {
             const pa = playerAvailability[p] || new Date(0);
             return differenceInMinutes(currentTime, pa);
         });
-        return Math.min(...rests);
+        return {
+          min: Math.min(...rests),
+          sum: rests.reduce((acc, val) => acc + val, 0)
+        };
       };
-      
-      const restA = getMinRest(a);
-      const restB = getMinRest(b);
-      if (restA !== restB) return restA - restB;
-    
-      return 0;
+
+      const ar = rest(a);
+      const br = rest(b);
+      return br.sum - ar.sum || br.min - ar.min;
     });
-    
 
     const usedPlayers = new Set<string>();
-    for (const court of availableCourts) {
-        if(readyMatches.length === 0) {
-            break;
-        };
+    // 1. Ordena quadras por prioridade (menor número = maior prioridade)
+    const sortedCourts = [...availableCourts].sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
-        const matchIndex = readyMatches.findIndex(m => m.players.every(p => !usedPlayers.has(p)));
-        if(matchIndex === -1) {
-            continue;
-        };
-        
-        const match = readyMatches.splice(matchIndex, 1)[0];
+    // 2. Seleciona até N partidas disponíveis cujos jogadores ainda não foram usados neste horário
+    const candidateMatches: Match[] = [];
+    const tempUsedPlayers = new Set<string>();
+
+    for (const match of readyMatches) {
+      if (candidateMatches.length >= sortedCourts.length) break;
+      if (match.players.every(p => !tempUsedPlayers.has(p))) {
+        candidateMatches.push(match);
+        match.players.forEach(p => tempUsedPlayers.add(p));
+      }
+    }
+
+    // 3. Ordena essas partidas por prioridade de fase (maior prioridade primeiro)
+    candidateMatches.sort((a, b) => getStagePriority(b.stage) - getStagePriority(a.stage));
+
+    // 4. Aloca as melhores partidas nas melhores quadras
+    for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
+      const court = sortedCourts[i];
+      const match = candidateMatches[i];
+
 
         match.time = formatDate(currentTime, "HH:mm");
         match.court = court.name;
