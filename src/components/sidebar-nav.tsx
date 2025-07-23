@@ -86,7 +86,7 @@ export function SidebarNav() {
               </SidebarMenuItem>
             </SidebarMenu>
             
-            {isAuthenticated && (
+            {isAuthenticated ? (
               <>
                 <SidebarSeparator className="my-4" />
                 
@@ -132,6 +132,20 @@ export function SidebarNav() {
                             <SidebarMenuButton isActive={pathname === '/admin/matches'} tooltip="Gerenciador de Jogos">
                                 <Swords />
                                 <span>Gerenciador de Jogos</span>
+                            </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+              </>
+            ) : (
+                <>
+                <SidebarSeparator className="my-4" />
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <Link href="/admin" passHref>
+                            <SidebarMenuButton isActive={pathname.startsWith('/admin')} tooltip="Login de Administrador">
+                                <Lock />
+                                <span>Login de Administrador</span>
                             </SidebarMenuButton>
                         </Link>
                     </SidebarMenuItem>
