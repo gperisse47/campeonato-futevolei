@@ -34,6 +34,9 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-8 items-center text-center">
       <div className="flex flex-col gap-4 items-center">
+         <div className="flex items-center justify-center gap-3">
+            <h1 className="text-4xl font-bold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h1>
+         </div>
          <Image
             src="/logo.jpg"
             alt="Logo do Torneio"
@@ -41,9 +44,6 @@ export default function Home() {
             height={150}
             priority
           />
-         <div className="flex items-center justify-center gap-3">
-            <h1 className="text-4xl font-bold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h1>
-         </div>
         <p className="text-muted-foreground text-lg">
           Acompanhe os jogos e classificações em tempo real.
         </p>
