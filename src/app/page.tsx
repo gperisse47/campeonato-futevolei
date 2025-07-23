@@ -35,18 +35,15 @@ export default function Home() {
     <div className="flex flex-col gap-8 items-center text-center">
       <div className="flex flex-col gap-4 items-center">
          <div className="flex items-center justify-center gap-3">
-            <h1 className="text-4xl font-bold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h1>
+            <h2 className="text-4xl font-bold tracking-tight">Campeonato de Futevôlei Amigos do Peri</h2>
          </div>
          <Image
-            src="/logo.jpg"
+            src="/logo.png"
             alt="Logo do Torneio"
-            width={150}
-            height={150}
+            width={130}
+            height={130}
             priority
           />
-        <p className="text-muted-foreground text-lg">
-          Acompanhe os jogos e classificações em tempo real.
-        </p>
       </div>
 
       <Card className="w-full max-w-2xl">
@@ -56,7 +53,7 @@ export default function Home() {
             Categorias em Andamento
           </CardTitle>
           <CardDescription>
-            Selecione uma categoria para ver os detalhes.
+          Acompanhe os jogos e classificações em tempo real.
           </CardDescription>
         </CardHeader>
         <CardContent>
