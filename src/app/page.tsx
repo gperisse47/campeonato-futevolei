@@ -35,7 +35,7 @@ export default function Home() {
     <div className="flex flex-col gap-8 items-center text-center">
       <div className="flex flex-col gap-4 items-center">
          <Image
-            src="/logo.png"
+            src="/logo.jpg"
             alt="Logo do Torneio"
             width={150}
             height={150}
