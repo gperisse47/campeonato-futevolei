@@ -280,7 +280,7 @@ export default function ScheduleGridPage() {
              {match.score1 !== undefined && match.score2 !== undefined ? (
                  <>
                     <div className="text-muted-foreground mb-0.5 truncate text-center">{match.team1Name}</div>
-                    <div className="font-bold my-0.5 text-center text-sm text-accent">{`${match.score1} x ${match.score2}`}</div>
+                    <div className="font-bold my-0.5 text-center text-sm text-primary">{`${match.score1} x ${match.score2}`}</div>
                     <div className="text-muted-foreground mb-0.5 truncate text-center">{match.team2Name}</div>
                  </>
              ) : (
