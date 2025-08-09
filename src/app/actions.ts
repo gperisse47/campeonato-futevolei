@@ -1,10 +1,6 @@
 
 
 "use server"
-import 'dotenv/config';
-
-import fs from "fs/promises"
-import path from "path"
 import {
   generateTournamentGroups,
   type GenerateTournamentGroupsOutput
@@ -15,9 +11,7 @@ import { format, addMinutes, parse, isBefore, startOfDay, isAfter, setHours, set
 import { calculateTotalMatches, initializeDoubleEliminationBracket, initializePlayoffs, initializeStandings } from '@/lib/regeneration';
 import Papa from 'papaparse';
 import { scheduleMatches, type MatchRow, type SchedulingLog } from '@/lib/scheduler';
-
-
-const dbPath = path.resolve(process.cwd(), "db.json")
+import { readDB as kvRead, writeDB as kvWrite } from '@/lib/kv';
 
 // Zod schema for the output of the algorithmic group generation.
 // This is necessary because we can no longer import it from the flow.
@@ -37,44 +31,23 @@ const GenerateTournamentGroupsOutputSchema = z.object({
 
 
 async function readDb(): Promise<TournamentsState> {
-  try {
-    const fileContent = await fs.readFile(dbPath, "utf-8")
-    const data = JSON.parse(fileContent)
-    // Ensure global settings exist
-    if (!data._globalSettings) {
-      data._globalSettings = {
-        startTime: "08:00",
-        endTime: "21:00",
-        estimatedMatchDuration: 20,
-        courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
-      };
+  const data = await kvRead<TournamentsState>();
+  if (data && data._globalSettings) return data;
+  // Seed inicial se estiver vazio no KV
+  const defaultData: TournamentsState = {
+    _globalSettings: {
+      startTime: "08:00",
+      endTime: "21:00",
+      estimatedMatchDuration: 20,
+      courts: [{ name: "Quadra 1", slots: [{ startTime: "09:00", endTime: "18:00" }], priority: 1 }]
     }
-    return data;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      const defaultData = {
-        _globalSettings: {
-            startTime: "08:00",
-            endTime: "21:00",
-            estimatedMatchDuration: 20,
-            courts: [{ name: "Quadra 1", slots: [{startTime: "09:00", endTime: "18:00"}], priority: 1 }]
-        }
-      };
-      await writeDb(defaultData);
-      return defaultData;
-    }
-    console.error("Error reading from DB:", error)
-    throw new Error("Could not read from database.")
-  }
+  } as any;
+  await kvWrite(defaultData);
+  return defaultData;
 }
 
 async function writeDb(data: TournamentsState) {
-  try {
-    await fs.writeFile(dbPath, JSON.stringify(data, null, 2), "utf-8")
-  } catch (error) {
-    console.error("Error writing to DB:", error)
-    throw new Error("Could not write to database.")
-  }
+  await kvWrite(data);
 }
 
 export async function getTournaments(): Promise<TournamentsState> {
