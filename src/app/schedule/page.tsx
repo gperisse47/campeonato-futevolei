@@ -224,7 +224,7 @@ export default function ScheduleGridPage() {
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
         doc.setTextColor("#000000");
-        doc.text(slot.time, margin + colWidth / 2, yPos + rowHeight / 2 + 3, { align: 'center' });
+        doc.text(slot.time, margin + colWidth / 2, yPos + rowHeight / 2 + 3, { align: 'center', halign: 'center' });
 
         // Match cells
         slot.courts.forEach((courtSlot, colIndex) => {
