@@ -252,7 +252,7 @@ export default function ScheduleGridPage() {
                 doc.text(team1, cellX + colWidth / 2, textY, { align: 'center' });
                 
                 textY += lineHeight;
-                doc.setFontSize(6);
+                doc.setFontSize(7);
                 doc.setFont('helvetica', 'normal');
                 doc.text(vs, cellX + colWidth / 2, textY, { align: 'center' });
                 
