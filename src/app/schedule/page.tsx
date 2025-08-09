@@ -196,7 +196,7 @@ export default function ScheduleGridPage() {
     doc.setTextColor("#FFFFFF");
     doc.rect(margin, yPos, contentWidth, 10, "F");
     allColumns.forEach((col, index) => {
-        doc.text(col, margin + index * colWidth + colWidth / 2, yPos + 7, { align: 'center' });
+        doc.text(col, margin + index * colWidth + colWidth / 2, yPos + 7, { align: 'center', halign: 'center' });
     });
     yPos += 10;
     
@@ -211,7 +211,7 @@ export default function ScheduleGridPage() {
             doc.setTextColor("#FFFFFF");
             doc.rect(margin, yPos, contentWidth, 10, "F");
             allColumns.forEach((col, index) => {
-                doc.text(col, margin + index * colWidth + colWidth / 2, yPos + 7, { align: 'center' });
+                doc.text(col, margin + index * colWidth + colWidth / 2, yPos + 7, { align: 'center', halign: 'center' });
             });
             yPos += 10;
         }
