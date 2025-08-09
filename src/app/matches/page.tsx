@@ -188,6 +188,9 @@ export default function MatchesPage() {
       alternateRowStyles: {
         fillColor: [245, 245, 245] // Light gray for zebra stripes
       },
+      styles: {
+        halign: 'center' // Alinha horizontalmente ao centro
+      },
       didDrawPage: (data) => {
         // Footer with page number
         const pageCount = doc.getNumberOfPages();
@@ -256,7 +259,7 @@ export default function MatchesPage() {
                     <TableHead>Categoria</TableHead>
                     <TableHead>Fase</TableHead>
                     <TableHead className="text-right">Dupla 1</TableHead>
-                    <TableHead className="text-center w-[100px]">Placar</TableHead>
+                    <TableHead className="text-center w-[100px]">Resultado</TableHead>
                     <TableHead>Dupla 2</TableHead>
                     </TableRow>
                 </TableHeader>
