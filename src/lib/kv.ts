@@ -12,13 +12,18 @@ export type DB = {
 };
 
 // Lê o “db.json” do KV
-export async function readDB<T = DB>(): Promise<T | null> {
-  return (await kv.get<T>(DB_KEY)) ?? null;
+export async function readDB<T = any>(): Promise<T | null> {
+  const raw = await kv.get(DB_KEY);
+  if (raw == null) return null;
+  // Se veio string (foi salvo como JSON string), parseia
+  return (typeof raw === 'string' ? JSON.parse(raw) : raw) as T;
 }
 
 // Salva o “db.json” no KV (substitui o conteúdo atual)
-export async function writeDB<T = DB>(data: T): Promise<'OK'> {
-  await kv.set(DB_KEY, data);
+export async function writeDB<T = any>(data: T): Promise<'OK'> {
+  // Garante que salvamos como objeto (não string)
+  const value = typeof data === 'string' ? JSON.parse(data) : data;
+  await kv.set(DB_KEY, value);
   return 'OK';
 }
 
