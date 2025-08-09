@@ -242,7 +242,7 @@ export default function ScheduleGridPage() {
                 const totalTextHeight = 4 * lineHeight;
                 let textY = yPos + (rowHeight - totalTextHeight) / 2 + lineHeight;
 
-                doc.setFontSize(7);
+                doc.setFontSize(8);
                 doc.setFont('helvetica', 'bold');
                 doc.text(info, cellX + colWidth / 2, textY, { align: 'center' });
                 
