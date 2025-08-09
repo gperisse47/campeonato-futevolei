@@ -176,7 +176,7 @@ export default function MatchesPage() {
     doc.text(subtitle, x2, 22);
 
     autoTable(doc, {
-      head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Placar', 'Dupla 2']],
+      head: [['Horário', 'Quadra', 'Categoria', 'Fase', 'Dupla 1', 'Resultado', 'Dupla 2']],
       body: tableData,
       startY: 30,
       theme: 'grid',
