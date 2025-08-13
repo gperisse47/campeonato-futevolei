@@ -289,19 +289,17 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
       const court = sortedCourts[i];
       const match = candidateMatches[i];
+      match.time = formatDate(currentTime, "HH:mm");
+      match.court = court.name;
+      court.nextAvailable = addMinutes(currentTime, matchDuration);
 
-
-        match.time = formatDate(currentTime, "HH:mm");
-        match.court = court.name;
-        court.nextAvailable = addMinutes(currentTime, matchDuration);
-
-        for (const p of match.players) {
+      for (const p of match.players) {
             playerAvailability[p] = addMinutes(currentTime, matchDuration);
             if (!matchHistory[p]) matchHistory[p] = [];
             matchHistory[p].push(currentTime);
             usedPlayers.add(p);
         }
-        unscheduled.delete(match.id);
+      unscheduled.delete(match.id);
     }
     
     if (isEqual(currentTime, loopStartTime)) {
