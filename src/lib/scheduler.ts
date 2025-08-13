@@ -288,18 +288,46 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     // 4. Aloca as melhores partidas nas melhores quadras
     for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
       const court = sortedCourts[i];
-      const match = candidateMatches[i];
-      match.time = formatDate(currentTime, "HH:mm");
-      match.court = court.name;
-      court.nextAvailable = addMinutes(currentTime, matchDuration);
+      //const match = candidateMatches[i];
+      //match.time = formatDate(currentTime, "HH:mm");
+      //match.court = court.name;
+      //court.nextAvailable = addMinutes(currentTime, matchDuration);
 
-      for (const p of match.players) {
-            playerAvailability[p] = addMinutes(currentTime, matchDuration);
-            if (!matchHistory[p]) matchHistory[p] = [];
-            matchHistory[p].push(currentTime);
-            usedPlayers.add(p);
+      //for (const p of match.players) {
+            //playerAvailability[p] = addMinutes(currentTime, matchDuration);
+            //if (!matchHistory[p]) matchHistory[p] = [];
+            //matchHistory[p].push(currentTime);
+            //usedPlayers.add(p);
+        //}
+      //unscheduled.delete(match.id);
+      // Tenta alocar partidas de playoffs (mata-mata) primeiro
+      let match = candidateMatches.find(m => {
+        const isPlayoffStage = getStagePriority(m.stage) > 1; // Verifica se é uma partida de playoffs (mata-mata)
+        return isPlayoffStage && !m.time && !m.court; // Apenas partidas não alocadas
+      });
+      
+      if (!match) {
+        // Caso não encontre uma partida de playoffs disponível, tenta alocar uma fase de grupos
+        match = candidateMatches.find(m => {
+          const isGroupStage = getStagePriority(m.stage) <= 1; // Fase de grupos tem prioridade menor
+          return isGroupStage && !m.time && !m.court; // Apenas partidas não alocadas
+        });
+      }
+    
+      if (match) {
+        // Aloca a partida encontrada
+        match.time = formatDate(currentTime, "HH:mm");
+        match.court = court.name;
+        court.nextAvailable = addMinutes(currentTime, matchDuration);
+    
+        for (const p of match.players) {
+          playerAvailability[p] = addMinutes(currentTime, matchDuration);
+          if (!matchHistory[p]) matchHistory[p] = [];
+          matchHistory[p].push(currentTime);
+          usedPlayers.add(p);
         }
-      unscheduled.delete(match.id);
+        unscheduled.delete(match.id);
+      }
     }
     
     if (isEqual(currentTime, loopStartTime)) {
