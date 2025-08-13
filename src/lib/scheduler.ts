@@ -286,31 +286,31 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     candidateMatches.sort((a, b) => getStagePriority(b.stage) - getStagePriority(a.stage));
 
     // 4. Aloca as melhores partidas nas melhores quadras
-for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
-    const court = sortedCourts[i];
-    const match = candidateMatches[i];
-    
-    match.time = formatDate(currentTime, "HH:mm");
-    match.court = court.name;
-    court.nextAvailable = addMinutes(currentTime, matchDuration);
-    
-    for (const p of match.players) {
-        playerAvailability[p] = addMinutes(currentTime, matchDuration);
+    for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
+        const court = sortedCourts[i];
+        const match = candidateMatches[i];
         
-        if (!matchHistory[p]) matchHistory[p] = [];
-        matchHistory[p].push(currentTime);
+        match.time = formatDate(currentTime, "HH:mm");
+        match.court = court.name;
+        court.nextAvailable = addMinutes(currentTime, matchDuration);
         
-        usedPlayers.add(p);
+        for (const p of match.players) {
+            playerAvailability[p] = addMinutes(currentTime, matchDuration);
+            
+            if (!matchHistory[p]) matchHistory[p] = [];
+            matchHistory[p].push(currentTime);
+            
+            usedPlayers.add(p);
+        }
+        
+        unscheduled.delete(match.id);
     }
     
-    unscheduled.delete(match.id);
-}
-
-if (isEqual(currentTime, loopStartTime)) {
-    currentTime = addMinutes(currentTime, matchDuration);
-} else {
-    currentTime = loopStartTime;
-}
+    if (isEqual(currentTime, loopStartTime)) {
+        currentTime = addMinutes(currentTime, matchDuration);
+    } else {
+        currentTime = loopStartTime;
+    }
 
   if (unscheduled.size > 0 && addMinutes(currentTime, matchDuration) > END_OF_DAY) {
       for(const id of unscheduled){
