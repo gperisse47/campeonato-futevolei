@@ -284,7 +284,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     // 3. Ordena essas partidas por prioridade de fase (maior prioridade primeiro)
     candidateMatches.sort((a, b) => getStagePriority(b.stage) - getStagePriority(a.stage));
-    const topPriority = sortedCourts[0]?.priority ?? 99;
+    const topPriority = Math.min(...sortedCourts.map(court => court.priority ?? 99));
     
 
     // 4. Aloca as melhores partidas nas melhores quadras
