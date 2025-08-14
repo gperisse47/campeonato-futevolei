@@ -307,7 +307,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       // Tenta alocar partidas de playoffs (mata-mata) primeiro
       let match = candidateMatches.find(m => {
         const isPlayoffStage = getStagePriority(m.stage) > 1; // Verifica se é uma partida de playoffs (mata-mata)
-        return isPlayoffStage && !m.time && !m.court && isTopCourt; // Apenas partidas não alocadas
+        return isPlayoffStage && !m.time && !m.court; // Apenas partidas não alocadas
       });
       
       if (!match) {
