@@ -285,54 +285,92 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
     // 3. Ordena essas partidas por prioridade de fase (maior prioridade primeiro)
     candidateMatches.sort((a, b) => getStagePriority(b.stage) - getStagePriority(a.stage));
     const topPriority = Math.min(...sortedCourts.map(court => court.priority ?? 99));
-    
 
     // 4. Aloca as melhores partidas nas melhores quadras
-    for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
+    let i = 0;
+    while (i < candidateMatches.length && i < sortedCourts.length) {
+      const match = candidateMatches[i];
       const court = sortedCourts[i];
-      const isTopCourt =  (court.priority ?? 99) === topPriority;
-
-      //const match = candidateMatches[i];
-      //match.time = formatDate(currentTime, "HH:mm");
-      //match.court = court.name;
-      //court.nextAvailable = addMinutes(currentTime, matchDuration);
-
-      //for (const p of match.players) {
-            //playerAvailability[p] = addMinutes(currentTime, matchDuration);
-            //if (!matchHistory[p]) matchHistory[p] = [];
-            //matchHistory[p].push(currentTime);
-            //usedPlayers.add(p);
-        //}
-      //unscheduled.delete(match.id);
-      // Tenta alocar partidas de playoffs (mata-mata) primeiro
-      let match = candidateMatches.find(m => {
-        const isPlayoffStage = getStagePriority(m.stage) > 1; // Verifica se é uma partida de playoffs (mata-mata)
-        return isPlayoffStage && !m.time && !m.court; // Apenas partidas não alocadas
-      });
-      
-      if (!match) {
-        // Caso não encontre uma partida de playoffs disponível, tenta alocar uma fase de grupos
-        match = candidateMatches.find(m => {
-          const isGroupStage = getStagePriority(m.stage) <= 1; // Fase de grupos tem prioridade menor
-          return isGroupStage && !m.time && !m.court; // Apenas partidas não alocadas
-        });
+      const isTopCourt = (court.priority ?? 99) === topPriority;
+    
+      // Verifica se a partida é de playoff (mata-mata)
+      const isPlayoffStage = getStagePriority(match.stage) > 1; // Fase de playoff tem prioridade maior
+    
+      // Se for playoff, verifica se a quadra é de máxima prioridade
+      if (isPlayoffStage && !isTopCourt) {
+        // Se não for de máxima prioridade, passa para a próxima partida candidata
+        i++;
+        continue;
       }
     
-      if (match) {
-        // Aloca a partida encontrada
-        match.time = formatDate(currentTime, "HH:mm");
-        match.court = court.name;
-        court.nextAvailable = addMinutes(currentTime, matchDuration);
+      // Aloca a partida
+      match.time = formatDate(currentTime, "HH:mm");
+      match.court = court.name;
+      court.nextAvailable = addMinutes(currentTime, matchDuration);
     
-        for (const p of match.players) {
-          playerAvailability[p] = addMinutes(currentTime, matchDuration);
-          if (!matchHistory[p]) matchHistory[p] = [];
-          matchHistory[p].push(currentTime);
-          usedPlayers.add(p);
-        }
-        unscheduled.delete(match.id);
+      // Atualiza disponibilidade dos jogadores
+      for (const p of match.players) {
+        playerAvailability[p] = addMinutes(currentTime, matchDuration);
+        if (!matchHistory[p]) matchHistory[p] = [];
+        matchHistory[p].push(currentTime);
+        usedPlayers.add(p);
       }
+    
+      unscheduled.delete(match.id); // Marca a partida como agendada
+      candidateMatches = candidateMatches.filter(m => m.id !== match.id); // Remove a partida alocada da lista de candidatas
+    
+      // Avança para a próxima quadra e próxima partida
+      i++;
     }
+
+    
+
+    // // 4. Aloca as melhores partidas nas melhores quadras
+    // for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
+    //   const court = sortedCourts[i];
+    //   const isTopCourt =  (court.priority ?? 99) === topPriority;
+
+    //   //const match = candidateMatches[i];
+    //   //match.time = formatDate(currentTime, "HH:mm");
+    //   //match.court = court.name;
+    //   //court.nextAvailable = addMinutes(currentTime, matchDuration);
+
+    //   //for (const p of match.players) {
+    //         //playerAvailability[p] = addMinutes(currentTime, matchDuration);
+    //         //if (!matchHistory[p]) matchHistory[p] = [];
+    //         //matchHistory[p].push(currentTime);
+    //         //usedPlayers.add(p);
+    //     //}
+    //   //unscheduled.delete(match.id);
+    //   // Tenta alocar partidas de playoffs (mata-mata) primeiro
+    //   let match = candidateMatches.find(m => {
+    //     const isPlayoffStage = getStagePriority(m.stage) > 1; // Verifica se é uma partida de playoffs (mata-mata)
+    //     return isPlayoffStage && !m.time && !m.court; // Apenas partidas não alocadas
+    //   });
+      
+    //   if (!match) {
+    //     // Caso não encontre uma partida de playoffs disponível, tenta alocar uma fase de grupos
+    //     match = candidateMatches.find(m => {
+    //       const isGroupStage = getStagePriority(m.stage) <= 1; // Fase de grupos tem prioridade menor
+    //       return isGroupStage && !m.time && !m.court; // Apenas partidas não alocadas
+    //     });
+    //   }
+    
+    //   if (match) {
+    //     // Aloca a partida encontrada
+    //     match.time = formatDate(currentTime, "HH:mm");
+    //     match.court = court.name;
+    //     court.nextAvailable = addMinutes(currentTime, matchDuration);
+    
+    //     for (const p of match.players) {
+    //       playerAvailability[p] = addMinutes(currentTime, matchDuration);
+    //       if (!matchHistory[p]) matchHistory[p] = [];
+    //       matchHistory[p].push(currentTime);
+    //       usedPlayers.add(p);
+    //     }
+    //     unscheduled.delete(match.id);
+    //   }
+    // }
 
     // // === 4) Alocação usando candidateMatches já filtrado e ordenado ===
 
