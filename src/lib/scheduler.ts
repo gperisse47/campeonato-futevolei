@@ -284,10 +284,14 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
 
     // 3. Ordena essas partidas por prioridade de fase (maior prioridade primeiro)
     candidateMatches.sort((a, b) => getStagePriority(b.stage) - getStagePriority(a.stage));
+    const topPriority = sortedCourts[0]?.priority ?? 99;
+    
 
     // 4. Aloca as melhores partidas nas melhores quadras
     for (let i = 0; i < Math.min(sortedCourts.length, candidateMatches.length); i++) {
       const court = sortedCourts[i];
+      const isTopCourt =  (court.priority ?? 99) === topPriority;
+
       //const match = candidateMatches[i];
       //match.time = formatDate(currentTime, "HH:mm");
       //match.court = court.name;
@@ -303,7 +307,7 @@ export function scheduleMatches(matchesInput: MatchRow[], parameters: Record<str
       // Tenta alocar partidas de playoffs (mata-mata) primeiro
       let match = candidateMatches.find(m => {
         const isPlayoffStage = getStagePriority(m.stage) > 1; // Verifica se é uma partida de playoffs (mata-mata)
-        return isPlayoffStage && !m.time && !m.court; // Apenas partidas não alocadas
+        return isPlayoffStage && !m.time && !m.court && isTopCourt; // Apenas partidas não alocadas
       });
       
       if (!match) {
