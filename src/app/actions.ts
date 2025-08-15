@@ -211,12 +211,9 @@ function generateGroupsAlgorithmically(input: GenerateTournamentGroupsInput): Ge
     teamsToDistribute.forEach((team, index) => {
         let groupIndex: number;
         if (groupFormationStrategy === 'order') {
-            const round = Math.floor(index / numberOfGroups);
-            const isEvenRound = round % 2 === 0;
-            const pick = index % numberOfGroups;
-            groupIndex = isEvenRound ? pick : numberOfGroups - 1 - pick;
-        } else {
             groupIndex = index % numberOfGroups;
+        } else {
+            groupIndex = index % numberOfGroups; // já está embaralhado, então mantém
         }
         groupsData[groupIndex].teams.push(team);
     });
